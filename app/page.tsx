@@ -1,5 +1,134 @@
-import { Hero, Rail, Shell, SkeletonRail } from '@/components/luma'
-import { getPopularMovies, getPopularTV, getTopRatedMovies, getTopRatedTV, getTrending } from '@/lib/tmdb'
+import { Suspense } from 'react'
+import { Shell } from '@/components/layout/Shell'
+import { Hero } from '@/components/media/Hero'
+import { MediaRail } from '@/components/media/MediaRail'
+import { SkeletonRail, SkeletonHero } from '@/components/feedback/Skeletons'
+import { ContinueWatchingRail } from '@/components/media/ContinueWatchingRail'
+import {
+  getTrending,
+  getPopularMovies,
+  getPopularTV,
+  getTopRatedMovies,
+  getTopRatedTV,
+  getNowPlaying,
+  getUpcoming,
+  type Media,
+  type MediaType,
+} from '@/lib/tmdb'
 
-async function rail(title:string, loader:()=>Promise<{results:import('@/lib/tmdb').Media[]}>) { try { return (await loader()).results } catch { return [] } }
-export default async function Page() { const [trending,movies,tv,topMovies,topTV]=await Promise.all([rail('Trending',getTrending),rail('Popular Movies',getPopularMovies),rail('Popular TV',getPopularTV),rail('Top Rated Movies',getTopRatedMovies),rail('Top Rated TV',getTopRatedTV)]); const hero=trending[0] || {id:0,title:'Your next favorite story',overview:'Connect a TMDB API key to unlock the live catalog.',vote_average:0,media_type:'movie' as const}; return <Shell><Hero item={hero}/>{trending.length? <><Rail title="Trending today" items={trending}/><Rail title="Popular movies" items={movies}/><Rail title="Popular TV shows" items={tv}/><Rail title="Top rated movies" items={topMovies}/><Rail title="Top rated TV" items={topTV}/></>:<div className="mx-5 mt-8 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-sm text-muted-foreground lg:mx-8"><strong className="text-white">Connect TMDB to bring Luma to life.</strong> TMDB is not available right now. Check the server configuration to load real movies and shows.</div>}</Shell> }
+async function safeList(
+  loader: () => Promise<{ results: Media[] }>,
+  mediaType: MediaType,
+): Promise<(Media & { media_type: MediaType })[]> {
+  try {
+    const data = await loader()
+    return data.results.map((item) => ({
+      ...item,
+      media_type: (item.media_type as MediaType) ?? mediaType,
+    }))
+  } catch {
+    return []
+  }
+}
+
+// Async section components for independent Suspense boundaries
+async function TrendingSection() {
+  const trending = await safeList(getTrending, 'movie')
+  if (!trending.length) return null
+
+  const hero = trending[0]
+
+  return (
+    <>
+      <Hero item={hero} />
+      <MediaRail title="Trending today" items={trending.slice(1)} />
+    </>
+  )
+}
+
+async function MovieSections() {
+  const [popular, topRated, nowPlaying, upcoming] = await Promise.all([
+    safeList(getPopularMovies, 'movie'),
+    safeList(getTopRatedMovies, 'movie'),
+    safeList(getNowPlaying, 'movie'),
+    safeList(getUpcoming, 'movie'),
+  ])
+
+  return (
+    <>
+      {popular.length > 0 && <MediaRail title="Popular movies" items={popular} href="/movies" />}
+      {topRated.length > 0 && <MediaRail title="Top rated movies" items={topRated} />}
+      {nowPlaying.length > 0 && <MediaRail title="Now playing" items={nowPlaying} />}
+      {upcoming.length > 0 && <MediaRail title="Coming soon" items={upcoming} landscape />}
+    </>
+  )
+}
+
+async function TVSections() {
+  const [popular, topRated] = await Promise.all([
+    safeList(getPopularTV, 'tv'),
+    safeList(getTopRatedTV, 'tv'),
+  ])
+
+  return (
+    <>
+      {popular.length > 0 && <MediaRail title="Popular TV shows" items={popular} href="/tv" />}
+      {topRated.length > 0 && <MediaRail title="Top rated TV" items={topRated} />}
+    </>
+  )
+}
+
+// No-TMDB fallback
+function CatalogOffline() {
+  return (
+    <div className="mx-5 mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-6 lg:mx-8">
+      <h2 className="font-bold text-white font-display">Catalog not connected</h2>
+      <p className="mt-2 text-sm text-muted-foreground max-w-md">
+        Add your{' '}
+        <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">TMDB_API_KEY</code>{' '}
+        to <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">.env.local</code>{' '}
+        to load the live catalog. See{' '}
+        <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">.env.example</code>{' '}
+        for setup instructions.
+      </p>
+    </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Shell>
+      {/* Hero — independent boundary so other sections don't block */}
+      <Suspense fallback={<SkeletonHero />}>
+        <TrendingSection />
+      </Suspense>
+
+      {/* Continue Watching — client component, hydrates from localStorage */}
+      <ContinueWatchingRail />
+
+      {/* Movie rails */}
+      <Suspense
+        fallback={
+          <>
+            <SkeletonRail />
+            <SkeletonRail />
+          </>
+        }
+      >
+        <MovieSections />
+      </Suspense>
+
+      {/* TV rails */}
+      <Suspense
+        fallback={
+          <>
+            <SkeletonRail />
+            <SkeletonRail />
+          </>
+        }
+      >
+        <TVSections />
+      </Suspense>
+    </Shell>
+  )
+}

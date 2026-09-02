@@ -1,5 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@theme inline { --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --font-sans: 'Geist', sans-serif; --font-mono: 'Geist Mono', monospace; }
-:root { --background: #07090e; --foreground: #f4f5f7; --card: #11151d; --primary: #e5ad57; --primary-foreground: #171008; --muted-foreground: #89919f; --border: rgba(255,255,255,.1); --radius: .75rem; color-scheme: dark; }
-*{box-sizing:border-box}html{background:var(--background)}body{margin:0;background:var(--background);color:var(--foreground);font-family:Arial,sans-serif}.eyebrow{color:var(--primary);font-size:.7rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase}.section-title{font-size:1.25rem;font-weight:800;color:white}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* ── Design tokens ───────────────────────────────────────────────────────── */
+@theme inline {
+  /* Colors */
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  /* Fonts */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-sans: 'Manrope', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+
+  /* Radius */
+  --radius: 0.75rem;
+}
+
+/* ── Color palette: VEYRA — The Night Signal ─────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --background:        #0B0C18;   /* Midnight base */
+  --surface:           #181928;   /* Card / panel surface */
+  --card:              #181928;
+
+  /* Foregrounds */
+  --foreground:        #F0F1F9;   /* Primary text */
+  --muted-foreground:  #A2A3B1;   /* Secondary text */
+  --muted:             #2A2B3D;   /* Subtle backgrounds */
+
+  /* Brand */
+  --primary:           #8F81FF;   /* Iris — primary CTA, links */
+  --primary-foreground:#0B0C18;   /* Text on primary */
+  --accent:            #FFB330;   /* Saffron — emphasis, stars, signals */
+  --accent-foreground: #0B0C18;
+
+  /* Borders */
+  --border:            rgba(255, 255, 255, 0.08);
+
+  /* Shadows */
+  --shadow-card:       0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow:       0 0 40px rgba(143, 129, 255, 0.15);
+
+  color-scheme: dark;
+}
+
+/* ── Base reset ──────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), 'Manrope', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Typography utilities ────────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display), 'Space Grotesk', sans-serif;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.section-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.03em;
+}
+
+.hero-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  color: white;
+}
+
+/* ── Focus styles ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Skip link ───────────────────────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.5rem 1rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ── Iris glow ring (decorative) ─────────────────────────────────────────── */
+.iris-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+/* ── Rail scroll hide ────────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ── Gradient overlays ───────────────────────────────────────────────────── */
+.gradient-bottom {
+  background: linear-gradient(to top, var(--background) 0%, transparent 100%);
+}
+
+.gradient-left {
+  background: linear-gradient(to right, var(--background) 0%, transparent 100%);
+}

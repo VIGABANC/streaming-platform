@@ -1,0 +1,49 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Home, Film, Tv, Compass, Bookmark } from 'lucide-react'
+
+const NAV_ITEMS = [
+  { href: '/', label: 'Home', icon: Home },
+  { href: '/movies', label: 'Movies', icon: Film },
+  { href: '/tv', label: 'TV', icon: Tv },
+  { href: '/discover', label: 'Discover', icon: Compass },
+  { href: '/my-list', label: 'My List', icon: Bookmark },
+] as const
+
+export function MobileNav() {
+  const pathname = usePathname()
+
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname.startsWith(href)
+
+  return (
+    <nav
+      aria-label="Mobile navigation"
+      className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-stretch justify-around border-t border-white/8 bg-[#0B0C18]/95 backdrop-blur-xl md:hidden safe-area-inset-bottom"
+    >
+      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        const active = isActive(href)
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? 'page' : undefined}
+            aria-label={label}
+            className={`flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-semibold transition-colors ${
+              active ? 'text-primary' : 'text-muted-foreground hover:text-white'
+            }`}
+          >
+            <Icon
+              size={20}
+              className={`transition-transform duration-200 ${active ? 'scale-110' : ''}`}
+              strokeWidth={active ? 2.5 : 1.75}
+            />
+            {label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}

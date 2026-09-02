@@ -1,33 +1,101 @@
-# streaming-platform
+# VEYRA — The Night Signal
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+VEYRA is a high-performance cinematic discovery and streaming frontend built with Next.js 16 (Turbopack), Tailwind CSS, TypeScript, and TMDB API.
 
-## Built with v0
+---
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+## Features
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_3zhloui14fDSHLAYBCNtPDAG9Kpw)
+- **Cinematic Discovery**: Curated rails for Trending, Popular, Top Rated, Now Playing, Airing Today, and On The Air.
+- **Universal Finder (Search)**: Debounced multi-search with URL query persistence, recent search history, category filtering, and `/` hotkey focus.
+- **Dynamic Detail Pages**: Comprehensive movie and TV details including backdrops, trailers, cast, production info, recommendations, and ratings.
+- **Full TV Season & Episode Navigation**: Multi-season dropdown/tabs, specials handling, episode cards with runtime, air date, and overview.
+- **Watchlist, Favorites & Continue Watching**: Reactive client-side media storage synchronized across browser tabs with dedicated management views.
+- **Video Player Frame**: Embedded playback with configurable provider (`NEXT_PUBLIC_EMBED_PROVIDER`), tiered load timeout warnings, and fallback recovery.
+- **PWA & Offline Ready**: Web App Manifest with application shell caching and an offline fallback route.
+- **Accessibility & SEO**: Semantic HTML5, skip navigation links, OpenGraph metadata, `sitemap.xml`, and `robots.txt`.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Setup
+
+Copy the example environment template:
+
+```bash
+cp .env.example .env.local
+```
+
+Configure your environment variables in `.env.local`:
+
+```env
+# TMDB API Key (Required for catalog browsing and search)
+# Get your free key at: https://www.themoviedb.org/settings/api
+TMDB_API_KEY=your_tmdb_api_key_here
+
+# Embed provider base URL (Default: https://v1.vidsrc.wiki)
+NEXT_PUBLIC_EMBED_PROVIDER=https://v1.vidsrc.wiki
+```
+
+> **Security Note:** `TMDB_API_KEY` is server-side only and never exposed to client bundles.
+
+---
+
+### 2. Installation
+
+Install project dependencies using npm:
+
+```bash
+npm install
+```
+
+---
+
+### 3. Development Server
+
+Start the local development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view VEYRA in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-## Learn More
+### 4. Quality Verification & Testing
 
-To learn more, take a look at the following resources:
+Run the test suites:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+```bash
+# Run unit and integration tests (Vitest)
+npm test
+
+# Run end-to-end tests (Playwright)
+npm run test:e2e
+
+# Run TypeScript compiler check
+npm run typecheck
+
+# Run linter
+npm run lint
+```
+
+---
+
+### 5. Production Build
+
+Build and launch the optimized production server:
+
+```bash
+npm run build
+npm run start
+```
+
+---
+
+## Attribution & Disclaimers
+
+- **TMDB**: This product uses the TMDB API but is not endorsed or certified by TMDB.
+- **External Video Providers**: Video streams are served via external embed providers. VEYRA does not host, store, or stream media content directly.

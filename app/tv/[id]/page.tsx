@@ -1,2 +1,292 @@
-import Link from 'next/link';import { getDetail, getSeason, poster,titleOf,yearOf } from '@/lib/tmdb';import { MediaCard,Shell } from '@/components/luma'
-export default async function TVDetail({params}:{params:Promise<{id:string}>}){const {id}=await params;const show=await getDetail('tv',id).catch(()=>null);const season=(show?.seasons||[]).find(s=>s.season_number>0);const episodes=season?await getSeason(id,season.season_number).catch(()=>({episodes:[]})):({episodes:[]});if(!show)return <Shell><div className="p-8 text-muted-foreground">Series unavailable.</div></Shell>;return <Shell><section className="relative overflow-hidden border-b border-white/10 p-5 lg:p-12"><div className="relative flex flex-col gap-8 md:flex-row md:items-end"><img src={poster(show.poster_path)} alt={`${titleOf(show)} poster`} className="w-40 rounded-xl shadow-2xl md:w-56"/><div className="max-w-2xl"><p className="eyebrow">Series / {yearOf(show)}</p><h1 className="mt-3 text-4xl font-black tracking-[-.05em] text-white md:text-6xl">{titleOf(show)}</h1><p className="mt-5 leading-7 text-muted-foreground">{show.overview}</p><Link href={`/watch/tv/${id}/${season?.season_number||1}/1`} className="mt-6 inline-flex rounded-full bg-primary px-5 py-3 font-semibold text-primary-foreground">Play series</Link></div></div></section><section className="p-5 lg:p-12"><h2 className="section-title">{season?.name||'Episodes'}</h2><div className="mt-5 grid gap-3">{episodes.episodes.map((ep:any)=><Link href={`/watch/tv/${id}/${ep.season_number}/${ep.episode_number}`} key={ep.id} className="flex gap-4 rounded-xl bg-card p-3 hover:bg-white/10"><img src={poster(ep.still_path,'w500')} alt="" className="aspect-video w-36 rounded-lg object-cover"/><div><p className="text-sm font-semibold text-white">{ep.episode_number}. {ep.name}</p><p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{ep.overview}</p></div></Link>)}</div></section></Shell>}
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Calendar, Star, Tv, ChevronRight, Layers } from 'lucide-react'
+import { Shell } from '@/components/layout/Shell'
+import { MediaRail } from '@/components/media/MediaRail'
+import { MediaDetailActions } from '@/components/media/MediaDetailActions'
+import { TVSeasonExplorer } from '@/components/tv/TVSeasonExplorer'
+import {
+  getTVDetail,
+  getSeason,
+  poster,
+  backdrop,
+  profileImage,
+  titleOf,
+  yearOf,
+  getTVRating,
+  type TVDetail,
+  type Media,
+  type MediaType,
+} from '@/lib/tmdb'
+import { formatRating } from '@/lib/utils'
+
+interface TVPageProps {
+  params: Promise<{ id: string }>
+}
+
+export async function generateMetadata({ params }: TVPageProps): Promise<Metadata> {
+  const { id } = await params
+  try {
+    const show = await getTVDetail(id)
+    const title = titleOf(show)
+    const year = yearOf(show)
+    return {
+      title: `${title} (${year}) — VEYRA`,
+      description: show.overview || `Watch ${title} on VEYRA.`,
+      openGraph: {
+        title: `${title} (${year}) — VEYRA`,
+        description: show.overview || `Watch ${title} on VEYRA.`,
+        images: show.backdrop_path ? [backdrop(show.backdrop_path, 'w1280')] : [],
+      },
+    }
+  } catch {
+    return {
+      title: 'TV Series — VEYRA',
+      description: 'Stream movies and series on VEYRA.',
+    }
+  }
+}
+
+export default async function TVDetailPage({ params }: TVPageProps) {
+  const { id } = await params
+  let show: TVDetail | null = null
+
+  try {
+    show = await getTVDetail(id)
+  } catch {
+    // 404 handled below
+  }
+
+  if (!show) {
+    return (
+      <Shell>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
+          <Tv size={48} className="text-muted-foreground mb-4 opacity-50" />
+          <h1 className="text-2xl font-bold text-white font-display">Series Unavailable</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+            We couldn&apos;t find this series in the catalog or the TMDB service is unreachable.
+          </p>
+          <Link
+            href="/tv"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-xs font-semibold text-primary-foreground"
+          >
+            Browse TV Shows
+          </Link>
+        </div>
+      </Shell>
+    )
+  }
+
+  const title = titleOf(show)
+  const year = yearOf(show)
+  const rating = getTVRating(show)
+  const cast = (show.credits?.cast ?? []).slice(0, 12)
+  const recommendations: (Media & { media_type: MediaType })[] = (
+    show.recommendations?.results ?? show.similar?.results ?? []
+  ).map((m) => ({
+    ...m,
+    media_type: 'tv' as const,
+  }))
+
+  const seasons = show.seasons ?? []
+  // Find first non-specials season or season 1
+  const initialSeason = seasons.find((s) => s.season_number > 0) || seasons[0]
+  const initialSeasonNum = initialSeason ? initialSeason.season_number : 1
+
+  let initialEpisodes: any[] = []
+  try {
+    const seasonData = await getSeason(id, initialSeasonNum)
+    initialEpisodes = seasonData.episodes ?? []
+  } catch {
+    initialEpisodes = []
+  }
+
+  const backdropSrc = backdrop(show.backdrop_path, 'original')
+  const posterSrc = poster(show.poster_path, 'w780')
+
+  return (
+    <Shell>
+      {/* Hero Backdrop Section */}
+      <section className="relative overflow-hidden pb-12 pt-6 lg:pb-16" aria-label={`${title} overview`}>
+        {/* Backdrop Image */}
+        {show.backdrop_path && (
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={backdropSrc}
+              alt=""
+              fill
+              sizes="100vw"
+              className="object-cover opacity-25 filter blur-[1px]"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0C18] via-[#0B0C18]/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0B0C18] via-[#0B0C18]/70 to-transparent" />
+          </div>
+        )}
+
+        <div className="relative z-10 mx-auto max-w-[1440px] px-5 pt-8 lg:px-12">
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-xs text-muted-foreground">
+            <Link href="/" className="hover:text-white">Home</Link>
+            <ChevronRight size={12} />
+            <Link href="/tv" className="hover:text-white">TV Shows</Link>
+            <ChevronRight size={12} />
+            <span className="text-white truncate max-w-[200px]">{title}</span>
+          </nav>
+
+          <div className="flex flex-col gap-8 md:flex-row md:items-start lg:gap-12">
+            {/* Poster Card */}
+            <div className="relative aspect-[2/3] w-48 shrink-0 overflow-hidden rounded-2xl bg-surface shadow-2xl ring-1 ring-white/10 md:w-64 lg:w-72">
+              <Image
+                src={posterSrc}
+                alt={`${title} poster`}
+                fill
+                sizes="(max-width: 768px) 192px, 288px"
+                className="object-cover"
+                priority
+              />
+            </div>
+
+            {/* Info Column */}
+            <div className="flex-1 min-w-0">
+              {/* Eyebrow & Badges */}
+              <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                <span className="rounded-full bg-primary/10 border border-primary/30 px-3 py-1 font-semibold text-primary">
+                  Series
+                </span>
+                {rating && (
+                  <span className="rounded-md border border-white/20 bg-white/5 px-2 py-0.5 font-mono text-[11px] font-bold text-white">
+                    {rating}
+                  </span>
+                )}
+                {show.status && (
+                  <span className="rounded-md bg-accent/10 border border-accent/30 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                    {show.status}
+                  </span>
+                )}
+              </div>
+
+              {/* Title & Tagline */}
+              <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white font-display md:text-5xl lg:text-6xl text-balance">
+                {title}
+              </h1>
+
+              {show.original_name && show.original_name !== title && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Original title: <span className="text-white/80">{show.original_name}</span>
+                </p>
+              )}
+
+              {show.tagline && (
+                <p className="mt-2 text-sm italic text-primary/80 font-serif">
+                  &ldquo;{show.tagline}&rdquo;
+                </p>
+              )}
+
+              {/* Metadata row */}
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-white/80">
+                {year && (
+                  <div className="flex items-center gap-1.5">
+                    <Calendar size={14} className="text-muted-foreground" />
+                    <span>{year}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <Layers size={14} className="text-muted-foreground" />
+                  <span>
+                    {show.number_of_seasons || seasons.length} Season
+                    {(show.number_of_seasons || seasons.length) === 1 ? '' : 's'}
+                    {show.number_of_episodes ? ` (${show.number_of_episodes} eps)` : ''}
+                  </span>
+                </div>
+                {show.vote_average ? (
+                  <div className="flex items-center gap-1.5 text-accent font-semibold">
+                    <Star size={14} fill="currentColor" />
+                    <span>{formatRating(show.vote_average)}</span>
+                    <span className="text-muted-foreground font-normal text-[11px]">
+                      ({show.vote_count?.toLocaleString()} votes)
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Genre chips */}
+              {show.genres && show.genres.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {show.genres.map((g) => (
+                    <Link
+                      key={g.id}
+                      href={`/discover?type=tv&genre=${g.id}`}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 hover:border-primary hover:text-white transition-colors"
+                    >
+                      {g.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* Overview */}
+              {show.overview && (
+                <div className="mt-6 max-w-3xl">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Synopsis
+                  </h2>
+                  <p className="text-sm leading-relaxed text-white/85 sm:text-base">
+                    {show.overview}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <MediaDetailActions
+                item={show}
+                mediaType="tv"
+                watchHref={`/watch/tv/${show.id}/${initialSeasonNum}/1`}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Season and Episode Explorer */}
+      <section className="px-5 py-8 lg:px-12 border-t border-white/5">
+        <TVSeasonExplorer
+          showId={show.id}
+          seasons={seasons}
+          initialSeasonNumber={initialSeasonNum}
+          initialEpisodes={initialEpisodes}
+        />
+      </section>
+
+      {/* Cast Section */}
+      {cast.length > 0 && (
+        <section className="px-5 py-8 lg:px-12" aria-label="Cast">
+          <h2 className="section-title mb-5">Cast & Creators</h2>
+          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+            {cast.map((actor) => (
+              <div key={actor.id} className="w-24 shrink-0 text-center sm:w-28">
+                <div className="relative mx-auto aspect-square w-20 overflow-hidden rounded-full bg-surface shadow ring-1 ring-white/10 sm:w-24">
+                  <Image
+                    src={profileImage(actor.profile_path)}
+                    alt={actor.name}
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                  />
+                </div>
+                <p className="mt-2 text-xs font-semibold text-white truncate">{actor.name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{actor.character}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Recommendations */}
+      {recommendations.length > 0 && (
+        <MediaRail title="More Series Like This" items={recommendations} />
+      )}
+    </Shell>
+  )
+}

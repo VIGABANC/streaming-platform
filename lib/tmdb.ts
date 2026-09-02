@@ -15,7 +15,7 @@ export type Media = {
 }
 
 const API = 'https://api.themoviedb.org/3'
-const key = () => process.env.NEXT_PUBLIC_TMDB_API_KEY
+const key = () => process.env.TMDB_API_KEY
 export const titleOf = (m: Media) => m.title || m.name || 'Untitled'
 export const yearOf = (m: Media) => (m.release_date || m.first_air_date || '').slice(0, 4)
 export const poster = (path?: string | null, size = 'w500') => path ? `https://image.tmdb.org/t/p/${size}${path}` : '/poster-fallback.svg'

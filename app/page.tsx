@@ -78,22 +78,7 @@ async function TVSections() {
   )
 }
 
-// No-TMDB fallback
-function CatalogOffline() {
-  return (
-    <div className="mx-5 mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-6 lg:mx-8">
-      <h2 className="font-bold text-white font-display">Catalog not connected</h2>
-      <p className="mt-2 text-sm text-muted-foreground max-w-md">
-        Add your{' '}
-        <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">TMDB_API_KEY</code>{' '}
-        to <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">.env.local</code>{' '}
-        to load the live catalog. See{' '}
-        <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">.env.example</code>{' '}
-        for setup instructions.
-      </p>
-    </div>
-  )
-}
+
 
 export default function HomePage() {
   return (

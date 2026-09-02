@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Plus, Check, Heart, Play } from 'lucide-react'
+import { Plus, Check, Play } from 'lucide-react'
 import { poster, titleOf, yearOf, type Media, type MediaType } from '@/lib/tmdb'
 import { store, mediaToWatchlistItem } from '@/lib/store'
 import { formatRating } from '@/lib/utils'
@@ -35,7 +35,7 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
 
   const imgSrc = landscape
     ? poster(item.backdrop_path, 'w780')
-    : poster(item.poster_path, 'w500')
+    : poster(item.poster_path, 'w342')
 
   return (
     <article

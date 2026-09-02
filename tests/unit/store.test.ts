@@ -102,4 +102,31 @@ describe('UserMediaStore (LocalStorage abstraction)', () => {
       expect(history[1].id).toBe(100)
     })
   })
+
+  describe('Ratings operations', () => {
+    it('sets, retrieves, and updates ratings', () => {
+      expect(store.getRating(550, 'movie')).toBeNull()
+      store.setRating(550, 'movie', 9)
+      expect(store.getRating(550, 'movie')).toBe(9)
+
+      // Update rating
+      store.setRating(550, 'movie', 10)
+      expect(store.getRating(550, 'movie')).toBe(10)
+      expect(store.getRatings().length).toBe(1)
+    })
+
+    it('clamps ratings between 1 and 10', () => {
+      store.setRating(100, 'movie', 15)
+      expect(store.getRating(100, 'movie')).toBe(10)
+
+      store.setRating(200, 'movie', -5)
+      expect(store.getRating(200, 'movie')).toBe(1)
+    })
+
+    it('removes rating', () => {
+      store.setRating(550, 'movie', 8)
+      store.removeRating(550, 'movie')
+      expect(store.getRating(550, 'movie')).toBeNull()
+    })
+  })
 })

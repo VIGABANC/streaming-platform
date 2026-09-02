@@ -8,9 +8,7 @@ import {
   getTVDetail,
   getSeason,
   titleOf,
-  yearOf,
   backdrop,
-  poster,
   formatRuntime,
   type TVDetail,
   type SeasonDetail,
@@ -130,6 +128,10 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
         {/* Video Player Frame */}
         <div className="overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl bg-black">
           <PlayerFrame
+            mediaType="tv"
+            mediaId={id}
+            season={seasonNum}
+            episode={episodeNum}
             src={embedUrl}
             title={`${title} S${seasonNum} E${episodeNum} playback`}
             episodeLabel={`Season ${seasonNum}, Episode ${episodeNum} — ${episodeName}`}

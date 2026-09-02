@@ -11,7 +11,6 @@ import {
   titleOf,
   yearOf,
   backdrop,
-  poster,
   formatRuntime,
   type MovieDetail,
   type Media,
@@ -93,6 +92,8 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
         {/* Video Player Frame */}
         <div className="overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl bg-black">
           <PlayerFrame
+            mediaType="movie"
+            mediaId={id}
             src={embedUrl}
             title={`${title} playback`}
             artwork={backdropUrl}

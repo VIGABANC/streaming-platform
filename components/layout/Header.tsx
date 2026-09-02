@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Search, X, Bookmark, ChevronDown } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
@@ -17,7 +17,6 @@ const NAV_LINKS = [
 export function Header() {
   const pathname = usePathname()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [scrolled, setScrolled] = useState(false)

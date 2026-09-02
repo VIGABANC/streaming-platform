@@ -16,6 +16,8 @@ import {
   yearOf,
   getTVRating,
   type TVDetail,
+  type SeasonDetail,
+  type Episode,
   type Media,
   type MediaType,
 } from '@/lib/tmdb'
@@ -94,9 +96,9 @@ export default async function TVDetailPage({ params }: TVPageProps) {
   const initialSeason = seasons.find((s) => s.season_number > 0) || seasons[0]
   const initialSeasonNum = initialSeason ? initialSeason.season_number : 1
 
-  let initialEpisodes: any[] = []
+  let initialEpisodes: Episode[] = []
   try {
-    const seasonData = await getSeason(id, initialSeasonNum)
+    const seasonData: SeasonDetail = await getSeason(id, initialSeasonNum)
     initialEpisodes = seasonData.episodes ?? []
   } catch {
     initialEpisodes = []
@@ -105,8 +107,32 @@ export default async function TVDetailPage({ params }: TVPageProps) {
   const backdropSrc = backdrop(show.backdrop_path, 'original')
   const posterSrc = poster(show.poster_path, 'w780')
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'TVSeries',
+    name: title,
+    image: posterSrc,
+    description: show.overview,
+    startDate: show.first_air_date,
+    numberOfSeasons: show.number_of_seasons,
+    numberOfEpisodes: show.number_of_episodes,
+    aggregateRating: show.vote_average
+      ? {
+          '@type': 'AggregateRating',
+          ratingValue: show.vote_average,
+          bestRating: '10',
+          ratingCount: show.vote_count,
+        }
+      : undefined,
+    genre: show.genres?.map((g) => g.name),
+  }
+
   return (
     <Shell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Backdrop Section */}
       <section className="relative overflow-hidden pb-12 pt-6 lg:pb-16" aria-label={`${title} overview`}>
         {/* Backdrop Image */}

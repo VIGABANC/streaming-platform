@@ -3,6 +3,8 @@
 // Server-side only. Never import TMDB_API_KEY in client components.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { cache } from 'react'
+
 export type MediaType = 'movie' | 'tv'
 
 // ── Base media (used in lists / search results) ──────────────────────────────
@@ -182,14 +184,9 @@ export const backdrop = (path?: string | null, size = 'w1280') =>
 export const profileImage = (path?: string | null) =>
   path ? `https://image.tmdb.org/t/p/w185${path}` : '/placeholder-user.jpg'
 
-export function formatRuntime(minutes?: number): string {
-  if (!minutes || minutes <= 0) return ''
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h === 0) return `${m}m`
-  if (m === 0) return `${h}h`
-  return `${h}h ${m}m`
-}
+// Re-export from utils to avoid duplicate — canonical copy lives in lib/utils.ts
+export { formatRuntime } from './utils'
+
 
 export function getCertification(movie: MovieDetail): string {
   const us = movie.release_dates?.results?.find(
@@ -281,19 +278,19 @@ export const discover = (type: MediaType, params = '') =>
 
 // ── Detail ────────────────────────────────────────────────────────────────────
 
-export async function getMovieDetail(id: string | number): Promise<MovieDetail> {
+export const getMovieDetail = cache(async (id: string | number): Promise<MovieDetail> => {
   return tmdb<MovieDetail>(
     `/movie/${id}?append_to_response=credits,recommendations,similar,videos,release_dates`,
     3600,
   ).then((d) => ({ ...d, media_type: 'movie' as const }))
-}
+})
 
-export async function getTVDetail(id: string | number): Promise<TVDetail> {
+export const getTVDetail = cache(async (id: string | number): Promise<TVDetail> => {
   return tmdb<TVDetail>(
     `/tv/${id}?append_to_response=credits,recommendations,similar,videos,content_ratings`,
     3600,
   ).then((d) => ({ ...d, media_type: 'tv' as const }))
-}
+})
 
 /** @deprecated use getMovieDetail / getTVDetail */
 export async function getDetail(type: MediaType, id: string) {
@@ -301,12 +298,12 @@ export async function getDetail(type: MediaType, id: string) {
   return getTVDetail(id)
 }
 
-export async function getSeason(
+export const getSeason = cache(async (
   id: string | number,
   season: number,
-): Promise<SeasonDetail> {
+): Promise<SeasonDetail> => {
   return tmdb<SeasonDetail>(`/tv/${id}/season/${season}`, 3600)
-}
+})
 
 // ── Genre lists ───────────────────────────────────────────────────────────────
 

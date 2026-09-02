@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Bookmark, Heart, Film, Tv, Plus } from 'lucide-react'
+import { Bookmark, Heart, Film, Tv } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { MediaGrid } from '@/components/media/MediaGrid'
 import { EmptyState } from '@/components/feedback/EmptyState'

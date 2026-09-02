@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useRef, useTransition, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { Search as SearchIcon, X, Clock, AlertCircle, Film, Tv, Sparkles } from 'lucide-react'
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Search as SearchIcon, X, Clock, AlertCircle, Sparkles } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { MediaGrid } from '@/components/media/MediaGrid'
 import { SkeletonGrid } from '@/components/feedback/Skeletons'
@@ -16,7 +16,6 @@ const RECENT_SEARCHES_KEY = 'veyra-recent-searches'
 const MAX_RECENT_SEARCHES = 8
 
 function SearchContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
 
@@ -39,18 +38,20 @@ function SearchContent() {
     }
   }, [])
 
-  const saveRecentSearch = (query: string) => {
+  const saveRecentSearch = useCallback((query: string) => {
     const trimmed = query.trim()
     if (!trimmed) return
     try {
-      const existing = recentSearches.filter((s) => s.toLowerCase() !== trimmed.toLowerCase())
-      const updated = [trimmed, ...existing].slice(0, MAX_RECENT_SEARCHES)
-      setRecentSearches(updated)
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated))
+      setRecentSearches((prev) => {
+        const existing = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase())
+        const updated = [trimmed, ...existing].slice(0, MAX_RECENT_SEARCHES)
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated))
+        return updated
+      })
     } catch {
       // Ignore
     }
-  }
+  }, [])
 
   const clearRecentSearches = () => {
     setRecentSearches([])
@@ -80,9 +81,7 @@ function SearchContent() {
   // Sync with URL query parameter changes
   useEffect(() => {
     const paramQuery = searchParams.get('q') || ''
-    if (paramQuery !== q) {
-      setQ(paramQuery)
-    }
+    setQ((prev) => (prev !== paramQuery ? paramQuery : prev))
   }, [searchParams])
 
   // Debounced search query
@@ -146,7 +145,7 @@ function SearchContent() {
       controller.abort()
       clearTimeout(timer)
     }
-  }, [q])
+  }, [q, saveRecentSearch])
 
   // Filtered items by category tab
   const filteredItems = items.filter((item) => {

@@ -29,6 +29,17 @@ describe('Player Architecture & URL Builders', () => {
       const url = getTVEmbedUrl('1399', '2', '5')
       expect(url).toContain('/tv/1399/2/5')
     })
+
+    it('supports alternative providers', () => {
+      const p2 = getTVEmbedUrl(1399, 1, 1, 'vidsrc-xyz')
+      expect(p2).toContain('vidsrc.xyz')
+
+      const p3 = getTVEmbedUrl(1399, 1, 1, '2embed')
+      expect(p3).toContain('2embed.cc')
+
+      const p4 = getTVEmbedUrl(1399, 1, 1, 'autoembed')
+      expect(p4).toContain('autoembed.cc')
+    })
   })
 
   describe('playerErrorMessage', () => {

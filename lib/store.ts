@@ -34,6 +34,13 @@ export interface ContinueWatchingItem {
   lastOpenedAt: number
 }
 
+export interface RatingItem {
+  id: number
+  media_type: MediaType
+  rating: number // 1 - 10
+  ratedAt: number
+}
+
 // ── Interface ─────────────────────────────────────────────────────────────────
 
 export interface UserMediaStore {
@@ -51,6 +58,12 @@ export interface UserMediaStore {
   toggleFavorite(item: FavoriteItem): void
   isInFavorites(id: number, mediaType: MediaType): boolean
 
+  // Ratings
+  getRatings(): RatingItem[]
+  getRating(id: number, mediaType: MediaType): number | null
+  setRating(id: number, mediaType: MediaType, rating: number): void
+  removeRating(id: number, mediaType: MediaType): void
+
   // Continue Watching
   getContinueWatching(): ContinueWatchingItem[]
   updateContinueWatching(item: ContinueWatchingItem): void
@@ -62,6 +75,7 @@ export interface UserMediaStore {
 const KEYS = {
   watchlist: 'veyra-watchlist',
   favorites: 'veyra-favorites',
+  ratings: 'veyra-ratings',
   continueWatching: 'veyra-continue-watching',
 } as const
 
@@ -170,6 +184,37 @@ class LocalStorageMediaStore implements UserMediaStore {
   isInFavorites(id: number, mediaType: MediaType): boolean {
     return this.getFavorites().some(
       (x) => x.id === id && x.media_type === mediaType,
+    )
+  }
+
+  // ── Ratings ──────────────────────────────────────────────────────────────
+
+  getRatings(): RatingItem[] {
+    return readStorage<RatingItem>(KEYS.ratings)
+  }
+
+  getRating(id: number, mediaType: MediaType): number | null {
+    const item = this.getRatings().find((r) => r.id === id && r.media_type === mediaType)
+    return item ? item.rating : null
+  }
+
+  setRating(id: number, mediaType: MediaType, rating: number): void {
+    const current = this.getRatings()
+    const filtered = current.filter((r) => !(r.id === id && r.media_type === mediaType))
+    const item: RatingItem = {
+      id,
+      media_type: mediaType,
+      rating: Math.max(1, Math.min(10, rating)),
+      ratedAt: Date.now(),
+    }
+    writeStorage(KEYS.ratings, [item, ...filtered])
+  }
+
+  removeRating(id: number, mediaType: MediaType): void {
+    const current = this.getRatings()
+    writeStorage(
+      KEYS.ratings,
+      current.filter((r) => !(r.id === id && r.media_type === mediaType)),
     )
   }
 

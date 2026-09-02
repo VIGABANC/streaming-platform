@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 import { Clock, Calendar, Star, Film, ChevronRight } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { MediaRail } from '@/components/media/MediaRail'
@@ -95,8 +94,31 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
   const backdropSrc = backdrop(movie.backdrop_path, 'original')
   const posterSrc = poster(movie.poster_path, 'w780')
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Movie',
+    name: title,
+    image: posterSrc,
+    description: movie.overview,
+    datePublished: movie.release_date,
+    aggregateRating: movie.vote_average
+      ? {
+          '@type': 'AggregateRating',
+          ratingValue: movie.vote_average,
+          bestRating: '10',
+          ratingCount: movie.vote_count,
+        }
+      : undefined,
+    director: director ? { '@type': 'Person', name: director.name } : undefined,
+    genre: movie.genres?.map((g) => g.name),
+  }
+
   return (
     <Shell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Backdrop Section */}
       <section className="relative overflow-hidden pb-12 pt-6 lg:pb-16" aria-label={`${title} overview`}>
         {/* Backdrop Image */}
@@ -276,6 +298,8 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
               title={`${title} Trailer`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
               className="h-full w-full"
             />
           </div>

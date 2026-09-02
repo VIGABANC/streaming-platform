@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Play, Info, BookmarkPlus, BookmarkCheck } from 'lucide-react'
-import { poster, titleOf, yearOf, type Media, type MediaType } from '@/lib/tmdb'
+import { backdrop, titleOf, yearOf, type Media, type MediaType } from '@/lib/tmdb'
 import { store, mediaToWatchlistItem } from '@/lib/store'
 import { formatRating } from '@/lib/utils'
 
@@ -33,7 +33,7 @@ export function Hero({ item }: HeroProps) {
     setInWatchlist(store.isInWatchlist(item.id, mediaType))
   }
 
-  const backdropSrc = poster(item.backdrop_path, 'original')
+  const backdropSrc = backdrop(item.backdrop_path, 'w1280')
 
   return (
     <section

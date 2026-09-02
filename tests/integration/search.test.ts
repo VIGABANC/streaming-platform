@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import type { Media, MediaType } from '@/lib/tmdb'
 
-function normalizeSearchResults(rawResults: any[]): (Media & { media_type: MediaType })[] {
+function normalizeSearchResults(
+  rawResults: Array<{ id: number; title?: string; name?: string; media_type?: string }>,
+): (Media & { media_type: MediaType })[] {
   return rawResults
     .filter((item) => item.media_type === 'movie' || item.media_type === 'tv')
     .map((item) => ({

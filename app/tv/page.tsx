@@ -1,0 +1,3 @@
+import { Rail, Shell } from '@/components/luma'
+import { getPopularTV, getTopRatedTV, getTrending } from '@/lib/tmdb'
+export default async function TV(){const data=await Promise.all([getPopularTV(),getTopRatedTV(),getTrending()].map(x=>x.catch(()=>({results:[]}))));return <Shell><div className="px-5 pt-14 lg:px-8"><p className="eyebrow">The series desk</p><h1 className="mt-3 text-5xl font-black tracking-[-.06em] text-white">TV shows</h1><p className="mt-3 max-w-xl text-muted-foreground">Long-form stories for the nights you don&apos;t want to end.</p></div><Rail title="Popular series" items={data[0].results}/><Rail title="Top rated series" items={data[1].results}/><Rail title="Trending now" items={data[2].results}/></Shell>}

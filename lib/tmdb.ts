@@ -282,6 +282,37 @@ export const searchMulti = (query: string) =>
 export const discover = (type: MediaType, params = '') =>
   list(`/discover/${type}?include_adult=false&${params}`, 1800)
 
+// ── Streaming providers ───────────────────────────────────────────────────────
+export interface WatchProvider {
+  provider_id: number
+  provider_name: string
+  logo_path?: string | null
+  display_priority?: number
+}
+
+export interface WatchProviderRegion {
+  link?: string
+  flatrate?: WatchProvider[]
+  rent?: WatchProvider[]
+  buy?: WatchProvider[]
+  free?: WatchProvider[]
+  ads?: WatchProvider[]
+}
+
+export const providerLogo = (path?: string | null, size = 'w92') =>
+  path ? `https://image.tmdb.org/t/p/${size}${path}` : '/poster-fallback.svg'
+
+export const getWatchProviders = cache(async (type: MediaType, id: string | number, region = 'US') =>
+  tmdb<{ results: Record<string, WatchProviderRegion> }>(`/${type}/${id}/watch/providers`, 3600)
+    .then((data) => data.results?.[region] ?? {}))
+
+export const getProviders = cache(async (region = 'US') =>
+  tmdb<{ results: WatchProvider[] }>(`/watch/providers/movie?watch_region=${region}&language=en-US`, 86400)
+    .then((data) => data.results ?? []))
+
+export const discoverByProvider = (type: MediaType, providerId: number, region = 'US') =>
+  discover(type, `with_watch_providers=${providerId}&watch_region=${region}&sort_by=popularity.desc`)
+
 // ── Detail ────────────────────────────────────────────────────────────────────
 
 export const getMovieDetail = cache(async (id: string | number): Promise<MovieDetail> => {

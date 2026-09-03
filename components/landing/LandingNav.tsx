@@ -47,6 +47,7 @@ export function LandingNav() {
           <Link href="/browse" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">Discover</Link>
           <Link href="/movies" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">Movies</Link>
           <Link href="/tv" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">TV Shows</Link>
+          <Link href="/streaming" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">Streaming</Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-6">

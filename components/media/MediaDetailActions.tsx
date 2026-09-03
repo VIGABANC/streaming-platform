@@ -12,21 +12,24 @@ import {
   Check,
   X,
 } from 'lucide-react'
-import { store, mediaToWatchlistItem, mediaToFavoriteItem } from '@/lib/store'
+import { store, mediaToWatchlistItem, mediaToFavoriteItem, showToast } from '@/lib/store'
 import type { Media, MediaType } from '@/lib/tmdb'
+import { TrailerModal } from '@/components/media/TrailerModal'
 
 interface MediaDetailActionsProps {
   item: Media
   mediaType: MediaType
   watchHref: string
+  trailerKey?: string
 }
 
-export function MediaDetailActions({ item, mediaType, watchHref }: MediaDetailActionsProps) {
+export function MediaDetailActions({ item, mediaType, watchHref, trailerKey }: MediaDetailActionsProps) {
   const [inWatchlist, setInWatchlist] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [userRating, setUserRating] = useState<number | null>(null)
   const [isRatingOpen, setIsRatingOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const title = item.title || item.name || 'Title'
 
   useEffect(() => {
     setInWatchlist(store.isInWatchlist(item.id, mediaType))
@@ -35,22 +38,44 @@ export function MediaDetailActions({ item, mediaType, watchHref }: MediaDetailAc
   }, [item.id, mediaType])
 
   const toggleWatchlist = () => {
+    const nextState = !inWatchlist
     store.toggleWatchlist(mediaToWatchlistItem(item, mediaType))
-    setInWatchlist(store.isInWatchlist(item.id, mediaType))
+    setInWatchlist(nextState)
+    showToast({
+      title: nextState ? 'Added to Watchlist' : 'Removed from Watchlist',
+      description: title,
+      type: nextState ? 'success' : 'info',
+    })
   }
 
   const toggleFavorite = () => {
+    const nextState = !isFavorite
     store.toggleFavorite(mediaToFavoriteItem(item, mediaType))
-    setIsFavorite(store.isInFavorites(item.id, mediaType))
+    setIsFavorite(nextState)
+    showToast({
+      title: nextState ? 'Added to Favorites' : 'Removed from Favorites',
+      description: title,
+      type: nextState ? 'success' : 'info',
+    })
   }
 
   const handleRate = (rating: number) => {
     if (userRating === rating) {
       store.removeRating(item.id, mediaType)
       setUserRating(null)
+      showToast({
+        title: 'Rating removed',
+        description: title,
+        type: 'info',
+      })
     } else {
-      store.setRating(item.id, mediaType, rating)
+      store.setRating(item.id, mediaType, rating, { title, poster_path: item.poster_path })
       setUserRating(rating)
+      showToast({
+        title: `Rated ${rating}/10`,
+        description: title,
+        type: 'success',
+      })
     }
     setIsRatingOpen(false)
   }
@@ -59,12 +84,16 @@ export function MediaDetailActions({ item, mediaType, watchHref }: MediaDetailAc
     try {
       if (navigator.share) {
         await navigator.share({
-          title: item.title || item.name || 'Stream on VEYRA',
+          title,
           url: window.location.href,
         })
       } else {
         await navigator.clipboard.writeText(window.location.href)
         setCopied(true)
+        showToast({
+          title: 'Link copied to clipboard',
+          type: 'success',
+        })
         setTimeout(() => setCopied(false), 2000)
       }
     } catch {
@@ -118,6 +147,9 @@ export function MediaDetailActions({ item, mediaType, watchHref }: MediaDetailAc
       >
         <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
       </button>
+
+      {/* Trailer Modal Button if trailer available */}
+      {trailerKey && <TrailerModal trailerKey={trailerKey} title={title} />}
 
       {/* Star Rating Button & Popover */}
       <div className="relative">

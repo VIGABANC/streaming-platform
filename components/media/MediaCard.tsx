@@ -3,9 +3,9 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Plus, Check, Play } from 'lucide-react'
+import { Plus, Check, Play, Star } from 'lucide-react'
 import { poster, titleOf, yearOf, type Media, type MediaType } from '@/lib/tmdb'
-import { store, mediaToWatchlistItem } from '@/lib/store'
+import { store, mediaToWatchlistItem, showToast } from '@/lib/store'
 import { formatRating } from '@/lib/utils'
 
 interface MediaCardProps {
@@ -29,8 +29,14 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
   const toggleWatchlist = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    const nextState = !inWatchlist
     store.toggleWatchlist(mediaToWatchlistItem(item, mediaType))
-    setInWatchlist(store.isInWatchlist(item.id, mediaType))
+    setInWatchlist(nextState)
+    showToast({
+      title: nextState ? 'Added to Watchlist' : 'Removed from Watchlist',
+      description: title,
+      type: nextState ? 'success' : 'info',
+    })
   }
 
   const imgSrc = landscape
@@ -39,16 +45,17 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
 
   return (
     <article
-      className={`group relative shrink-0 ${
+      className={`group relative shrink-0 scroll-snap-item ${
         landscape ? 'w-64' : 'w-[145px] sm:w-[170px] lg:w-[190px]'
       }`}
     >
       <Link
         href={href}
         aria-label={`${title} — view details`}
-        className="block overflow-hidden rounded-xl bg-surface shadow-lg outline-none ring-primary focus-visible:ring-2 transition-transform duration-300 group-hover:-translate-y-1"
+        className="card-hover-glow block overflow-hidden rounded-xl bg-[#0A0D14] shadow-lg outline-none ring-1 ring-white/8 focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <div className={`relative ${landscape ? 'aspect-video' : 'aspect-[2/3]'}`}>
+        {/* Poster / Backdrop */}
+        <div className={`relative ${landscape ? 'aspect-video' : 'aspect-[2/3]'} overflow-hidden`}>
           <Image
             src={imgSrc}
             alt={`${title} ${landscape ? 'backdrop' : 'poster'}`}
@@ -58,47 +65,56 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
                 ? '(max-width: 640px) 256px, 256px'
                 : '(max-width: 640px) 145px, (max-width: 1024px) 170px, 190px'
             }
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 will-change-transform group-hover:scale-[1.06]"
             loading={priority ? 'eager' : 'lazy'}
             priority={priority}
           />
 
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {/* Cinematic vignette on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-          {/* Play icon on hover */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="grid size-12 place-items-center rounded-full bg-white/15 backdrop-blur-sm border border-white/20">
+          {/* Play button overlay */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <div className="grid size-12 place-items-center rounded-full bg-[#E50914] shadow-lg shadow-[#E50914]/40 ring-2 ring-white/20 backdrop-blur-sm transition-transform duration-200 group-hover:scale-100 scale-90">
               <Play size={18} fill="white" className="text-white ml-0.5" />
             </div>
           </div>
-        </div>
 
-        {/* Card footer */}
-        <div className="absolute inset-x-0 bottom-0 p-3 pt-8">
-          <p className="truncate text-sm font-semibold text-white drop-shadow-md">{title}</p>
-          <div className="mt-1 flex items-center gap-2 text-xs text-white/70">
-            <span>{yearOf(item) || '—'}</span>
-            <span className="text-accent">★ {formatRating(item.vote_average)}</span>
-            <span className="ml-auto rounded border border-white/20 px-1 py-0.5 text-[10px] uppercase tracking-wide">
+          {/* Media type badge — top-left */}
+          <div className="absolute left-2 top-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <span className="rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-sm">
               {mediaType === 'tv' ? 'TV' : 'Film'}
             </span>
           </div>
         </div>
+
+        {/* Card footer */}
+        <div className="p-2.5 pt-2">
+          <p className="truncate text-xs font-semibold leading-snug text-white">{title}</p>
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-white/55">
+            <span>{yearOf(item) || '—'}</span>
+            {item.vote_average ? (
+              <span className="flex items-center gap-0.5 font-semibold text-amber-400">
+                <Star size={10} fill="currentColor" />
+                <span>{formatRating(item.vote_average)}</span>
+              </span>
+            ) : null}
+          </div>
+        </div>
       </Link>
 
-      {/* Watchlist button */}
+      {/* Watchlist toggle — top-right, visible on hover / focus */}
       <button
         type="button"
         aria-label={`${inWatchlist ? 'Remove' : 'Add'} ${title} ${inWatchlist ? 'from' : 'to'} watchlist`}
         onClick={toggleWatchlist}
-        className="absolute right-2 top-2 grid size-9 place-items-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:opacity-100 focus:opacity-100 hover:scale-110 hover:bg-primary hover:text-primary-foreground focus-visible:opacity-100"
+        className={`absolute right-2 top-2 grid size-11 touch-target place-items-center rounded-full backdrop-blur-md transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:scale-110 ${
+          inWatchlist
+            ? 'bg-[#E50914] text-white shadow-md shadow-[#E50914]/30'
+            : 'bg-black/60 text-white/80 hover:bg-[#E50914] hover:text-white'
+        }`}
       >
-        {inWatchlist ? (
-          <Check size={16} className="text-primary group-hover:text-primary-foreground" />
-        ) : (
-          <Plus size={16} />
-        )}
+        {inWatchlist ? <Check size={14} /> : <Plus size={14} />}
       </button>
     </article>
   )

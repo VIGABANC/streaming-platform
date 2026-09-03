@@ -183,7 +183,7 @@ export function PlayerFrame({
   return (
     <div className="space-y-3">
       {/* Top Stream Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/5 bg-[#121324]/80 p-2 px-3 text-xs backdrop-blur-md">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/8 bg-[#0A0D14]/90 p-2 px-3 text-xs backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 font-semibold text-white/80">
             <Server size={13} className="text-primary" />
@@ -308,7 +308,7 @@ export function PlayerFrame({
           <div
             aria-live="polite"
             aria-label="Loading playback"
-            className="absolute inset-0 z-10 grid place-items-center bg-[#0B0C18]"
+            className="absolute inset-0 z-10 grid place-items-center bg-[#050507]"
           >
             {artwork && (
               <img
@@ -321,7 +321,7 @@ export function PlayerFrame({
             <div className="relative z-10 text-center px-6">
               <div
                 aria-hidden="true"
-                className="mx-auto mb-4 size-9 animate-spin rounded-full border-2 border-white/20 border-t-primary"
+                className="mx-auto mb-4 size-10 animate-spin rounded-full border-2 border-white/10 border-t-[#E50914]"
               />
               <p className="text-sm font-semibold text-white font-display">
                 {state === 'timeout-warning'

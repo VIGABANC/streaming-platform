@@ -6,6 +6,7 @@ import { Shell } from '@/components/layout/Shell'
 import { MediaRail } from '@/components/media/MediaRail'
 import { MediaDetailActions } from '@/components/media/MediaDetailActions'
 import { TVSeasonExplorer } from '@/components/tv/TVSeasonExplorer'
+import { GenreTag } from '@/components/ui/GenreTag'
 import {
   getTVDetail,
   getSeason,
@@ -15,6 +16,7 @@ import {
   titleOf,
   yearOf,
   getTVRating,
+  getTrailer,
   type TVDetail,
   type SeasonDetail,
   type Episode,
@@ -83,6 +85,7 @@ export default async function TVDetailPage({ params }: TVPageProps) {
   const title = titleOf(show)
   const year = yearOf(show)
   const rating = getTVRating(show)
+  const trailer = getTrailer(show.videos)
   const cast = (show.credits?.cast ?? []).slice(0, 12)
   const recommendations: (Media & { media_type: MediaType })[] = (
     show.recommendations?.results ?? show.similar?.results ?? []
@@ -146,8 +149,8 @@ export default async function TVDetailPage({ params }: TVPageProps) {
               className="object-cover opacity-25 filter blur-[1px]"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0C18] via-[#0B0C18]/80 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0B0C18] via-[#0B0C18]/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050507] via-[#050507]/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#050507] via-[#050507]/70 to-transparent" />
           </div>
         )}
 
@@ -241,13 +244,7 @@ export default async function TVDetailPage({ params }: TVPageProps) {
               {show.genres && show.genres.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {show.genres.map((g) => (
-                    <Link
-                      key={g.id}
-                      href={`/discover?type=tv&genre=${g.id}`}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 hover:border-primary hover:text-white transition-colors"
-                    >
-                      {g.name}
-                    </Link>
+                    <GenreTag key={g.id} id={g.id} name={g.name} type="tv" />
                   ))}
                 </div>
               )}
@@ -269,6 +266,7 @@ export default async function TVDetailPage({ params }: TVPageProps) {
                 item={show}
                 mediaType="tv"
                 watchHref={`/watch/tv/${show.id}/${initialSeasonNum}/1`}
+                trailerKey={trailer?.key}
               />
             </div>
           </div>
@@ -291,8 +289,12 @@ export default async function TVDetailPage({ params }: TVPageProps) {
           <h2 className="section-title mb-5">Cast & Creators</h2>
           <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
             {cast.map((actor) => (
-              <div key={actor.id} className="w-24 shrink-0 text-center sm:w-28">
-                <div className="relative mx-auto aspect-square w-20 overflow-hidden rounded-full bg-surface shadow ring-1 ring-white/10 sm:w-24">
+              <Link
+                key={actor.id}
+                href={`/person/${actor.id}`}
+                className="w-24 shrink-0 text-center sm:w-28 group"
+              >
+                <div className="relative mx-auto aspect-square w-20 overflow-hidden rounded-full bg-[#0A0D14] shadow-lg ring-1 ring-white/10 transition-all duration-300 group-hover:ring-2 group-hover:ring-cyan group-hover:scale-105 sm:w-24">
                   <Image
                     src={profileImage(actor.profile_path)}
                     alt={actor.name}
@@ -301,9 +303,11 @@ export default async function TVDetailPage({ params }: TVPageProps) {
                     className="object-cover"
                   />
                 </div>
-                <p className="mt-2 text-xs font-semibold text-white truncate">{actor.name}</p>
+                <p className="mt-2 text-xs font-semibold text-white truncate group-hover:text-cyan transition-colors">
+                  {actor.name}
+                </p>
                 <p className="text-[11px] text-muted-foreground truncate">{actor.character}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

@@ -15,6 +15,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-cyan: var(--cyan);
 
   /* Fonts */
   --font-display: 'Space Grotesk', sans-serif;
@@ -23,32 +24,39 @@
 
   /* Radius */
   --radius: 0.75rem;
+
+  /* Shadows */
+  --shadow-card: var(--shadow-card);
+  --shadow-glow: var(--shadow-glow);
 }
 
 /* ── Color palette: VEYRA — The Night Signal ─────────────────────────────── */
 :root {
   /* Backgrounds */
-  --background:        #0B0C18;   /* Midnight base */
-  --surface:           #181928;   /* Card / panel surface */
-  --card:              #181928;
+  --background:        #050507;   /* Obsidian pitch base */
+  --surface:           #0A0D14;   /* Deep charcoal panel surface */
+  --card:              #121620;   /* Elevated card surface */
 
   /* Foregrounds */
-  --foreground:        #F0F1F9;   /* Primary text */
-  --muted-foreground:  #A2A3B1;   /* Secondary text */
-  --muted:             #2A2B3D;   /* Subtle backgrounds */
+  --foreground:        #F8F9FE;   /* High-contrast text */
+  --muted-foreground:  #9CA3AF;   /* Secondary text */
+  --muted:             #1F2430;   /* Subtle background */
 
-  /* Brand */
-  --primary:           #8F81FF;   /* Iris — primary CTA, links */
-  --primary-foreground:#0B0C18;   /* Text on primary */
-  --accent:            #FFB330;   /* Saffron — emphasis, stars, signals */
-  --accent-foreground: #0B0C18;
+  /* Brand Colors */
+  --primary:           #E50914;   /* Signal Red — primary CTA */
+  --primary-foreground:#FFFFFF;   /* Text on primary */
+  --accent:            #FFB300;   /* Warm Amber — ratings & highlight signals */
+  --accent-foreground: #050507;
+  --cyan:              #00F2FE;   /* Electric Cyan — active progress indicator */
 
-  /* Borders */
+  /* Borders & Glass */
   --border:            rgba(255, 255, 255, 0.08);
+  --glass-bg:          rgba(18, 22, 32, 0.7);
 
-  /* Shadows */
-  --shadow-card:       0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow:       0 0 40px rgba(143, 129, 255, 0.15);
+  /* Shadows & Ambient Glows */
+  --shadow-card:       0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glow:       0 0 40px rgba(229, 9, 20, 0.25);
+  --shadow-cyan-glow:  0 0 20px rgba(0, 242, 254, 0.3);
 
   color-scheme: dark;
 }
@@ -74,6 +82,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Glassmorphic Panel Utility ─────────────────────────────────────────── */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 /* ── Typography utilities ────────────────────────────────────────────────── */
 .font-display {
   font-family: var(--font-display), 'Space Grotesk', sans-serif;
@@ -97,18 +120,27 @@ body {
 
 .hero-title {
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-size: clamp(2.25rem, 5.5vw, 4.75rem);
   font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1.05;
+  letter-spacing: -0.04em;
+  line-height: 1.06;
   color: white;
 }
 
-/* ── Focus styles ────────────────────────────────────────────────────────── */
+/* ── Focus styles (WCAG 2.1 AA Compliance) ───────────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ── Touch Target Enforcement (≥44px on mobile) ────────────────────────── */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
@@ -139,23 +171,34 @@ body {
   font-weight: 700;
   font-size: 0.875rem;
   z-index: 9999;
-  transition: top 0.2s;
+  transition: top 0.2s ease-in-out;
 }
 .skip-link:focus {
   top: 0;
 }
 
-/* ── Iris glow ring (decorative) ─────────────────────────────────────────── */
+/* ── Glow Rings & Ambient Effects ────────────────────────────────────────── */
 .iris-glow {
   box-shadow: var(--shadow-glow);
 }
 
-/* ── Rail scroll hide ────────────────────────────────────────────────────── */
+.cyan-glow {
+  box-shadow: var(--shadow-cyan-glow);
+}
+
+/* ── Rail scroll hide & snap ─────────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
   scrollbar-width: none;
+}
+
+.scroll-snap-rail {
+  scroll-snap-type: x mandatory;
+}
+.scroll-snap-item {
+  scroll-snap-align: start;
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
@@ -175,4 +218,66 @@ body {
 
 .gradient-left {
   background: linear-gradient(to right, var(--background) 0%, transparent 100%);
+}
+
+/* ── Card hover glow (Signal Red ambient) ────────────────────────────────── */
+.card-hover-glow {
+  transition: box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-hover-glow:hover {
+  box-shadow: 0 8px 32px rgba(229, 9, 20, 0.2), 0 0 0 1px rgba(229, 9, 20, 0.15);
+}
+
+/* ── Signal pulse dot ─────────────────────────────────────────────────────── */
+@keyframes signal-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(229, 9, 20, 0); }
+}
+.signal-pulse {
+  animation: signal-pulse 2s ease-in-out infinite;
+}
+
+/* ── Shimmer animation for skeletons ─────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ── CTA Button — Signal Red with glow ───────────────────────────────────── */
+.btn-primary {
+  background: #E50914;
+  color: #FFFFFF;
+  font-weight: 700;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 1.75rem;
+  height: 3rem;
+  transition: background 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px rgba(229, 9, 20, 0.35);
+}
+.btn-primary:hover {
+  background: #cc0812;
+  transform: scale(1.025);
+  box-shadow: 0 6px 28px rgba(229, 9, 20, 0.5);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 12px rgba(229, 9, 20, 0.3);
+}
+
+/* ── Safe area bottom inset ─────────────────────────────────────────────── */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Clock, Calendar, Star, Film, ChevronRight } from 'lucide-react'
+import { Clock, Calendar, Star, Film, ChevronRight, Layers } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { MediaRail } from '@/components/media/MediaRail'
 import { MediaDetailActions } from '@/components/media/MediaDetailActions'
+import { GenreTag } from '@/components/ui/GenreTag'
 import {
   getMovieDetail,
   poster,
@@ -132,8 +133,8 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
               className="object-cover opacity-25 filter blur-[1px]"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0C18] via-[#0B0C18]/80 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0B0C18] via-[#0B0C18]/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050507] via-[#050507]/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#050507] via-[#050507]/70 to-transparent" />
           </div>
         )}
 
@@ -149,7 +150,7 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
 
           <div className="flex flex-col gap-8 md:flex-row md:items-start lg:gap-12">
             {/* Poster Card */}
-            <div className="relative aspect-[2/3] w-48 shrink-0 overflow-hidden rounded-2xl bg-surface shadow-2xl ring-1 ring-white/10 md:w-64 lg:w-72">
+            <div className="relative aspect-[2/3] w-48 shrink-0 overflow-hidden rounded-2xl bg-[#0A0D14] shadow-2xl ring-1 ring-white/10 md:w-64 lg:w-72" style={{boxShadow: '0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(229,9,20,0.15)'}}>
               <Image
                 src={posterSrc}
                 alt={`${title} poster`}
@@ -221,7 +222,13 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
                 ) : null}
                 {director && (
                   <div className="text-muted-foreground">
-                    Directed by <span className="text-white font-medium">{director.name}</span>
+                    Directed by{' '}
+                    <Link
+                      href={`/person/${director.id}`}
+                      className="text-white font-medium hover:text-primary transition-colors underline underline-offset-4 decoration-white/20 hover:decoration-primary"
+                    >
+                      {director.name}
+                    </Link>
                   </div>
                 )}
               </div>
@@ -230,13 +237,7 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
               {movie.genres && movie.genres.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {movie.genres.map((g) => (
-                    <Link
-                      key={g.id}
-                      href={`/discover?type=movie&genre=${g.id}`}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 hover:border-primary hover:text-white transition-colors"
-                    >
-                      {g.name}
-                    </Link>
+                    <GenreTag key={g.id} id={g.id} name={g.name} type="movie" />
                   ))}
                 </div>
               )}
@@ -258,6 +259,7 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
                 item={movie}
                 mediaType="movie"
                 watchHref={`/watch/movie/${movie.id}`}
+                trailerKey={trailer?.key}
               />
             </div>
           </div>
@@ -270,8 +272,12 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
           <h2 className="section-title mb-5">Top Cast</h2>
           <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
             {cast.map((actor) => (
-              <div key={actor.id} className="w-24 shrink-0 text-center sm:w-28">
-                <div className="relative mx-auto aspect-square w-20 overflow-hidden rounded-full bg-surface shadow ring-1 ring-white/10 sm:w-24">
+              <Link
+                key={actor.id}
+                href={`/person/${actor.id}`}
+                className="w-24 shrink-0 text-center sm:w-28 group"
+              >
+                <div className="relative mx-auto aspect-square w-20 overflow-hidden rounded-full bg-[#0A0D14] shadow-lg ring-1 ring-white/10 transition-all duration-300 group-hover:ring-2 group-hover:ring-primary group-hover:scale-105 sm:w-24">
                   <Image
                     src={profileImage(actor.profile_path)}
                     alt={actor.name}
@@ -280,9 +286,11 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
                     className="object-cover"
                   />
                 </div>
-                <p className="mt-2 text-xs font-semibold text-white truncate">{actor.name}</p>
+                <p className="mt-2 text-xs font-semibold text-white truncate group-hover:text-primary transition-colors">
+                  {actor.name}
+                </p>
                 <p className="text-[11px] text-muted-foreground truncate">{actor.character}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -302,6 +310,35 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
               referrerPolicy="strict-origin-when-cross-origin"
               className="h-full w-full"
             />
+          </div>
+        </section>
+      )}
+
+      {/* Collection / Franchise Banner if movie belongs to a collection */}
+      {movie.belongs_to_collection && (
+        <section className="px-5 py-6 lg:px-12" aria-label="Part of Collection">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-primary/20 via-[#0A0D14] to-[#0A0D14] p-6 lg:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="grid size-12 place-items-center rounded-xl bg-primary/20 text-primary border border-primary/30 shrink-0">
+                <Layers size={24} />
+              </div>
+              <div>
+                <p className="eyebrow text-primary">Franchise Collection</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white font-display">
+                  Part of the {movie.belongs_to_collection.name}
+                </h3>
+                <p className="text-xs text-white/60 mt-0.5">
+                  Explore all films in chronological timeline order
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/collection/${movie.belongs_to_collection.id}`}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-xs font-bold text-white shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all hover:scale-105 shrink-0"
+            >
+              <span>View Full Franchise</span>
+              <ChevronRight size={14} />
+            </Link>
           </div>
         </section>
       )}

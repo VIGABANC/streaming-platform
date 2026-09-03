@@ -4,12 +4,12 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'VEYRA — The Night Signal',
+    default: 'VEYRA — Discover Movies & TV After Dark',
     template: '%s — VEYRA',
   },
   description:
-    'VEYRA is your cinematic guide to movies, TV shows, and anime worth watching. Less hunting, more watching.',
-  keywords: ['movies', 'TV shows', 'anime', 'streaming', 'discovery', 'VEYRA'],
+    'VEYRA is your cinematic discovery layer for finding movies and television worth watching. The Night Signal brings trending, popular, and acclaimed content into one elegant experience.',
+  keywords: ['movies', 'TV shows', 'streaming', 'discovery', 'cinema', 'VEYRA', 'The Night Signal', 'movie discovery', 'TV discovery'],
   authors: [{ name: 'VEYRA' }],
   creator: 'VEYRA',
   openGraph: {
@@ -17,12 +17,12 @@ export const metadata: Metadata = {
     locale: 'en_US',
     siteName: 'VEYRA',
     title: 'VEYRA — The Night Signal',
-    description: 'Less hunting, more watching. Discover movies and TV shows worth your time.',
+    description: 'Find the story worth staying up for. Cinematic movie and TV discovery with trending, popular, and acclaimed content.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'VEYRA — The Night Signal',
-    description: 'Less hunting, more watching.',
+    description: 'Find the story worth staying up for. Cinematic movie and TV discovery.',
   },
   robots: {
     index: true,
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: 'dark',
-  themeColor: '#0B0C18',
+  themeColor: '#050507',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',

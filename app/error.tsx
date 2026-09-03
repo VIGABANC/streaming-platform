@@ -17,7 +17,7 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0C18] p-6 text-center text-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#050507] p-6 text-center text-white">
       <div className="mb-8">
         <Logo />
       </div>

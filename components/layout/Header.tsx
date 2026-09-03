@@ -3,16 +3,35 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Search, X, Bookmark, ChevronDown } from 'lucide-react'
+import {
+  Search,
+  X,
+  Bookmark,
+  User,
+  Heart,
+  History,
+  Settings,
+  ChevronDown,
+  Flame,
+} from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
 import { warmPlayerConnection } from '@/lib/player'
 
-const NAV_LINKS = [
+interface NavLinkItem {
+  href: string
+  label: string
+  badge?: string
+  icon?: React.ComponentType<{ size?: number; className?: string }>
+}
+
+const NAV_LINKS: NavLinkItem[] = [
   { href: '/', label: 'Home' },
   { href: '/movies', label: 'Movies' },
   { href: '/tv', label: 'TV Shows' },
+  { href: '/new', label: 'New', badge: 'Fresh' },
+  { href: '/top10', label: 'Top 10', icon: Flame },
   { href: '/discover', label: 'Discover' },
-] as const
+]
 
 export function Header() {
   const pathname = usePathname()
@@ -20,9 +39,9 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [scrolled, setScrolled] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const moreRef = useRef<HTMLDivElement>(null)
+  const profileRef = useRef<HTMLDivElement>(null)
 
   // Track scroll for header bg
   useEffect(() => {
@@ -44,7 +63,7 @@ export function Header() {
       }
       if (e.key === 'Escape') {
         setSearchOpen(false)
-        setMoreOpen(false)
+        setProfileOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -58,16 +77,16 @@ export function Header() {
     }
   }, [searchOpen])
 
-  // Close "more" dropdown when clicking outside
+  // Close profile dropdown when clicking outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false)
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false)
       }
     }
-    if (moreOpen) document.addEventListener('mousedown', handler)
+    if (profileOpen) document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [moreOpen])
+  }, [profileOpen])
 
   const handleSearch = useCallback(
     (e: React.FormEvent) => {
@@ -77,7 +96,6 @@ export function Header() {
       setSearchOpen(false)
       setQuery('')
       router.push(`/search?q=${encodeURIComponent(q)}`)
-      // Warm player connection proactively
       warmPlayerConnection()
     },
     [query, router],
@@ -90,7 +108,7 @@ export function Header() {
     <header
       className={`sticky top-0 z-40 border-b transition-all duration-300 ${
         scrolled
-          ? 'border-white/8 bg-[#0B0C18]/90 backdrop-blur-xl shadow-lg shadow-black/20'
+          ? 'border-white/8 bg-[#050507]/90 backdrop-blur-xl shadow-lg shadow-black/40'
           : 'border-transparent bg-transparent'
       }`}
     >
@@ -99,22 +117,28 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex ml-4">
-          {NAV_LINKS.map(({ href, label }) => (
+          {NAV_LINKS.map(({ href, label, badge, icon: Icon }) => (
             <Link
               key={href}
               href={href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 isActive(href)
-                  ? 'text-white bg-white/8'
+                  ? 'text-white bg-white/8 font-semibold'
                   : 'text-muted-foreground hover:text-white hover:bg-white/5'
               }`}
             >
-              {label}
+              {Icon && <Icon size={14} className="text-amber-400" />}
+              <span>{label}</span>
+              {badge && (
+                <span className="rounded bg-primary/20 border border-primary/40 px-1 py-0.2 text-[9px] font-extrabold uppercase tracking-tight text-primary">
+                  {badge}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
           {/* Search form */}
           <form
             onSubmit={handleSearch}
@@ -130,8 +154,8 @@ export function Header() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search titles…"
-              aria-label="Search titles"
+              placeholder="Search titles, actors, genres…"
+              aria-label="Search titles, actors, genres"
               maxLength={200}
               className="min-w-0 flex-1 bg-transparent px-2.5 py-2 text-sm text-white outline-none placeholder:text-muted-foreground"
             />
@@ -158,62 +182,113 @@ export function Header() {
             {searchOpen ? <X size={18} /> : <Search size={18} />}
           </button>
 
-          {/* My List */}
+          {/* My Watchlist shortcut */}
           <Link
             href="/my-list"
-            aria-label="My List"
+            aria-label="Watchlist"
+            title="Watchlist"
             className="hidden sm:grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-white/8 hover:text-white transition-colors"
           >
             <Bookmark size={18} />
           </Link>
 
-          {/* More dropdown */}
-          <div ref={moreRef} className="relative">
+          {/* Favorites shortcut */}
+          <Link
+            href="/favorites"
+            aria-label="Favorites"
+            title="Favorites"
+            className="hidden sm:grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-white/8 hover:text-rose-400 transition-colors"
+          >
+            <Heart size={18} />
+          </Link>
+
+          {/* Glassmorphic Profile Dropdown */}
+          <div ref={profileRef} className="relative">
             <button
               type="button"
-              aria-label="More options"
-              aria-expanded={moreOpen}
+              aria-label="User Profile & Settings"
+              aria-expanded={profileOpen}
               aria-haspopup="menu"
-              onClick={() => setMoreOpen((v) => !v)}
-              className="hidden md:grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-white/8 hover:text-white transition-colors"
+              onClick={() => setProfileOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 p-1.5 sm:px-2.5 sm:py-1.5 text-white/80 hover:border-primary/50 hover:bg-white/10 hover:text-white transition-all focus:outline-none"
             >
+              <div className="relative grid size-7 place-items-center rounded-full bg-gradient-to-tr from-primary to-cyan text-white shadow-sm">
+                <User size={14} />
+              </div>
               <ChevronDown
-                size={16}
-                className={`transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`}
+                size={13}
+                className={`hidden sm:block text-white/50 transition-transform duration-200 ${
+                  profileOpen ? 'rotate-180 text-white' : ''
+                }`}
               />
             </button>
 
-            {moreOpen && (
+            {profileOpen && (
               <div
                 role="menu"
-                className="absolute right-0 top-12 w-48 rounded-xl border border-white/10 bg-surface p-1.5 shadow-2xl"
+                className="absolute right-0 top-12 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#0A0D14]/95 p-1.5 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-top-2 duration-200"
+                style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 25px rgba(229,9,20,0.15)' }}
               >
-                <Link
-                  href="/discover"
-                  role="menuitem"
-                  onClick={() => setMoreOpen(false)}
-                  className="flex items-center rounded-lg px-3 py-2.5 text-sm text-white hover:bg-white/8"
-                >
-                  Discover titles
-                </Link>
-                <Link
-                  href="/my-list"
-                  role="menuitem"
-                  onClick={() => setMoreOpen(false)}
-                  className="flex items-center rounded-lg px-3 py-2.5 text-sm text-white hover:bg-white/8"
-                >
-                  My watchlist
-                </Link>
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setMoreOpen(false)
-                    setSearchOpen(true)
-                  }}
-                  className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-white hover:bg-white/8"
-                >
-                  Search library
-                </button>
+                <div className="px-3 py-2 border-b border-white/8">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                    My Account
+                  </p>
+                  <p className="text-xs font-semibold text-white truncate">The Night Signal</p>
+                </div>
+
+                <div className="py-1">
+                  <Link
+                    href="/profile"
+                    role="menuitem"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/8 hover:text-white transition-colors"
+                  >
+                    <User size={15} className="text-cyan" />
+                    <span>My Profile & Stats</span>
+                  </Link>
+
+                  <Link
+                    href="/favorites"
+                    role="menuitem"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/8 hover:text-white transition-colors"
+                  >
+                    <Heart size={15} className="text-rose-500" />
+                    <span>Favorites</span>
+                  </Link>
+
+                  <Link
+                    href="/my-list"
+                    role="menuitem"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/8 hover:text-white transition-colors"
+                  >
+                    <Bookmark size={15} className="text-primary" />
+                    <span>Watchlist</span>
+                  </Link>
+
+                  <Link
+                    href="/history"
+                    role="menuitem"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/8 hover:text-white transition-colors"
+                  >
+                    <History size={15} className="text-emerald-400" />
+                    <span>Watch History</span>
+                  </Link>
+                </div>
+
+                <div className="border-t border-white/8 pt-1">
+                  <Link
+                    href="/settings"
+                    role="menuitem"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/8 hover:text-white transition-colors"
+                  >
+                    <Settings size={15} />
+                    <span>App Settings</span>
+                  </Link>
+                </div>
               </div>
             )}
           </div>

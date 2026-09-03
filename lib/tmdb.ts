@@ -127,6 +127,12 @@ export interface MovieDetail extends Media {
   recommendations?: { results: Media[] }
   similar?: { results: Media[] }
   release_dates?: { results: ReleaseDateResult[] }
+  belongs_to_collection?: {
+    id: number
+    name: string
+    poster_path?: string | null
+    backdrop_path?: string | null
+  } | null
 }
 
 export interface TVDetail extends Media {
@@ -305,6 +311,116 @@ export const getSeason = cache(async (
   return tmdb<SeasonDetail>(`/tv/${id}/season/${season}`, 3600)
 })
 
+// ── Person types ──────────────────────────────────────────────────────────────
+
+export interface PersonDetail {
+  id: number
+  name: string
+  biography?: string
+  birthday?: string | null
+  deathday?: string | null
+  place_of_birth?: string | null
+  profile_path?: string | null
+  known_for_department?: string
+  popularity?: number
+  imdb_id?: string | null
+  combined_credits?: {
+    cast: PersonCreditCast[]
+    crew: PersonCreditCrew[]
+  }
+  external_ids?: { imdb_id?: string | null }
+}
+
+export interface PersonCreditCast extends Media {
+  character?: string
+  media_type: MediaType
+  release_date?: string
+  first_air_date?: string
+  order?: number
+}
+
+export interface PersonCreditCrew extends Media {
+  job?: string
+  department?: string
+  media_type: MediaType
+}
+
+// ── Collection types ──────────────────────────────────────────────────────────
+
+export interface CollectionDetail {
+  id: number
+  name: string
+  overview?: string
+  poster_path?: string | null
+  backdrop_path?: string | null
+  parts: (Media & { media_type: 'movie' })[]
+}
+
+// ── Person API ────────────────────────────────────────────────────────────────
+
+export const getPersonDetail = cache(async (id: string | number): Promise<PersonDetail> => {
+  return tmdb<PersonDetail>(
+    `/person/${id}?append_to_response=combined_credits,external_ids`,
+    3600,
+  )
+})
+
+// ── Collection API ────────────────────────────────────────────────────────────
+
+export const getCollection = cache(async (id: string | number): Promise<CollectionDetail> => {
+  return tmdb<CollectionDetail>(`/collection/${id}`, 86400).then((c) => ({
+    ...c,
+    parts: (c.parts ?? []).map((p) => ({ ...p, media_type: 'movie' as const })),
+  }))
+})
+
+// ── New Releases ──────────────────────────────────────────────────────────────
+
+export const getNewMovies = () => list('/movie/now_playing', 1800)
+export const getNewTV = () => list('/tv/on_the_air', 1800)
+
+// ── Top 10 helpers ────────────────────────────────────────────────────────────
+
+export const getTopTenMovies = async (): Promise<(Media & { media_type: 'movie' })[]> => {
+  const { results } = await list('/trending/movie/day', 3600)
+  return results.slice(0, 10).map((m) => ({ ...m, media_type: 'movie' as const }))
+}
+
+export const getTopTenTV = async (): Promise<(Media & { media_type: 'tv' })[]> => {
+  const { results } = await list('/trending/tv/day', 3600)
+  return results.slice(0, 10).map((m) => ({ ...m, media_type: 'tv' as const }))
+}
+
+// ── Network & Keyword discover ────────────────────────────────────────────────
+
+export const getByNetwork = (networkId: string | number, sort = 'popularity.desc') =>
+  list(`/discover/tv?include_adult=false&with_networks=${networkId}&sort_by=${sort}`, 1800)
+
+export const getByKeyword = (type: MediaType, keywordId: string | number, sort = 'popularity.desc') =>
+  list(`/discover/${type}?include_adult=false&with_keywords=${keywordId}&sort_by=${sort}`, 1800)
+
+// ── Genre discover ────────────────────────────────────────────────────────────
+
+export const getByGenre = (type: MediaType, genreId: string | number, sort = 'popularity.desc') =>
+  list(`/discover/${type}?include_adult=false&with_genres=${genreId}&sort_by=${sort}`, 1800)
+
+export const getTopRatedByGenre = (type: MediaType, genreId: string | number) =>
+  getByGenre(type, genreId, 'vote_average.desc')
+
+export const getNewestByGenre = (type: MediaType, genreId: string | number) =>
+  getByGenre(
+    type,
+    genreId,
+    type === 'movie' ? 'primary_release_date.desc' : 'first_air_date.desc',
+  )
+
+// ── Genre name lookup util ────────────────────────────────────────────────────
+
+export function getGenreName(type: MediaType, id: number): string {
+  const list = type === 'tv' ? genres.tv : genres.movie
+  return list.find((g) => g.id === id)?.name ?? 'Unknown'
+}
+
 // ── Genre lists ───────────────────────────────────────────────────────────────
 
 export const genres = {
@@ -346,6 +462,13 @@ export const genres = {
     { id: 10768, name: 'War & Politics' },
     { id: 37, name: 'Western' },
   ],
+}
+
+export function getGenreNames(genreIds: number[] = [], type: MediaType = 'movie'): string[] {
+  const list = type === 'tv' ? genres.tv : genres.movie
+  return genreIds
+    .map((id) => list.find((g) => g.id === id)?.name)
+    .filter((name): name is string => Boolean(name))
 }
 
 export const languageOptions = [

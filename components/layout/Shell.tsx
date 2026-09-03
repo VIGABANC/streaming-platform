@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Header } from './Header'
 import { MobileNav } from './MobileNav'
 import { Footer } from './Footer'
+import { ToastContainer } from '@/components/feedback/Toast'
 
 interface ShellProps {
   children: React.ReactNode
@@ -26,6 +27,8 @@ export function Shell({ children }: ShellProps) {
       <Footer />
 
       <MobileNav />
+
+      <ToastContainer />
     </>
   )
 }

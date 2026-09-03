@@ -1,0 +1,117 @@
+import { Suspense } from 'react'
+import { Shell } from '@/components/layout/Shell'
+import { HeroCarousel } from '@/components/media/HeroCarousel'
+import { MediaRail } from '@/components/media/MediaRail'
+import { SkeletonRail, SkeletonHero } from '@/components/feedback/Skeletons'
+import { ContinueWatchingRail } from '@/components/media/ContinueWatchingRail'
+import {
+  getTrending,
+  getPopularMovies,
+  getPopularTV,
+  getTopRatedMovies,
+  getTopRatedTV,
+  getNowPlaying,
+  getUpcoming,
+  type Media,
+  type MediaType,
+} from '@/lib/tmdb'
+
+async function safeList(
+  loader: () => Promise<{ results: Media[] }>,
+  mediaType: MediaType,
+): Promise<(Media & { media_type: MediaType })[]> {
+  try {
+    const data = await loader()
+    return data.results.map((item) => ({
+      ...item,
+      media_type: (item.media_type as MediaType) ?? mediaType,
+    }))
+  } catch {
+    return []
+  }
+}
+
+// Async section components for independent Suspense boundaries
+async function TrendingSection() {
+  const trending = await safeList(getTrending, 'movie')
+  if (!trending.length) return null
+
+  return (
+    <>
+      <HeroCarousel items={trending.slice(0, 5)} />
+      <MediaRail title="Trending today" items={trending.slice(5)} />
+    </>
+  )
+}
+
+async function MovieSections() {
+  const [popular, topRated, nowPlaying, upcoming] = await Promise.all([
+    safeList(getPopularMovies, 'movie'),
+    safeList(getTopRatedMovies, 'movie'),
+    safeList(getNowPlaying, 'movie'),
+    safeList(getUpcoming, 'movie'),
+  ])
+
+  return (
+    <>
+      {popular.length > 0 && <MediaRail title="Popular movies" items={popular} href="/movies" />}
+      {topRated.length > 0 && <MediaRail title="Top rated movies" items={topRated} />}
+      {nowPlaying.length > 0 && <MediaRail title="Now playing" items={nowPlaying} />}
+      {upcoming.length > 0 && <MediaRail title="Coming soon" items={upcoming} landscape />}
+    </>
+  )
+}
+
+async function TVSections() {
+  const [popular, topRated] = await Promise.all([
+    safeList(getPopularTV, 'tv'),
+    safeList(getTopRatedTV, 'tv'),
+  ])
+
+  return (
+    <>
+      {popular.length > 0 && <MediaRail title="Popular TV shows" items={popular} href="/tv" />}
+      {topRated.length > 0 && <MediaRail title="Top rated TV" items={topRated} />}
+    </>
+  )
+}
+
+
+
+export default function HomePage() {
+  return (
+    <Shell>
+      {/* Hero — independent boundary so other sections don't block */}
+      <Suspense fallback={<SkeletonHero />}>
+        <TrendingSection />
+      </Suspense>
+
+      {/* Continue Watching — client component, hydrates from localStorage */}
+      <ContinueWatchingRail />
+
+      {/* Movie rails */}
+      <Suspense
+        fallback={
+          <>
+            <SkeletonRail />
+            <SkeletonRail />
+          </>
+        }
+      >
+        <MovieSections />
+      </Suspense>
+
+      {/* TV rails */}
+      <Suspense
+        fallback={
+          <>
+            <SkeletonRail />
+            <SkeletonRail />
+          </>
+        }
+      >
+        <TVSections />
+      </Suspense>
+    </Shell>
+  )
+}

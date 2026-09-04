@@ -310,8 +310,8 @@ export const getProviders = cache(async (region = 'US') =>
   tmdb<{ results: WatchProvider[] }>(`/watch/providers/movie?watch_region=${region}&language=en-US`, 86400)
     .then((data) => data.results ?? []))
 
-export const discoverByProvider = (type: MediaType, providerId: number, region = 'US') =>
-  discover(type, `with_watch_providers=${providerId}&watch_region=${region}&sort_by=popularity.desc`)
+export const discoverByProvider = (type: MediaType, providerId: number, region = 'US', sortBy = 'primary_release_date.desc') =>
+  discover(type, `with_watch_providers=${providerId}&watch_region=${region}&sort_by=${sortBy}`)
 
 // ── Detail ────────────────────────────────────────────────────────────────────
 
@@ -430,7 +430,7 @@ export const getByNetwork = (networkId: string | number, sort = 'popularity.desc
 export const getByKeyword = (type: MediaType, keywordId: string | number, sort = 'popularity.desc') =>
   list(`/discover/${type}?include_adult=false&with_keywords=${keywordId}&sort_by=${sort}`, 1800)
 
-// ── Genre discover ────────────────────────────────────────────────────────────
+// ── Genre discover ──────────────────────���─────────────────────────────────────
 
 export const getByGenre = (type: MediaType, genreId: string | number, sort = 'popularity.desc') =>
   list(`/discover/${type}?include_adult=false&with_genres=${genreId}&sort_by=${sort}`, 1800)

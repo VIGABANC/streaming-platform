@@ -282,6 +282,37 @@ export const searchMulti = (query: string) =>
 export const discover = (type: MediaType, params = '') =>
   list(`/discover/${type}?include_adult=false&${params}`, 1800)
 
+// ── Streaming providers ───────────────────────────────────────────────────────
+export interface WatchProvider {
+  provider_id: number
+  provider_name: string
+  logo_path?: string | null
+  display_priority?: number
+}
+
+export interface WatchProviderRegion {
+  link?: string
+  flatrate?: WatchProvider[]
+  rent?: WatchProvider[]
+  buy?: WatchProvider[]
+  free?: WatchProvider[]
+  ads?: WatchProvider[]
+}
+
+export const providerLogo = (path?: string | null, size = 'w92') =>
+  path ? `https://image.tmdb.org/t/p/${size}${path}` : '/poster-fallback.svg'
+
+export const getWatchProviders = cache(async (type: MediaType, id: string | number, region = 'US') =>
+  tmdb<{ results: Record<string, WatchProviderRegion> }>(`/${type}/${id}/watch/providers`, 3600)
+    .then((data) => data.results?.[region] ?? {}))
+
+export const getProviders = cache(async (region = 'US') =>
+  tmdb<{ results: WatchProvider[] }>(`/watch/providers/movie?watch_region=${region}&language=en-US`, 86400)
+    .then((data) => data.results ?? []))
+
+export const discoverByProvider = (type: MediaType, providerId: number, region = 'US', sortBy = 'primary_release_date.desc') =>
+  discover(type, `with_watch_providers=${providerId}&watch_region=${region}&sort_by=${sortBy}`)
+
 // ── Detail ────────────────────────────────────────────────────────────────────
 
 export const getMovieDetail = cache(async (id: string | number): Promise<MovieDetail> => {
@@ -399,7 +430,7 @@ export const getByNetwork = (networkId: string | number, sort = 'popularity.desc
 export const getByKeyword = (type: MediaType, keywordId: string | number, sort = 'popularity.desc') =>
   list(`/discover/${type}?include_adult=false&with_keywords=${keywordId}&sort_by=${sort}`, 1800)
 
-// ── Genre discover ────────────────────────────────────────────────────────────
+// ── Genre discover ──────────────────────���─────────────────────────────────────
 
 export const getByGenre = (type: MediaType, genreId: string | number, sort = 'popularity.desc') =>
   list(`/discover/${type}?include_adult=false&with_genres=${genreId}&sort_by=${sort}`, 1800)

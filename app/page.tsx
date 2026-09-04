@@ -1,45 +1,45 @@
 import { Suspense } from 'react'
-import { CinematicHero } from '@/components/landing/CinematicHero'
-import { LandingNav } from '@/components/landing/LandingNav'
-import { MediaRailSection } from '@/components/landing/MediaRailSection'
-import { DiscoveryShowcase } from '@/components/landing/DiscoveryShowcase'
-import { SearchShowcase } from '@/components/landing/SearchShowcase'
-import { DetailShowcase } from '@/components/landing/DetailShowcase'
-import { EpisodeShowcase } from '@/components/landing/EpisodeShowcase'
-import { LibraryShowcase } from '@/components/landing/LibraryShowcase'
-import { PlayerShowcase } from '@/components/landing/PlayerShowcase'
-import { DeviceShowcase } from '@/components/landing/DeviceShowcase'
-import { FinalCTA } from '@/components/landing/FinalCTA'
-import { LandingFooter } from '@/components/landing/LandingFooter'
-import { getTrending } from '@/lib/tmdb'
+import { Shell } from '@/components/layout/Shell'
+import { HeroCarousel } from '@/components/media/HeroCarousel'
+import { MediaRail } from '@/components/media/MediaRail'
+import { SkeletonRail, SkeletonHero } from '@/components/feedback/Skeletons'
+import { ContinueWatchingRail } from '@/components/media/ContinueWatchingRail'
+import { ProviderRail } from '@/components/providers/ProviderRail'
+import { getTrending, getPopularMovies, getPopularTV, getTopRatedMovies, getTopRatedTV, getNowPlaying, getUpcoming, getProviders, type Media, type MediaType } from '@/lib/tmdb'
 
-export default async function LandingPage() {
-  const trendingData = await getTrending().catch(() => ({ results: [] }));
-  const trending = trendingData.results.slice(0, 10);
+async function safeList(loader: () => Promise<{ results: Media[] }>, mediaType: MediaType): Promise<(Media & { media_type: MediaType })[]> {
+  try {
+    const data = await loader()
+    return data.results.map((item) => ({ ...item, media_type: (item.media_type as MediaType) ?? mediaType }))
+  } catch { return [] }
+}
 
-  return (
-    <div className="bg-[#050507] text-white min-h-screen selection:bg-cyan-500/30 overflow-x-hidden">
-      <a href="#main-content" className="skip-link">Skip to main content</a>
-      <LandingNav />
-      <main id="main-content">
-        <Suspense fallback={<div className="h-screen w-full bg-[#050507]" />}>
-          <CinematicHero trending={trending} />
-        </Suspense>
-        
-        <Suspense fallback={<div className="h-96 w-full" />}>
-          <MediaRailSection trending={trending} />
-        </Suspense>
+async function HomeFeed() {
+  const [trending, providers, popular, popularTv, topRated, topRatedTv, nowPlaying, upcoming] = await Promise.all([
+    safeList(getTrending, 'movie'),
+    getProviders().catch(() => []),
+    safeList(getPopularMovies, 'movie'),
+    safeList(getPopularTV, 'tv'),
+    safeList(getTopRatedMovies, 'movie'),
+    safeList(getTopRatedTV, 'tv'),
+    safeList(getNowPlaying, 'movie'),
+    safeList(getUpcoming, 'movie'),
+  ])
+  return <>
+    <HeroCarousel items={trending.slice(0, 5)} />
+    <ContinueWatchingRail />
+    <ProviderRail providers={providers} />
+    <MediaRail title="Trending today" items={trending.slice(5)} />
+    <MediaRail title="New & fresh" items={nowPlaying} href="/new" />
+    <MediaRail title="Popular movies" items={popular} href="/movies" />
+    <MediaRail title="Popular TV shows" items={popularTv} href="/tv" />
+    <MediaRail title="Top rated" items={[...topRated, ...topRatedTv]} />
+    <MediaRail title="Coming soon" items={upcoming} landscape />
+  </>
+}
 
-        <DiscoveryShowcase />
-        <SearchShowcase />
-        <DetailShowcase />
-        <EpisodeShowcase />
-        <LibraryShowcase />
-        <PlayerShowcase />
-        <DeviceShowcase />
-        <FinalCTA trending={trending} />
-      </main>
-      <LandingFooter />
-    </div>
-  )
+export const metadata = { title: 'VEYRA — Discover what to watch', description: 'Find movies and series worth staying up for.' }
+
+export default function HomePage() {
+  return <Shell><Suspense fallback={<><SkeletonHero /><SkeletonRail /><SkeletonRail /></>}><HomeFeed /></Suspense></Shell>
 }

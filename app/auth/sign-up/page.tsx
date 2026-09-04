@@ -1,0 +1,12 @@
+'use client'
+
+import { FormEvent, useState } from 'react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { Shell } from '@/components/layout/Shell'
+
+export default function SignUpPage() {
+  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [done, setDone] = useState(false); const [error, setError] = useState(''); const [busy, setBusy] = useState(false)
+  async function submit(event: FormEvent) { event.preventDefault(); setBusy(true); setError(''); const { error } = await createClient().auth.signUp({ email, password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback` } }); setBusy(false); if (error) { setError(error.message.toLowerCase().includes('password') ? 'Choose a stronger password.' : 'We could not create that account. Check your details and try again.'); return } setDone(true) }
+  return <Shell><main className="mx-auto flex min-h-[70vh] max-w-md items-center px-5 py-12"><form onSubmit={submit} className="w-full space-y-6 rounded-2xl border border-white/10 bg-[#0A0D14] p-7"><div><p className="eyebrow text-primary">New transmission</p><h1 className="mt-2 font-display text-3xl font-extrabold text-white">Create your signal</h1><p className="mt-2 text-sm text-white/60">Build a private library that follows you.</p></div>{done ? <p className="rounded-xl border border-cyan/30 bg-cyan/10 p-4 text-sm text-cyan">Check your inbox to confirm your email, then sign in.</p> : <><label className="block text-sm text-white/70">Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white outline-none focus:border-primary" /></label><label className="block text-sm text-white/70">Password<input required minLength={8} type="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white outline-none focus:border-primary" /></label>{error && <p role="alert" className="text-sm text-rose-300">{error}</p>}<button disabled={busy} className="w-full rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground disabled:opacity-50">{busy ? 'Creating…' : 'Create account'}</button></>}<p className="text-center text-sm text-white/50">Already have an account? <Link href="/auth/login" className="text-primary hover:underline">Sign in</Link></p></form></main></Shell>
+}

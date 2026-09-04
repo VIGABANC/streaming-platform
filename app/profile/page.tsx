@@ -26,7 +26,6 @@ import {
   type WatchStats,
   type FavoriteItem,
   type WatchlistItem,
-  type RatingItem,
   type HistoryItem,
   showToast,
 } from '@/lib/store'
@@ -37,7 +36,6 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<WatchStats | null>(null)
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([])
-  const [ratings, setRatings] = useState<RatingItem[]>([])
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [isEditing, setIsEditing] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -52,7 +50,6 @@ export default function ProfilePage() {
     setStats(store.getWatchStats())
     setFavorites(store.getFavorites())
     setWatchlist(store.getWatchlist())
-    setRatings(store.getRatings())
     setHistory(store.getHistory())
   }
 

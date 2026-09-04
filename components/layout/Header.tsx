@@ -13,6 +13,7 @@ import {
   Settings,
   ChevronDown,
   Flame,
+  ClipboardCheck,
 } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
 import { warmPlayerConnection } from '@/lib/player'
@@ -31,6 +32,7 @@ const NAV_LINKS: NavLinkItem[] = [
   { href: '/new', label: 'New', badge: 'Fresh' },
   { href: '/top10', label: 'Top 10', icon: Flame },
   { href: '/discover', label: 'Discover' },
+  { href: '/audit', label: 'Audit', icon: ClipboardCheck },
 ]
 
 export function Header() {

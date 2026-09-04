@@ -80,10 +80,10 @@ export function PlayerFrame({
     if (hardTimerRef.current) clearTimeout(hardTimerRef.current)
   }
 
-  // Warm provider connections on mount
+  // Warm only the selected provider after playback is requested.
   useEffect(() => {
-    warmPlayerConnection()
-  }, [])
+    warmPlayerConnection(selectedProvider)
+  }, [selectedProvider])
 
   // Offline detection
   useEffect(() => {

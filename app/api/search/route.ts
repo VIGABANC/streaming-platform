@@ -9,6 +9,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] })
   }
 
+  if (query.length < 2 || query.length > 100) {
+    return NextResponse.json({ error: 'SEARCH_QUERY_INVALID' }, { status: 400 })
+  }
+
   try {
     const data = await searchMulti(query)
     return NextResponse.json(data)

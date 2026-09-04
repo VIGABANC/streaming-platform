@@ -138,15 +138,16 @@ export function getTVEmbedUrl(
  * Add DNS-prefetch and preconnect hints for the embed providers.
  * Safe to call multiple times — deduplicates via attribute query.
  */
-export function warmPlayerConnection(): void {
+export function warmPlayerConnection(providerId?: string): void {
   if (typeof document === 'undefined') return
 
-  const origins = [
-    'https://v1.vidsrc.wiki',
-    'https://vidsrc.xyz',
-    'https://www.2embed.cc',
-    'https://player.autoembed.cc',
-  ]
+  const originsByProvider: Record<string, string> = {
+    'vidsrc-wiki': 'https://v1.vidsrc.wiki',
+    'vidsrc-xyz': 'https://vidsrc.xyz',
+    '2embed': 'https://www.2embed.cc',
+    autoembed: 'https://player.autoembed.cc',
+  }
+  const origins = providerId && originsByProvider[providerId] ? [originsByProvider[providerId]] : []
 
   const addHint = (origin: string, rel: 'preconnect' | 'dns-prefetch', crossOrigin = false) => {
     if (document.head.querySelector(`link[rel="${rel}"][href="${origin}"]`)) return

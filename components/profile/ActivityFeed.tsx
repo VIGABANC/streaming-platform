@@ -43,6 +43,8 @@ export function ActivityFeed() {
     
     const unsubscribe = subscribeToStoreChange()
     return unsubscribe
+  // The store subscription is intentionally initialized once for this mounted feed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function loadActivities() {

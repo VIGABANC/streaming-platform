@@ -15,9 +15,15 @@ async function safeList(loader: () => Promise<{ results: Media[] }>, mediaType: 
 }
 
 async function HomeFeed() {
-  const trending = await safeList(getTrending, 'movie')
-  const [providers, popular, popularTv, topRated, topRatedTv, nowPlaying, upcoming] = await Promise.all([
-    getProviders().catch(() => []), safeList(getPopularMovies, 'movie'), safeList(getPopularTV, 'tv'), safeList(getTopRatedMovies, 'movie'), safeList(getTopRatedTV, 'tv'), safeList(getNowPlaying, 'movie'), safeList(getUpcoming, 'movie'),
+  const [trending, providers, popular, popularTv, topRated, topRatedTv, nowPlaying, upcoming] = await Promise.all([
+    safeList(getTrending, 'movie'),
+    getProviders().catch(() => []),
+    safeList(getPopularMovies, 'movie'),
+    safeList(getPopularTV, 'tv'),
+    safeList(getTopRatedMovies, 'movie'),
+    safeList(getTopRatedTV, 'tv'),
+    safeList(getNowPlaying, 'movie'),
+    safeList(getUpcoming, 'movie'),
   ])
   return <>
     <HeroCarousel items={trending.slice(0, 5)} />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Settings, Edit2 } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { store, type UserProfile } from '@/lib/store'
 import Link from 'next/link'
 

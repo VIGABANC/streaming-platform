@@ -13,6 +13,7 @@ import {
   getGenreName,
   type MediaType,
 } from '@/lib/tmdb'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
 
 interface GenrePageProps {
   params: Promise<{ type: string; id: string }>
@@ -20,8 +21,10 @@ interface GenrePageProps {
 
 export async function generateMetadata({ params }: GenrePageProps): Promise<Metadata> {
   const { type, id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 10_000 })
+  if (safeId === null || (type !== 'movie' && type !== 'tv')) return { title: 'Invalid genre — VEYRA' }
   const mediaType = (type === 'tv' ? 'tv' : 'movie') as MediaType
-  const genreName = getGenreName(mediaType, Number(id))
+  const genreName = getGenreName(mediaType, safeId)
 
   return {
     title: `${genreName} ${mediaType === 'tv' ? 'TV Shows' : 'Movies'} — VEYRA`,
@@ -34,7 +37,8 @@ export default async function GenreHubPage({ params }: GenrePageProps) {
   if (type !== 'movie' && type !== 'tv') notFound()
 
   const mediaType = type as MediaType
-  const genreId = Number(id)
+  const genreId = parsePositiveIntSegment(id, { min: 1, max: 10_000 })
+  if (genreId === null) notFound()
   const genreName = getGenreName(mediaType, genreId)
 
   if (genreName === 'Unknown') notFound()

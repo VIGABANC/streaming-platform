@@ -9,4 +9,9 @@ describe('route segment validation', () => {
   it('accepts a canonical in-range integer', () => {
     expect(parsePositiveIntSegment('12', { min: 1, max: 100 })).toBe(12)
   })
+
+  it('allows zero only when the route explicitly supports it', () => {
+    expect(parsePositiveIntSegment('0', { min: 0, max: 100 })).toBe(0)
+    expect(parsePositiveIntSegment('0', { min: 1, max: 100 })).toBeNull()
+  })
 })

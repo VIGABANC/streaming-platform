@@ -6,6 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Media, MediaType } from './tmdb'
+import { parseLibraryBackup, serializeLibraryBackup, type ImportResult } from './library/backup-schema'
+import { DEFAULT_USER_SETTINGS, normalizeUserSettings } from './settings'
 
 // ── Data types ────────────────────────────────────────────────────────────────
 
@@ -132,7 +134,7 @@ export interface UserMediaStore {
   getWatchStats(): WatchStats
   clearAll(): void
   exportData(): string
-  importData(json: string): boolean
+  importData(json: string): ImportResult
 }
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
@@ -189,13 +191,7 @@ const DEFAULT_PROFILE: UserProfile = {
   joinedAt: 1704067200000, // 2024-01-01
 }
 
-const DEFAULT_SETTINGS: UserSettings = {
-  autoplayNext: true,
-  defaultServer: 'vidsrc-wiki',
-  streamQuality: 'auto',
-  ambientLighting: true,
-  reducedMotion: false,
-}
+const DEFAULT_SETTINGS: UserSettings = DEFAULT_USER_SETTINGS
 
 class LocalStorageMediaStore implements UserMediaStore {
   // ── Watchlist ────────────────────────────────────────────────────────────
@@ -387,12 +383,12 @@ class LocalStorageMediaStore implements UserMediaStore {
   // ── Settings ─────────────────────────────────────────────────────────────
 
   getSettings(): UserSettings {
-    return readStorage<UserSettings>(STORE_KEYS.settings, DEFAULT_SETTINGS)
+    return normalizeUserSettings(readStorage<unknown>(STORE_KEYS.settings, DEFAULT_SETTINGS))
   }
 
   updateSettings(settings: Partial<UserSettings>): UserSettings {
     const current = this.getSettings()
-    const updated = { ...current, ...settings }
+    const updated = normalizeUserSettings({ ...current, ...settings })
     writeStorage(STORE_KEYS.settings, updated)
     return updated
   }
@@ -430,8 +426,8 @@ class LocalStorageMediaStore implements UserMediaStore {
   }
 
   exportData(): string {
-    const data = {
-      version: '1.0',
+    return serializeLibraryBackup({
+      version: 1,
       exportedAt: new Date().toISOString(),
       watchlist: this.getWatchlist(),
       favorites: this.getFavorites(),
@@ -440,23 +436,36 @@ class LocalStorageMediaStore implements UserMediaStore {
       continueWatching: this.getContinueWatching(),
       profile: this.getProfile(),
       settings: this.getSettings(),
-    }
-    return JSON.stringify(data, null, 2)
+    })
   }
 
-  importData(json: string): boolean {
+  importData(json: string): ImportResult {
+    const result = parseLibraryBackup(json)
+    if (!result.ok) return result
+
+    const storage = getStorage()
+    if (!storage) return result
+
+    const values: Record<string, string> = {
+      [STORE_KEYS.watchlist]: JSON.stringify(result.snapshot.watchlist),
+      [STORE_KEYS.favorites]: JSON.stringify(result.snapshot.favorites),
+      [STORE_KEYS.ratings]: JSON.stringify(result.snapshot.ratings),
+      [STORE_KEYS.history]: JSON.stringify(result.snapshot.history),
+      [STORE_KEYS.continueWatching]: JSON.stringify(result.snapshot.continueWatching),
+      [STORE_KEYS.profile]: JSON.stringify(result.snapshot.profile),
+      [STORE_KEYS.settings]: JSON.stringify(result.snapshot.settings),
+    }
+    const previous = Object.fromEntries(Object.keys(values).map((key) => [key, storage.getItem(key)]))
     try {
-      const data = JSON.parse(json)
-      if (Array.isArray(data.watchlist)) writeStorage(STORE_KEYS.watchlist, data.watchlist)
-      if (Array.isArray(data.favorites)) writeStorage(STORE_KEYS.favorites, data.favorites)
-      if (Array.isArray(data.ratings)) writeStorage(STORE_KEYS.ratings, data.ratings)
-      if (Array.isArray(data.history)) writeStorage(STORE_KEYS.history, data.history)
-      if (Array.isArray(data.continueWatching)) writeStorage(STORE_KEYS.continueWatching, data.continueWatching)
-      if (data.profile) writeStorage(STORE_KEYS.profile, data.profile)
-      if (data.settings) writeStorage(STORE_KEYS.settings, data.settings)
-      return true
+      Object.entries(values).forEach(([key, value]) => storage.setItem(key, value))
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('veyra-store-change', { detail: { key: 'all' } }))
+      return result
     } catch {
-      return false
+      Object.entries(previous).forEach(([key, value]) => {
+        if (value === null) storage.removeItem(key)
+        else storage.setItem(key, value)
+      })
+      return { ok: false, reason: 'invalid-schema' }
     }
   }
 }

@@ -52,9 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} dark`}>
       <head>
-        {/* Provider connection hints */}
-        <link rel="dns-prefetch" href="https://v1.vidsrc.wiki" />
-        <link rel="preconnect" href="https://v1.vidsrc.wiki" crossOrigin="anonymous" />
+        {/* Artwork connection hint; player origins are warmed only after playback intent. */}
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         {/* PWA */}
@@ -68,7 +66,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <ServiceWorkerRegistration />
         <WebVitals />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {/* Vercel serves this endpoint; keep local/self-hosted production builds console-clean. */}
+        {process.env.NODE_ENV === 'production' && process.env.VERCEL === '1' && <Analytics />}
       </body>
     </html>
   )

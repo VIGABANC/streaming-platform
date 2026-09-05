@@ -25,6 +25,8 @@ import {
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
 import { serializeJsonLd } from '@/lib/seo/json-ld'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
+import { notFound } from 'next/navigation'
 
 interface TVPageProps {
   params: Promise<{ id: string }>
@@ -32,14 +34,16 @@ interface TVPageProps {
 
 export async function generateMetadata({ params }: TVPageProps): Promise<Metadata> {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) return { title: 'Invalid series — VEYRA', description: 'The requested series URL is invalid.' }
   try {
-    const show = await getTVDetail(id)
+    const show = await getTVDetail(safeId)
     const title = titleOf(show)
     const year = yearOf(show)
     return {
       title: `${title} (${year}) — VEYRA`,
       description: show.overview || `Watch ${title} on VEYRA.`,
-      alternates: { canonical: `/tv/${id}` },
+      alternates: { canonical: `/tv/${safeId}` },
       openGraph: {
         title: `${title} (${year}) — VEYRA`,
         description: show.overview || `Watch ${title} on VEYRA.`,
@@ -56,10 +60,12 @@ export async function generateMetadata({ params }: TVPageProps): Promise<Metadat
 
 export default async function TVDetailPage({ params }: TVPageProps) {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) notFound()
   let show: TVDetail | null = null
 
   try {
-    show = await getTVDetail(id)
+    show = await getTVDetail(safeId)
   } catch {
     // 404 handled below
   }
@@ -103,7 +109,7 @@ export default async function TVDetailPage({ params }: TVPageProps) {
 
   let initialEpisodes: Episode[] = []
   try {
-    const seasonData: SeasonDetail = await getSeason(id, initialSeasonNum)
+    const seasonData: SeasonDetail = await getSeason(safeId, initialSeasonNum)
     initialEpisodes = seasonData.episodes ?? []
   } catch {
     initialEpisodes = []

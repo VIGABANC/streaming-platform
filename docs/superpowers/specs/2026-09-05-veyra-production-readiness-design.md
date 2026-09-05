@@ -62,4 +62,3 @@ Use unit tests for pure security/data primitives, Playwright tests for route gua
 | Performance | `ultra-performance-engineer` and local Next image/font docs | Measurement-led LCP, JS, image, font, and field telemetry work |
 | GSAP | `gsap-react`, `gsap-performance`, `motion-principles` | Cleanup, responsive timelines, and reduced motion |
 | Testing | `vercel:agent-browser-verify` plus Playwright project | Browser journeys, console/errors, responsive verification |
-

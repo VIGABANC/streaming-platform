@@ -18,6 +18,8 @@ import {
 } from '@/lib/tmdb'
 import { getMovieEmbedUrl } from '@/lib/player'
 import { formatRating } from '@/lib/utils'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
+import { notFound } from 'next/navigation'
 
 interface WatchMoviePageProps {
   params: Promise<{ id: string }>
@@ -25,8 +27,10 @@ interface WatchMoviePageProps {
 
 export async function generateMetadata({ params }: WatchMoviePageProps): Promise<Metadata> {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) return { title: 'Invalid movie — VEYRA' }
   try {
-    const movie = await getMovieDetail(id)
+    const movie = await getMovieDetail(safeId)
     const title = titleOf(movie)
     return {
       title: `Watch ${title} — VEYRA`,
@@ -41,17 +45,19 @@ export async function generateMetadata({ params }: WatchMoviePageProps): Promise
 
 export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) notFound()
   let movie: MovieDetail | null = null
 
   try {
-    movie = await getMovieDetail(id)
+    movie = await getMovieDetail(safeId)
   } catch {
     // Graceful fallback
   }
 
   const title = movie ? titleOf(movie) : 'Movie'
   const year = movie ? yearOf(movie) : ''
-  const embedUrl = getMovieEmbedUrl(id)
+  const embedUrl = getMovieEmbedUrl(safeId)
   const backdropUrl = movie?.backdrop_path ? backdrop(movie.backdrop_path, 'w1280') : undefined
 
   const similarTitles: (Media & { media_type: MediaType })[] = (

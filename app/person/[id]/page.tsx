@@ -12,6 +12,7 @@ import {
   type MediaType,
   type Media,
 } from '@/lib/tmdb'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
 
 interface PersonPageProps {
   params: Promise<{ id: string }>
@@ -19,8 +20,10 @@ interface PersonPageProps {
 
 export async function generateMetadata({ params }: PersonPageProps): Promise<Metadata> {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) return { title: 'Invalid person — VEYRA' }
   try {
-    const person = await getPersonDetail(id)
+    const person = await getPersonDetail(safeId)
     return {
       title: `${person.name} — VEYRA`,
       description: person.biography?.slice(0, 155) || `Explore ${person.name}'s filmography on VEYRA.`,
@@ -32,10 +35,12 @@ export async function generateMetadata({ params }: PersonPageProps): Promise<Met
 
 export default async function PersonPage({ params }: PersonPageProps) {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) notFound()
 
   let person
   try {
-    person = await getPersonDetail(id)
+    person = await getPersonDetail(safeId)
   } catch {
     notFound()
   }

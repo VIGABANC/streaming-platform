@@ -7,6 +7,7 @@ import type {
   UserSettings,
   WatchlistItem,
 } from '@/lib/store'
+import { parseLibraryBackup } from './backup-schema'
 
 export interface LibrarySnapshot {
   version: 1
@@ -86,19 +87,8 @@ export function mergeLibrarySnapshots(local: LibrarySnapshot, remote: LibrarySna
 
 export function normalizeLibrarySnapshot(value: unknown): LibrarySnapshot | null {
   if (!value || typeof value !== 'object') return null
-  const data = value as Partial<LibrarySnapshot> & { version?: unknown }
-  if (!Array.isArray(data.watchlist) || !Array.isArray(data.favorites) || !Array.isArray(data.ratings) || !Array.isArray(data.history) || !Array.isArray(data.continueWatching)) return null
-  if (!data.profile || typeof data.profile !== 'object' || !data.settings || typeof data.settings !== 'object') return null
-
-  return {
-    version: 1,
-    exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : new Date(0).toISOString(),
-    watchlist: data.watchlist as WatchlistItem[],
-    favorites: data.favorites as FavoriteItem[],
-    ratings: data.ratings as RatingItem[],
-    history: data.history as HistoryItem[],
-    continueWatching: data.continueWatching as ContinueWatchingItem[],
-    profile: data.profile as UserProfile,
-    settings: data.settings as UserSettings,
-  }
+  const data = value as Record<string, unknown>
+  const { version: _version, schemaVersion: _schemaVersion, ...payload } = data
+  const result = parseLibraryBackup(JSON.stringify({ ...payload, schemaVersion: 1 }))
+  return result.ok ? result.snapshot : null
 }

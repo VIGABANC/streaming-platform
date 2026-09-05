@@ -22,6 +22,8 @@ import {
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
 import { serializeJsonLd } from '@/lib/seo/json-ld'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
+import { notFound } from 'next/navigation'
 
 interface MoviePageProps {
   params: Promise<{ id: string }>
@@ -29,14 +31,16 @@ interface MoviePageProps {
 
 export async function generateMetadata({ params }: MoviePageProps): Promise<Metadata> {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) return { title: 'Invalid movie — VEYRA', description: 'The requested movie URL is invalid.' }
   try {
-    const movie = await getMovieDetail(id)
+    const movie = await getMovieDetail(safeId)
     const title = titleOf(movie)
     const year = yearOf(movie)
     return {
       title: `${title} (${year}) — VEYRA`,
       description: movie.overview || `Watch ${title} on VEYRA.`,
-      alternates: { canonical: `/movie/${id}` },
+      alternates: { canonical: `/movie/${safeId}` },
       openGraph: {
         title: `${title} (${year}) — VEYRA`,
         description: movie.overview || `Watch ${title} on VEYRA.`,
@@ -53,10 +57,12 @@ export async function generateMetadata({ params }: MoviePageProps): Promise<Meta
 
 export default async function MovieDetailPage({ params }: MoviePageProps) {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) notFound()
   let movie: MovieDetail | null = null
 
   try {
-    movie = await getMovieDetail(id)
+    movie = await getMovieDetail(safeId)
   } catch {
     // Check if error is 404
   }

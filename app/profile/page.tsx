@@ -30,6 +30,7 @@ import {
   showToast,
 } from '@/lib/store'
 import type { MediaType } from '@/lib/tmdb'
+import { SignOutButton } from '@/components/auth/SignOutButton'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -222,6 +223,7 @@ export default function ProfilePage() {
               >
                 <Settings size={16} />
               </Link>
+              <SignOutButton />
             </div>
           </div>
         </section>

@@ -28,7 +28,7 @@ export function LibrarySync() {
         const local = readLocalLibrary()
         const merged = cloud.snapshot ? mergeLibrarySnapshots(local, cloud.snapshot) : local
         writeLocalLibrary(merged)
-        await writeCloudLibrary(cloud.userId, merged)
+        await writeCloudLibrary(merged)
         window.localStorage.setItem(LIBRARY_OWNER_KEY, cloud.userId)
       } catch (error) {
         if (!isSupabaseConfigError(error) && !cancelled) {
@@ -54,6 +54,7 @@ export function LibrarySync() {
       const supabase = createClient()
       const authSubscription = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') scheduleSync()
+        if (event === 'SIGNED_OUT') clearLocalLibrary()
       })
       unsubscribeAuth = () => authSubscription.data.subscription.unsubscribe()
     } catch (error) {

@@ -15,6 +15,8 @@ import {
   type Episode,
 } from '@/lib/tmdb'
 import { getTVEmbedUrl } from '@/lib/player'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
+import { notFound } from 'next/navigation'
 
 interface TVWatchProps {
   params: Promise<{
@@ -26,12 +28,16 @@ interface TVWatchProps {
 
 export async function generateMetadata({ params }: TVWatchProps): Promise<Metadata> {
   const { id, season, episode } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  const safeSeason = parsePositiveIntSegment(season, { min: 0, max: 100 })
+  const safeEpisode = parsePositiveIntSegment(episode, { min: 1, max: 1000 })
+  if (safeId === null || safeSeason === null || safeEpisode === null) return { title: 'Invalid episode — VEYRA' }
   try {
-    const show = await getTVDetail(id)
+    const show = await getTVDetail(safeId)
     const title = titleOf(show)
     return {
-      title: `Watch ${title} S${season} E${episode} — VEYRA`,
-      description: `Stream ${title} Season ${season}, Episode ${episode} on VEYRA.`,
+      title: `Watch ${title} S${safeSeason} E${safeEpisode} — VEYRA`,
+      description: `Stream ${title} Season ${safeSeason}, Episode ${safeEpisode} on VEYRA.`,
     }
   } catch {
     return {
@@ -42,16 +48,18 @@ export async function generateMetadata({ params }: TVWatchProps): Promise<Metada
 
 export default async function WatchTVPage({ params }: TVWatchProps) {
   const { id, season, episode } = await params
-  const seasonNum = parseInt(season, 10) || 1
-  const episodeNum = parseInt(episode, 10) || 1
+  const tvId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  const seasonNum = parsePositiveIntSegment(season, { min: 0, max: 100 })
+  const episodeNum = parsePositiveIntSegment(episode, { min: 1, max: 1000 })
+  if (tvId === null || seasonNum === null || episodeNum === null) notFound()
 
   let show: TVDetail | null = null
   let seasonData: SeasonDetail | null = null
 
   try {
     const [showRes, seasonRes] = await Promise.all([
-      getTVDetail(id),
-      getSeason(id, seasonNum).catch(() => null),
+      getTVDetail(tvId),
+      getSeason(tvId, seasonNum).catch(() => null),
     ])
     show = showRes
     seasonData = seasonRes
@@ -65,7 +73,7 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
   )
 
   const episodeName = currentEpisode?.name || `Episode ${episodeNum}`
-  const embedUrl = getTVEmbedUrl(id, seasonNum, episodeNum)
+  const embedUrl = getTVEmbedUrl(tvId, seasonNum, episodeNum)
   const backdropUrl = show?.backdrop_path ? backdrop(show.backdrop_path, 'w1280') : undefined
 
   // Calculate Next / Previous Episode navigation
@@ -76,16 +84,16 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
   let nextHref: string | null = null
 
   if (episodeNum > 1) {
-    prevHref = `/watch/tv/${id}/${seasonNum}/${episodeNum - 1}`
+    prevHref = `/watch/tv/${tvId}/${seasonNum}/${episodeNum - 1}`
   }
 
   if (totalEpisodesInSeason > 0 && episodeNum < totalEpisodesInSeason) {
-    nextHref = `/watch/tv/${id}/${seasonNum}/${episodeNum + 1}`
+    nextHref = `/watch/tv/${tvId}/${seasonNum}/${episodeNum + 1}`
   } else if (show?.seasons) {
     // Check if next season exists
     const nextSeason = show.seasons.find((s) => s.season_number === seasonNum + 1)
     if (nextSeason && nextSeason.episode_count > 0) {
-      nextHref = `/watch/tv/${id}/${nextSeason.season_number}/1`
+      nextHref = `/watch/tv/${tvId}/${nextSeason.season_number}/1`
     }
   }
 
@@ -111,7 +119,7 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
         {/* Top bar */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link
-            href={`/tv/${id}`}
+            href={`/tv/${tvId}`}
             className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-white transition-colors"
           >
             <ArrowLeft size={16} />
@@ -136,7 +144,7 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             title={`${title} S${seasonNum} E${episodeNum} playback`}
             episodeLabel={`Season ${seasonNum}, Episode ${episodeNum} — ${episodeName}`}
             artwork={backdropUrl}
-            backHref={`/tv/${id}`}
+            backHref={`/tv/${tvId}`}
           />
         </div>
 
@@ -224,7 +232,7 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
                 return (
                   <Link
                     key={ep.id}
-                    href={`/watch/tv/${id}/${seasonNum}/${ep.episode_number}`}
+                    href={`/watch/tv/${tvId}/${seasonNum}/${ep.episode_number}`}
                     className={`rounded-xl p-3 border transition-all ${
                       isCurrent
                         ? 'border-primary bg-primary/10 ring-1 ring-primary/40'

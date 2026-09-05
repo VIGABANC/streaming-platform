@@ -5,6 +5,7 @@ import { ProviderSwitcher } from '@/components/landing/ProviderSwitcher'
 import { HomeCatalog } from '@/components/landing/HomeCatalog'
 import { FinalCTA } from '@/components/landing/FinalCTA'
 import { discoverByProvider, getAiringToday, getNowPlaying, getPopularMovies, getPopularTV, getProviders, getTopRatedMovies, getTopRatedTV, getTrending } from '@/lib/tmdb'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
 
 export const metadata = { title: 'VEYRA — The Night Signal', description: 'Find the story worth staying up for. Discover movies and television across every signal.' }
 
@@ -12,7 +13,7 @@ type SearchParams = Promise<{ provider?: string }>
 
 export default async function LandingPage({ searchParams }: { searchParams?: SearchParams }) {
   const params = searchParams ? await searchParams : {}
-  const providerId = params.provider ? Number(params.provider) : undefined
+  const providerId = params.provider ? parsePositiveIntSegment(params.provider, { min: 1, max: 1_000_000 }) ?? undefined : undefined
   const [providers, trending] = await Promise.all([getProviders().catch(() => []), getTrending().then((data) => data.results.filter((item) => item.media_type !== 'person').slice(0, 12)).catch(() => [])])
   const provider = providers.find((item) => item.provider_id === providerId)
   const selectedId = provider?.provider_id

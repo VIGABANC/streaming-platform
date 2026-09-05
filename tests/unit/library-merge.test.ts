@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mergeLibrarySnapshots, type LibrarySnapshot } from '@/lib/library/types'
+import { mergeLibrarySnapshots, normalizeLibrarySnapshot, type LibrarySnapshot } from '@/lib/library/types'
 
 const base: LibrarySnapshot = {
   version: 1,
@@ -39,5 +39,19 @@ describe('mergeLibrarySnapshots', () => {
 
     expect(local).toEqual(base)
     expect(remote).toEqual(base)
+  })
+
+  it('rejects malformed cloud payloads instead of trusting typed casts', () => {
+    expect(normalizeLibrarySnapshot({
+      version: 1,
+      exportedAt: base.exportedAt,
+      watchlist: [{ id: 'not-a-number', media_type: 'movie' }],
+      favorites: [],
+      ratings: [],
+      history: [],
+      continueWatching: [],
+      profile: base.profile,
+      settings: base.settings,
+    })).toBeNull()
   })
 })

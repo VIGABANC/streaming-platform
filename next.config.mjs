@@ -10,14 +10,24 @@ const nextConfig = {
     ],
   },
   async headers() {
+    const supabaseOrigin = (() => {
+      try {
+        const raw = process.env.NEXT_PUBLIC_SUPABASE_URL
+        if (!raw) return ''
+        const parsed = new URL(raw)
+        return parsed.protocol === 'https:' ? parsed.origin : ''
+      } catch {
+        return ''
+      }
+    })()
     const cspHeader = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vitals.vercel-insights.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com data:",
+      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data:",
       "img-src 'self' https://image.tmdb.org data: blob:",
       "media-src 'self' blob:",
-      "connect-src 'self' https://api.themoviedb.org https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+      `connect-src 'self' https://api.themoviedb.org https://va.vercel-scripts.com https://vitals.vercel-insights.com${supabaseOrigin ? ` ${supabaseOrigin}` : ''}`,
       "frame-src 'self' https://v1.vidsrc.wiki https://vidsrc.xyz https://www.2embed.cc https://player.autoembed.cc https://www.youtube.com https://youtube.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -35,13 +45,6 @@ const nextConfig = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-        ],
-      },
-      {
-        // Allow embedding for player watch route
-        source: '/watch/:path*',
-        headers: [
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
         ],
       },
     ]

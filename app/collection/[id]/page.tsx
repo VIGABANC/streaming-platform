@@ -13,6 +13,7 @@ import {
   formatRuntime,
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
 
 interface CollectionPageProps {
   params: Promise<{ id: string }>
@@ -20,8 +21,10 @@ interface CollectionPageProps {
 
 export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) return { title: 'Invalid collection — VEYRA' }
   try {
-    const collection = await getCollection(id)
+    const collection = await getCollection(safeId)
     return {
       title: `${collection.name} — VEYRA`,
       description: collection.overview || `Watch all movies in the ${collection.name} on VEYRA.`,
@@ -33,10 +36,12 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
 
 export default async function CollectionPage({ params }: CollectionPageProps) {
   const { id } = await params
+  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
+  if (safeId === null) notFound()
 
   let collection
   try {
-    collection = await getCollection(id)
+    collection = await getCollection(safeId)
   } catch {
     notFound()
   }

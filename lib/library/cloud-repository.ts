@@ -17,12 +17,15 @@ export async function readCloudLibrary(): Promise<{ userId: string; snapshot: Li
   return { userId: authData.user.id, snapshot: normalizeLibrarySnapshot(data?.payload) }
 }
 
-export async function writeCloudLibrary(userId: string, snapshot: LibrarySnapshot): Promise<void> {
+export async function writeCloudLibrary(snapshot: LibrarySnapshot): Promise<void> {
   const supabase = createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+  if (authError) throw authError
+  if (!authData.user) throw new Error('AUTH_REQUIRED')
   const { error } = await supabase
     .from('user_library_snapshots')
     .upsert(
-      { user_id: userId, version: snapshot.version, payload: snapshot, updated_at: new Date().toISOString() },
+      { user_id: authData.user.id, version: snapshot.version, payload: snapshot, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' },
     )
 

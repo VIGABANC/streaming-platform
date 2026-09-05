@@ -29,44 +29,55 @@ export interface StreamProvider {
   id: string
   name: string
   badge: string
+  origin: string
   movieUrl: (id: number) => string
   tvUrl: (id: number, season: number, episode: number) => string
 }
+
+export const PLAYER_ORIGINS = {
+  'vidsrc-wiki': 'https://v1.vidsrc.wiki',
+  'vidsrc-xyz': 'https://vidsrc.xyz',
+  '2embed': 'https://www.2embed.cc',
+  autoembed: 'https://player.autoembed.cc',
+} as const
 
 // ── Provider definitions ──────────────────────────────────────────────────────
 
 export const PROVIDERS: StreamProvider[] = [
   {
     id: 'vidsrc-wiki',
-    name: 'Server 1 (VidSrc Pro)',
+    name: 'Server 1',
     badge: 'Fast HD',
+    origin: PLAYER_ORIGINS['vidsrc-wiki'],
     movieUrl: (id) => `https://v1.vidsrc.wiki/embed/movie/${id}/`,
     tvUrl: (id, season, episode) => `https://v1.vidsrc.wiki/embed/tv/${id}/${season}/${episode}/`,
   },
   {
     id: 'vidsrc-xyz',
-    name: 'Server 2 (VidSrc Prime)',
+    name: 'Server 2',
     badge: 'Ultra HD',
+    origin: PLAYER_ORIGINS['vidsrc-xyz'],
     movieUrl: (id) => `https://vidsrc.xyz/embed/movie/${id}`,
     tvUrl: (id, season, episode) => `https://vidsrc.xyz/embed/tv/${id}/${season}-${episode}`,
   },
   {
     id: '2embed',
-    name: 'Server 3 (2Embed)',
+    name: 'Server 3',
     badge: 'Multi-Sub',
+    origin: PLAYER_ORIGINS['2embed'],
     movieUrl: (id) => `https://www.2embed.cc/embed/${id}`,
     tvUrl: (id, season, episode) => `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`,
   },
   {
     id: 'autoembed',
-    name: 'Server 4 (AutoEmbed)',
+    name: 'Server 4',
     badge: 'Auto Fallback',
+    origin: PLAYER_ORIGINS.autoembed,
     movieUrl: (id) => `https://player.autoembed.cc/embed/movie/${id}`,
     tvUrl: (id, season, episode) => `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`,
   },
 ]
 
-/** Default provider if NEXT_PUBLIC_EMBED_PROVIDER is not set */
 export const DEFAULT_PROVIDER = PROVIDERS[0].id
 
 export function getInitialProviderId(savedProvider?: string): string {
@@ -75,50 +86,42 @@ export function getInitialProviderId(savedProvider?: string): string {
     : DEFAULT_PROVIDER
 }
 
-export function getPlayerProvider(): string {
-  const raw = process.env.NEXT_PUBLIC_EMBED_PROVIDER
-  if (!raw) return 'https://v1.vidsrc.wiki'
-  try {
-    const parsed = new URL(raw)
-    // Allow https or local development http://localhost
-    if (
-      parsed.protocol === 'https:' ||
-      (process.env.NODE_ENV === 'development' && parsed.hostname === 'localhost')
-    ) {
-      return parsed.origin
-    }
-  } catch {
-    // Malformed URL
-  }
-  return 'https://v1.vidsrc.wiki'
-}
-
-export function getPlayerOrigin(): string {
-  try {
-    return new URL(getPlayerProvider()).origin
-  } catch {
-    return 'https://v1.vidsrc.wiki'
-  }
-}
-
 // ── URL builders ──────────────────────────────────────────────────────────────
 
 function positiveInteger(value: string | number, label: string): number {
-  const n = Number(value)
-  if (!Number.isInteger(n) || n < 1) {
+  const raw = String(value)
+  const n = Number(raw)
+  if (!/^\d+$/.test(raw) || raw.length > 1 && raw.startsWith('0') || !Number.isSafeInteger(n) || n < 1) {
     throw new Error(`INVALID_${label.toUpperCase()}`)
   }
   return n
 }
 
+export function isTrustedPlayerUrl(value: string, providerId: string): boolean {
+  const provider = PROVIDERS.find((candidate) => candidate.id === providerId)
+  if (!provider) return false
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:' || url.origin !== provider.origin || url.search || url.hash) return false
+    const path = url.pathname.replace(/\/$/, '')
+    if (providerId === 'vidsrc-wiki') return /^\/embed\/(movie|tv)\/\d+(?:\/\d+\/\d+)?$/.test(path)
+    if (providerId === 'vidsrc-xyz') return /^\/embed\/(movie\/\d+|tv\/\d+\/\d+-\d+)$/.test(path)
+    if (providerId === '2embed') return /^\/embed\/\d+$/.test(path) || /^\/embedtv\/\d+&s=\d+&e=\d+$/.test(path)
+    return /^\/embed\/(movie\/\d+|tv\/\d+\/\d+\/\d+)$/.test(path)
+  } catch {
+    return false
+  }
+}
+
+function trustedUrl(url: string, providerId: string): string {
+  if (!isTrustedPlayerUrl(url, providerId)) throw new Error('UNTRUSTED_PLAYER_URL')
+  return url
+}
+
 export function getMovieEmbedUrl(id: string | number, providerId: string = 'vidsrc-wiki'): string {
   const safeId = positiveInteger(id, 'MEDIA_ID')
-  const customBase = process.env.NEXT_PUBLIC_EMBED_PROVIDER
-  if (customBase && providerId === 'vidsrc-wiki') {
-    return `${customBase.replace(/\/$/, '')}/embed/movie/${safeId}/`
-  }
   const provider = PROVIDERS.find((p) => p.id === providerId) ?? PROVIDERS[0]
-  return provider.movieUrl(safeId)
+  return trustedUrl(provider.movieUrl(safeId), provider.id)
 }
 
 export function getTVEmbedUrl(
@@ -130,12 +133,8 @@ export function getTVEmbedUrl(
   const safeId = positiveInteger(id, 'MEDIA_ID')
   const safeSeason = positiveInteger(season, 'SEASON')
   const safeEpisode = positiveInteger(episode, 'EPISODE')
-  const customBase = process.env.NEXT_PUBLIC_EMBED_PROVIDER
-  if (customBase && providerId === 'vidsrc-wiki') {
-    return `${customBase.replace(/\/$/, '')}/embed/tv/${safeId}/${safeSeason}/${safeEpisode}/`
-  }
   const provider = PROVIDERS.find((p) => p.id === providerId) ?? PROVIDERS[0]
-  return provider.tvUrl(safeId, safeSeason, safeEpisode)
+  return trustedUrl(provider.tvUrl(safeId, safeSeason, safeEpisode), provider.id)
 }
 
 // ── Network & warmup ──────────────────────────────────────────────────────────

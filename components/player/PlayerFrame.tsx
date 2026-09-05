@@ -22,6 +22,7 @@ import {
   type PlayerErrorCode,
 } from '@/lib/player'
 import { store } from '@/lib/store'
+import { shouldReduceMotion } from '@/lib/settings'
 
 interface PlayerFrameProps {
   mediaType: 'movie' | 'tv'
@@ -70,7 +71,7 @@ export function PlayerFrame({
     setIsCinemaMode(settings.ambientLighting)
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const updateMotion = () => setReducedMotion(settings.reducedMotion || mediaQuery.matches)
+    const updateMotion = () => setReducedMotion(shouldReduceMotion(settings, mediaQuery.matches))
     updateMotion()
     mediaQuery.addEventListener?.('change', updateMotion)
     return () => mediaQuery.removeEventListener?.('change', updateMotion)
@@ -388,7 +389,7 @@ export function PlayerFrame({
             }`}
             onLoad={handleLoad}
             onError={handleError}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-popups-to-escape-sandbox"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
           />
         )}
       </div>

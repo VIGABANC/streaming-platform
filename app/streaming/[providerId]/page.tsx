@@ -6,6 +6,7 @@ import { MediaRail } from '@/components/media/MediaRail'
 import { providerLogo, discoverByProvider, getProviders, type Media, type MediaType, type WatchProvider } from '@/lib/tmdb'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
 
 export const dynamicParams = true
 
@@ -22,14 +23,17 @@ async function safeDiscover(type: MediaType, providerId: number, sortBy: string)
 
 export async function generateMetadata({ params }: { params: Promise<{ providerId: string }> }): Promise<Metadata> {
   const { providerId } = await params
+  const safeProviderId = parsePositiveIntSegment(providerId, { min: 1, max: 1_000_000 })
+  if (safeProviderId === null) return { title: 'Invalid provider — VEYRA' }
   const providers = await getProviders().catch(() => [])
-  const provider = providers.find((item) => item.provider_id === Number(providerId))
+  const provider = providers.find((item) => item.provider_id === safeProviderId)
   return { title: `${provider?.provider_name ?? 'Streaming provider'} — VEYRA`, description: `Browse the newest movies and series available on ${provider?.provider_name ?? 'this streaming provider'}.` }
 }
 
 export default async function ProviderPage({ params, searchParams }: { params: Promise<{ providerId: string }>; searchParams?: SearchParams }) {
   const { providerId: rawId } = await params
-  const providerId = Number(rawId)
+  const providerId = parsePositiveIntSegment(rawId, { min: 1, max: 1_000_000 })
+  if (providerId === null) return <Shell><main className="px-6 py-24 text-center lg:px-10"><p className="eyebrow">Signal not found</p><h1 className="mt-3 text-4xl font-bold text-white">That provider is off-air.</h1><Link href="/" className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"><ArrowLeft className="size-4" /> Return home</Link></main></Shell>
   const [providers, query] = await Promise.all([getProviders().catch(() => []), searchParams ? searchParams : Promise.resolve({ type: undefined as string | undefined })])
   const foundProvider = providers.find((item) => item.provider_id === providerId)
   if (foundProvider) {

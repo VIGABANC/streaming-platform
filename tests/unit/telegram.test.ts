@@ -16,6 +16,11 @@ describe('Telegram feedback interface', () => {
     if (report.kind === 'report') expect(report.feedback).not.toHaveProperty('telegramUserId')
   })
 
+  it('ignores malformed slash commands instead of storing them as bug reports', () => {
+    expect(parseTelegramUpdate({ message: { message_id: 7, chat: { id: 42, type: 'private' }, text: '/aistatus\\' } }))
+      .toEqual({ kind: 'ignore' })
+  })
+
   it('restricts admin commands to configured private admin chats', () => {
     expect(isAdminChat('42', { TELEGRAM_ADMIN_CHAT_IDS: '42' })).toBe(true)
     expect(isAdminChat('43', { TELEGRAM_ADMIN_CHAT_IDS: '42' })).toBe(false)

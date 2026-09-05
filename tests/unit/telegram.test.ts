@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatAIStatus, isAdminChat, parseTelegramUpdate } from '@/lib/telegram'
+import { createDefaultTelegramDependencies, formatAIStatus, handleTelegramUpdate, isAdminChat, parseTelegramUpdate } from '@/lib/telegram'
 
 describe('Telegram feedback interface', () => {
   it('accepts a report through the webhook shape without sending identity to the workflow', () => {
@@ -28,5 +28,18 @@ describe('Telegram feedback interface', () => {
     expect(output).toContain('Groq')
     expect(output).toContain('healthy')
     expect(output).not.toContain('secret-model')
+  })
+
+  it('serves admin status commands even when Supabase is unavailable', async () => {
+    const dependencies = createDefaultTelegramDependencies({
+      TELEGRAM_ADMIN_CHAT_IDS: '42',
+      TELEGRAM_BOT_TOKEN: 'test-token',
+    })
+    const sent: string[] = []
+    const command = parseTelegramUpdate({ message: { message_id: 6, chat: { id: 42, type: 'private' }, text: '/aistatus' } })
+
+    await handleTelegramUpdate(command, { ...dependencies, messenger: { sendMessage: async (_chatId, text) => { sent.push(text) } } })
+
+    expect(sent[0]).toContain('VEYRA AI Router')
   })
 })

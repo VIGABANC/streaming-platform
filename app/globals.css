@@ -280,3 +280,48 @@ body {
 .safe-area-inset-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
+
+/* ── Landing foundation ───────────────────────────────────────────────────── */
+.landing-section {
+  position: relative;
+  padding-block: clamp(3.5rem, 7vw, 6.5rem);
+}
+
+.signal-spine {
+  position: absolute;
+  inset-block: 0;
+  left: max(1rem, calc((100vw - 1440px) / 2 + 1.5rem));
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 242, 254, 0.36) 12%, rgba(229, 9, 20, 0.28) 88%, transparent);
+  pointer-events: none;
+}
+
+.landing-rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding-block: 0.25rem 1rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.landing-rail::-webkit-scrollbar { display: none; }
+.landing-rail > * { flex: 0 0 auto; scroll-snap-align: start; }
+
+.landing-poster {
+  box-shadow: var(--shadow-card);
+  outline: 1px solid rgba(255, 255, 255, 0.08);
+  transition: box-shadow 180ms ease, outline-color 180ms ease;
+}
+.landing-poster:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 242, 254, 0.32);
+  outline-color: rgba(0, 242, 254, 0.32);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-poster,
+  .landing-poster * {
+    transition: none !important;
+    transform: none !important;
+  }
+}

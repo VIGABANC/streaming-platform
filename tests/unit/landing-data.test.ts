@@ -1,0 +1,62 @@
+import { describe, expect, it } from 'vitest'
+import {
+  firstWithBackdrop,
+  mediaHref,
+  mediaTypeOf,
+  usableMedia,
+} from '@/components/landing/landing-types'
+import type { Media } from '@/lib/tmdb'
+
+const movie: Media = {
+  id: 101,
+  title: 'Signal Bloom',
+  media_type: 'movie',
+  poster_path: '/signal-bloom.jpg',
+}
+
+const series: Media = {
+  id: 202,
+  name: 'Night Frequency',
+  media_type: 'tv',
+  poster_path: '/night-frequency.jpg',
+}
+
+describe('landing data normalization', () => {
+  it('builds movie and TV detail hrefs from the established media type convention', () => {
+    expect(mediaTypeOf(movie)).toBe('movie')
+    expect(mediaHref(movie)).toBe('/movie/101')
+    expect(mediaTypeOf(series)).toBe('tv')
+    expect(mediaHref(series)).toBe('/tv/202')
+  })
+
+  it('excludes people while retaining movie and TV media', () => {
+    const person = { id: 303, name: 'A Performer', media_type: 'person' } as Media
+
+    expect(usableMedia([person, movie, series])).toEqual([movie, series])
+  })
+
+  it('selects the first usable media item with a backdrop', () => {
+    const noBackdrop = { ...movie, backdrop_path: null }
+    const personBackdrop = { id: 303, name: 'A Performer', media_type: 'person', backdrop_path: '/person.jpg' } as Media
+    const firstBackdrop = { ...series, backdrop_path: '/first.jpg' }
+    const laterBackdrop = { ...movie, id: 404, backdrop_path: '/later.jpg' }
+
+    expect(firstWithBackdrop([noBackdrop, personBackdrop, firstBackdrop, laterBackdrop])).toBe(firstBackdrop)
+  })
+
+  it('uses missing-art items only when no poster-bearing media is available', () => {
+    const missingArt = { id: 505, title: 'Archive Signal', media_type: 'movie', poster_path: null } as Media
+
+    expect(usableMedia([missingArt, movie])).toEqual([movie])
+    expect(usableMedia([missingArt])).toEqual([missingArt])
+  })
+
+  it('keeps source order and applies stable limits for media with missing optional fields', () => {
+    const untitled = { id: 606, media_type: 'movie', poster_path: '/untitled.jpg' } as Media
+    const second = { ...series, id: 707 }
+    const third = { ...movie, id: 808 }
+
+    expect(usableMedia([untitled, second, third], 2)).toEqual([untitled, second])
+    expect(usableMedia([untitled, second, third], 0)).toEqual([])
+  })
+})

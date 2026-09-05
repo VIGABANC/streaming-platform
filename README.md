@@ -40,6 +40,16 @@ NEXT_PUBLIC_EMBED_PROVIDER=https://v1.vidsrc.wiki
 
 > **Security Note:** `TMDB_API_KEY` is server-side only and never exposed to client bundles.
 
+### Telegram feedback and AI enrichment
+
+The Telegram webhook is available at `/api/telegram/webhook`. Apply the SQL migration in `supabase/migrations/20260905000000_feedback_reports.sql`, configure the service-role key only on the server, and register the webhook with Telegram using `TELEGRAM_WEBHOOK_SECRET`. Set `TELEGRAM_ADMIN_CHAT_IDS` to private chat IDs allowed to use `/aistatus` and `/reprocess <ticket>`.
+
+Feedback is inserted into Supabase before any AI call. The router then tries configured providers in the free-first order Groq, Gemini, Cloudflare Workers AI, Mistral, OpenRouter Free, Cohere, Hugging Face, with optional Cerebras/NVIDIA only when zero-cost mode is disabled. Missing keys are skipped. AI failures produce a deterministic engineering ticket, preserve the report, and allow later `/reprocess` enrichment. GitHub issue creation is also best-effort after persistence.
+
+Set `AI_ZERO_COST_ONLY=true` and `ALLOW_PAID_AI=false` to prevent known billable model use. Free-provider availability and quotas can change; the 24/7 guarantee applies to report acceptance and durable storage, not vendor uptime or quota.
+
+See `.env.example` for all supported provider, Telegram, GitHub, Supabase, model, timeout, failover, and circuit-breaker settings.
+
 ---
 
 ### 2. Installation

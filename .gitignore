@@ -5,6 +5,7 @@ __v0_jsx-dev-runtime.ts
 .snowflake/
 .v0-trash/
 .vercel/
+.worktrees/
 
 # Environment variables
 .env*.local
@@ -15,4 +16,4 @@ node_modules
 .DS_Store
 *.tsbuildinfo
 test-results/
-playwright-report/
+playwright-report/

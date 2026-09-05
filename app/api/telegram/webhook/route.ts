@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createDefaultTelegramDependencies, handleTelegramUpdate, parseTelegramUpdate } from '@/lib/telegram'
+import { createDefaultTelegramDependencies, formatTelegramWebhookError, handleTelegramUpdate, parseTelegramUpdate } from '@/lib/telegram'
 
 export const runtime = 'nodejs'
 
@@ -14,7 +14,10 @@ export async function POST(request: Request) {
     await handleTelegramUpdate(update, createDefaultTelegramDependencies())
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('telegram webhook failed', error instanceof Error ? error.name : 'unknown')
+    console.error('telegram webhook failed', {
+      name: error instanceof Error ? error.name : 'unknown',
+      message: formatTelegramWebhookError(error),
+    })
     return NextResponse.json({ ok: false, error: 'temporarily_unavailable' }, { status: 503 })
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTelegramDependencies, formatAIStatus, handleTelegramUpdate, isAdminChat, parseTelegramUpdate } from '@/lib/telegram'
+import { createDefaultTelegramDependencies, formatAIStatus, formatTelegramWebhookError, handleTelegramUpdate, isAdminChat, parseTelegramUpdate } from '@/lib/telegram'
 
 describe('Telegram feedback interface', () => {
   it('accepts a report through the webhook shape without sending identity to the workflow', () => {
@@ -41,5 +41,11 @@ describe('Telegram feedback interface', () => {
     await handleTelegramUpdate(command, { ...dependencies, messenger: { sendMessage: async (_chatId, text) => { sent.push(text) } } })
 
     expect(sent[0]).toContain('VEYRA AI Router')
+  })
+
+  it('exposes a safe webhook error message without leaking bot tokens', () => {
+    expect(formatTelegramWebhookError(new Error('Telegram acknowledgement failed (401)'))).toBe('Telegram acknowledgement failed (401)')
+    expect(formatTelegramWebhookError(new Error('request failed for https://api.telegram.org/bot123456:super-secret-token/sendMessage'))).toContain('[REDACTED]')
+    expect(formatTelegramWebhookError(new Error('request failed for https://api.telegram.org/bot123456:super-secret-token/sendMessage'))).not.toContain('super-secret-token')
   })
 })

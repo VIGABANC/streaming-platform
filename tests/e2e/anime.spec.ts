@@ -5,8 +5,9 @@ test.describe('Anime discovery', () => {
     const response = await page.goto('/anime', { waitUntil: 'domcontentloaded' })
 
     expect(response?.status()).toBe(200)
-    await expect(page.locator('main')).toBeVisible()
-    await expect(page.locator('main')).toContainText(/Anime signal unavailable|Trending anime|Airing now/)
+    const main = page.locator('main').first()
+    await expect(main).toBeVisible()
+    await expect(main).toContainText(/Anime signal unavailable|Trending anime|Airing now/)
     await expect(page.locator('iframe')).toHaveCount(0)
   })
 

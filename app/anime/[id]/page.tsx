@@ -8,7 +8,7 @@ import { AnimeDetailActions } from '@/components/anime/AnimeDetailActions'
 import { AnimeRail } from '@/components/anime/AnimeRail'
 import { AnimeTrailer } from '@/components/anime/AnimeTrailer'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { getAnimeDetail, type AnimeDetail } from '@/lib/anilist'
+import { AniListError, getAnimeDetail, type AnimeDetail } from '@/lib/anilist'
 import { parsePositiveIntSegment } from '@/lib/http/validation'
 import { serializeJsonLd } from '@/lib/seo/json-ld'
 import { getAnimeProviderAvailability } from '@/lib/media/mapping'
@@ -17,16 +17,32 @@ import { getJikanEnrichment } from '@/lib/jikan/client'
 
 interface AnimeDetailPageProps { params: Promise<{ id: string }> }
 
-async function loadAnime(id: string): Promise<AnimeDetail | null> {
+type AnimeLoadResult =
+  | { status: 'success'; anime: AnimeDetail }
+  | { status: 'not-found' }
+  | { status: 'unavailable' }
+
+async function loadAnime(id: string): Promise<AnimeLoadResult> {
   const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
-  if (safeId === null) return null
-  try { return await getAnimeDetail(safeId) } catch { return null }
+  if (safeId === null) return { status: 'not-found' }
+  try {
+    return { status: 'success', anime: await getAnimeDetail(safeId) }
+  } catch (error) {
+    return error instanceof AniListError && error.code === 'NOT_FOUND'
+      ? { status: 'not-found' }
+      : { status: 'unavailable' }
+  }
 }
 
 export async function generateMetadata({ params }: AnimeDetailPageProps): Promise<Metadata> {
   const { id } = await params
-  const anime = await loadAnime(id)
-  if (!anime) return { title: 'Anime signal unavailable — VEYRA', description: 'The requested anime signal is unavailable.' }
+  const result = await loadAnime(id)
+  if (result.status !== 'success') return {
+    title: result.status === 'not-found' ? 'Page not found — VEYRA' : 'Anime signal unavailable — VEYRA',
+    description: result.status === 'not-found' ? 'The requested anime does not exist.' : 'The requested anime signal is unavailable.',
+    robots: { index: false, follow: false },
+  }
+  const anime = result.anime
   return {
     title: `${anime.title} — VEYRA`,
     description: anime.description || `Explore ${anime.title} on VEYRA.`,
@@ -37,11 +53,10 @@ export async function generateMetadata({ params }: AnimeDetailPageProps): Promis
 
 export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) {
   const { id } = await params
-  const safeId = parsePositiveIntSegment(id, { min: 1, max: 2_000_000_000 })
-  if (safeId === null) notFound()
-  const anime = await loadAnime(String(safeId))
-
-  if (!anime) return <Shell><div className="px-5 pt-12 lg:px-12"><EmptyState title="Anime signal unavailable" description="This anime could not be reached right now. Please try again later." variant="error" action={<Link href="/anime" className="text-primary underline underline-offset-4">Back to anime</Link>} /></div></Shell>
+  const result = await loadAnime(id)
+  if (result.status === 'not-found') notFound()
+  if (result.status === 'unavailable') return <Shell><div className="px-5 pt-12 lg:px-12"><EmptyState title="Anime signal unavailable" description="This anime could not be reached right now. Please try again later." variant="error" action={<Link href="/anime" className="text-primary underline underline-offset-4">Back to anime</Link>} /></div></Shell>
+  const anime = result.anime
 
   const providerAvailability = await getAnimeProviderAvailability(anime, 'US')
   const watchmode = providerAvailability?.mapping && process.env.WATCHMODE_API_KEY

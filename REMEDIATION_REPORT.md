@@ -25,7 +25,7 @@ the available environment.
 | F-05 settings integrity | Remediated | Stored settings are normalized; supported provider selection and reduced-motion behavior are consumed by playback. |
 | F-06 dialog accessibility | Remediated | Labelled dialog, focus handling, Escape/close behavior, scroll locking, and Playwright coverage pass. |
 | F-07 JSON-LD safety | Remediated | Script-safe serializer and hostile-content regression coverage remain intact. |
-| F-08 API, route, and player hardening | Remediated | Bounded strict route parsing, allowlisted HTTPS player origins/paths, reduced iframe capabilities, consistent frame policy, and redacted search logs. |
+| F-08 API, route, and player hardening | Remediated; legacy provider licensing pending | Bounded strict route parsing, allowlisted HTTPS player origins/paths, reduced iframe capabilities, consistent frame policy, and redacted search logs. Anime uses YouTube-only trailers; existing TMDB playback providers remain a legal/product gate. |
 | F-09 SEO discovery and canonical URLs | Partially remediated | Stable metadata base, canonical movie/TV/anime detail metadata, private/search noindex, robots policy, and public sitemap; dynamic catalog URL expansion remains a crawl-surface decision. |
 | F-10 performance and observability | Implemented; production measurement pending | `next/font`, deferred player connection hints, existing image budgets, Web Vitals/error telemetry, and fresh local browser timing evidence. |
 
@@ -99,7 +99,11 @@ legal gate are documented in `docs/anime-data-sources.md`.
 4. Confirm AniList usage/attribution and the commercial/legal posture for the
    anime source before enabling any production distribution beyond the current
    documented gate.
-5. Decide whether bounded, source-backed dynamic catalog URLs belong in the
+5. Review licensing/terms for the existing TMDB playback provider registry
+   (`vidsrc`, `2embed`, and `autoembed`) before production promotion; this
+   cannot be resolved safely as a code-only change without a product/legal
+   decision.
+6. Decide whether bounded, source-backed dynamic catalog URLs belong in the
    public sitemap; do not expand it from unbounded upstream results.
 
 Until those gates are complete, the accurate verdict is **CODE-VERIFIED WITH

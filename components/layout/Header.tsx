@@ -29,6 +29,7 @@ const NAV_LINKS: NavLinkItem[] = [
   { href: '/', label: 'Home' },
   { href: '/movies', label: 'Movies' },
   { href: '/tv', label: 'TV Shows' },
+  { href: '/anime', label: 'Anime' },
   { href: '/new', label: 'New', badge: 'Fresh' },
   { href: '/top10', label: 'Top 10', icon: Flame },
   { href: '/discover', label: 'Discover' },

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Bookmark, Heart, Film, Tv } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { MediaGrid } from '@/components/media/MediaGrid'
+import { LibraryMediaCard } from '@/components/media/LibraryMediaCard'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { store, subscribeToStorageChanges, type WatchlistItem, type FavoriteItem } from '@/lib/store'
 import type { Media, MediaType } from '@/lib/tmdb'
@@ -37,12 +38,14 @@ export default function MyListPage() {
 
   // Filter items based on active tab
   let displayItems: (Media & { media_type: MediaType })[] = []
+  let animeItems: (WatchlistItem | FavoriteItem)[] = []
 
   if (activeTab === 'favorites') {
-    displayItems = favorites.map((item) => ({
+    displayItems = favorites.filter((item) => item.media_type !== 'anime').map((item) => ({
       ...item,
       media_type: item.media_type as MediaType,
     }))
+    animeItems = favorites.filter((item) => item.media_type === 'anime')
   } else if (activeTab === 'movies') {
     displayItems = watchlist
       .filter((i) => i.media_type === 'movie')
@@ -52,11 +55,14 @@ export default function MyListPage() {
       .filter((i) => i.media_type === 'tv')
       .map((item) => ({ ...item, media_type: 'tv' as const }))
   } else {
-    displayItems = watchlist.map((item) => ({
+    displayItems = watchlist.filter((item) => item.media_type !== 'anime').map((item) => ({
       ...item,
       media_type: item.media_type as MediaType,
     }))
+    animeItems = watchlist.filter((item) => item.media_type === 'anime')
   }
+
+  const hasItems = displayItems.length > 0 || animeItems.length > 0
 
   return (
     <Shell>
@@ -67,7 +73,7 @@ export default function MyListPage() {
             My List
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Saved movies, TV series, and personal favorites.
+            Saved movies, TV series, anime, and personal favorites.
           </p>
         </div>
 
@@ -132,8 +138,18 @@ export default function MyListPage() {
             <div className="py-12 text-center text-sm text-muted-foreground">
               Loading your collection…
             </div>
-          ) : displayItems.length > 0 ? (
-            <MediaGrid items={displayItems} />
+          ) : hasItems ? (
+            <>
+              {displayItems.length > 0 && <MediaGrid items={displayItems} />}
+              {animeItems.length > 0 && (
+                <div className={displayItems.length > 0 ? 'mt-8' : ''}>
+                  <div className="mb-4 flex items-center gap-3"><span aria-hidden="true" className="h-px w-6 rounded-full bg-accent" /><h2 className="section-title">Anime signals</h2></div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 lg:gap-4">
+                    {animeItems.map((item) => <LibraryMediaCard key={`${item.source ?? 'anilist'}-${item.sourceId ?? item.id}`} item={item} collection={activeTab === 'favorites' ? 'favorites' : 'watchlist'} onRemoved={reloadData} />)}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <EmptyState
               title={

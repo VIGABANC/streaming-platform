@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Film, Tv, Compass, Bookmark } from 'lucide-react'
+import { Home, Film, Tv, Sparkles, Bookmark } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/movies', label: 'Movies', icon: Film },
   { href: '/tv', label: 'TV', icon: Tv },
-  { href: '/discover', label: 'Discover', icon: Compass },
+  { href: '/anime', label: 'Anime', icon: Sparkles },
   { href: '/my-list', label: 'My List', icon: Bookmark },
 ] as const
 

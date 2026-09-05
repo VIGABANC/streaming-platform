@@ -127,12 +127,12 @@ export interface UserMediaStore {
   // Continue Watching
   getContinueWatching(): ContinueWatchingItem[]
   updateContinueWatching(item: ContinueWatchingItem): void
-  removeFromContinueWatching(id: number, mediaType: LibraryMediaType): void
+  removeFromContinueWatching(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<ContinueWatchingItem, 'source' | 'sourceId' | 'kind'>>): void
 
   // Watch History
   getHistory(): HistoryItem[]
   addToHistory(item: Omit<HistoryItem, 'watchedAt'>): void
-  removeFromHistory(id: number, mediaType: LibraryMediaType): void
+  removeFromHistory(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<HistoryItem, 'source' | 'sourceId' | 'kind'>>): void
   clearHistory(): void
 
   // Profile
@@ -379,11 +379,11 @@ class LocalStorageMediaStore implements UserMediaStore {
     })
   }
 
-  removeFromContinueWatching(id: number, mediaType: LibraryMediaType): void {
+  removeFromContinueWatching(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<ContinueWatchingItem, 'source' | 'sourceId' | 'kind'>>): void {
     const current = this.getContinueWatching()
     writeStorage(
       STORE_KEYS.continueWatching,
-      current.filter((x) => !(x.id === id && x.media_type === mediaType)),
+      current.filter((x) => !matchesIdentity(x, id, mediaType, identity)),
     )
   }
 
@@ -405,11 +405,11 @@ class LocalStorageMediaStore implements UserMediaStore {
     writeStorage(STORE_KEYS.history, [entry, ...filtered].slice(0, 100))
   }
 
-  removeFromHistory(id: number, mediaType: LibraryMediaType): void {
+  removeFromHistory(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<HistoryItem, 'source' | 'sourceId' | 'kind'>>): void {
     const current = this.getHistory()
     writeStorage(
       STORE_KEYS.history,
-      current.filter((x) => !(x.id === id && x.media_type === mediaType)),
+      current.filter((x) => !matchesIdentity(x, id, mediaType, identity)),
     )
   }
 
@@ -503,7 +503,7 @@ class LocalStorageMediaStore implements UserMediaStore {
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('veyra-store-change', { detail: { key: 'all' } }))
       return result
     } catch {
-      return { ok: false, reason: 'invalid-schema' }
+      return { ok: false, reason: 'storage-error' }
     }
   }
 }

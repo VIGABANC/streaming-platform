@@ -14,7 +14,10 @@ export async function readCloudLibrary(): Promise<{ userId: string; snapshot: Li
     .maybeSingle()
 
   if (error) throw error
-  return { userId: authData.user.id, snapshot: normalizeLibrarySnapshot(data?.payload) }
+  if (data?.payload === null || data?.payload === undefined) return { userId: authData.user.id, snapshot: null }
+  const snapshot = normalizeLibrarySnapshot(data.payload)
+  if (!snapshot) throw new Error('INVALID_CLOUD_LIBRARY')
+  return { userId: authData.user.id, snapshot }
 }
 
 export async function writeCloudLibrary(snapshot: LibrarySnapshot): Promise<void> {

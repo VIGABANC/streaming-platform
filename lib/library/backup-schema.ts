@@ -24,6 +24,7 @@ const mediaKind = z.enum(['movie', 'tv', 'anime'])
 const optionalText = (max: number) => z.string().max(max).optional()
 const optionalPath = z.string().max(256).nullable().optional()
 const timestamp = z.number().int().min(0).max(MAX_TIMESTAMP)
+const optionalSeasonPart = z.number().int().min(0).max(1000).optional()
 const optionalEpisodePart = z.number().int().min(1).max(1000).optional()
 
 const legacyMediaFields = {
@@ -54,7 +55,7 @@ const sourceAwareMediaFields = {
 const legacyWatchlistItem = z.object({
   ...legacyMediaFields,
   addedAt: timestamp,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
 }).strict()
 
@@ -62,7 +63,7 @@ const legacyFavoriteItem = z.object({
   ...legacyMediaFields,
   addedAt: timestamp,
   favoritedAt: timestamp,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
 }).strict()
 
@@ -81,7 +82,7 @@ const legacyHistoryItem = z.object({
   title: z.string().max(500),
   poster_path: optionalPath,
   backdrop_path: optionalPath,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
   episodeTitle: optionalText(500),
   watchedAt: timestamp,
@@ -93,7 +94,7 @@ const legacyContinueWatchingItem = z.object({
   title: z.string().max(500),
   poster_path: optionalPath,
   backdrop_path: optionalPath,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
   episodeTitle: optionalText(500),
   lastOpenedAt: timestamp,
@@ -117,7 +118,7 @@ const settings = z.object({
 const sourceAwareWatchlistItem = z.object({
   ...sourceAwareMediaFields,
   addedAt: timestamp,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
 }).strict()
 
@@ -125,7 +126,7 @@ const sourceAwareFavoriteItem = z.object({
   ...sourceAwareMediaFields,
   addedAt: timestamp,
   favoritedAt: timestamp,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
 }).strict()
 
@@ -146,7 +147,7 @@ const sourceAwareHistoryItem = z.object({
   title: z.string().max(500),
   poster_path: optionalPath,
   backdrop_path: optionalPath,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
   episodeTitle: optionalText(500),
   watchedAt: timestamp,
@@ -159,7 +160,7 @@ const sourceAwareContinueWatchingItem = z.object({
   title: z.string().max(500),
   poster_path: optionalPath,
   backdrop_path: optionalPath,
-  season: optionalEpisodePart,
+  season: optionalSeasonPart,
   episode: optionalEpisodePart,
   episodeTitle: optionalText(500),
   lastOpenedAt: timestamp,
@@ -189,7 +190,7 @@ const backupV2 = z.object({
   settings,
 }).strict()
 
-export type ImportFailureReason = 'invalid-json' | 'unsupported-version' | 'invalid-schema' | 'too-large'
+export type ImportFailureReason = 'invalid-json' | 'unsupported-version' | 'invalid-schema' | 'too-large' | 'storage-error'
 export type ImportResult =
   | { ok: true; snapshot: LibrarySnapshot }
   | { ok: false; reason: ImportFailureReason }

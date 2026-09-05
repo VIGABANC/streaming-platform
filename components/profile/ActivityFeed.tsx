@@ -52,7 +52,7 @@ export function ActivityFeed() {
     const history = store.getHistory().slice(0, 10).map(item => ({
       id: `watched-${item.id}-${item.watchedAt}`,
       type: 'watched' as ActivityType,
-      mediaId: item.id,
+      mediaId: item.sourceId ?? item.id,
       mediaType: item.media_type,
       title: item.title,
       posterPath: item.poster_path,
@@ -63,7 +63,7 @@ export function ActivityFeed() {
     const ratings = store.getRatings().slice(0, 10).map(item => ({
       id: `rated-${item.id}-${item.ratedAt}`,
       type: 'rated' as ActivityType,
-      mediaId: item.id,
+      mediaId: item.sourceId ?? item.id,
       mediaType: item.media_type,
       title: item.title || 'Unknown Title',
       posterPath: item.poster_path,
@@ -74,7 +74,7 @@ export function ActivityFeed() {
     const favorites = store.getFavorites().slice(0, 10).map(item => ({
       id: `fav-${item.id}-${item.favoritedAt}`,
       type: 'favorited' as ActivityType,
-      mediaId: item.id,
+      mediaId: item.sourceId ?? item.id,
       mediaType: item.media_type,
       title: item.title || item.name || 'Unknown Title',
       posterPath: item.poster_path,
@@ -133,7 +133,7 @@ export function ActivityFeed() {
             className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-md bg-[#0A0D14] sm:w-16"
           >
             <Image
-              src={poster(activity.posterPath, 'w154')}
+              src={activity.mediaType === 'anime' && activity.posterPath?.startsWith('http') ? activity.posterPath : poster(activity.posterPath, 'w154')}
               alt={activity.title}
               fill
               sizes="(max-width: 640px) 48px, 64px"

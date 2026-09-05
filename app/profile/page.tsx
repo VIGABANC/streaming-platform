@@ -112,6 +112,7 @@ export default function ProfilePage() {
           })
         }
       }
+      e.target.value = ''
     }
     reader.readAsText(file)
   }

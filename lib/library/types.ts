@@ -8,7 +8,6 @@ import type {
   WatchlistItem,
 } from '@/lib/store'
 import { sourceKey } from '@/lib/media/types'
-import { migrateLibrarySnapshot } from './migration'
 import { parseLibraryBackup } from './backup-schema'
 
 export interface LibrarySnapshot {
@@ -93,10 +92,10 @@ export function mergeLibrarySnapshots(local: LibrarySnapshot, remote: LibrarySna
 export function normalizeLibrarySnapshot(value: unknown): LibrarySnapshot | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const data = value as Record<string, unknown>
-  if (data.schemaVersion !== undefined) {
-    const result = parseLibraryBackup(JSON.stringify(value))
+  if (data.schemaVersion !== undefined || data.version === 1 || data.version === 2) {
+    const schemaVersion = data.schemaVersion ?? (data.version === 1 ? 1 : 2)
+    const result = parseLibraryBackup(JSON.stringify({ ...data, schemaVersion }))
     return result.ok ? result.snapshot : null
   }
-  const migrated = migrateLibrarySnapshot(value)
-  return migrated as LibrarySnapshot | null
+  return null
 }

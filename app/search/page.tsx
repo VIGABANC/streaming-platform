@@ -4,13 +4,13 @@ import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Search as SearchIcon, X, Clock, AlertCircle, Sparkles } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
-import { MediaGrid } from '@/components/media/MediaGrid'
+import { SearchResultCard } from '@/components/search/SearchResultCard'
 import { SkeletonGrid } from '@/components/feedback/Skeletons'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import type { Media, MediaType } from '@/lib/tmdb'
+import type { MediaSearchResult } from '@/lib/search/types'
 
 type SearchState = 'idle' | 'loading' | 'success' | 'empty' | 'error' | 'missing-config'
-type SearchFilter = 'all' | 'movie' | 'tv'
+type SearchFilter = 'all' | 'movie' | 'tv' | 'anime'
 
 const RECENT_SEARCHES_KEY = 'veyra-recent-searches'
 const MAX_RECENT_SEARCHES = 8
@@ -20,7 +20,7 @@ function SearchContent() {
   const initialQuery = searchParams.get('q') || ''
 
   const [q, setQ] = useState(initialQuery)
-  const [items, setItems] = useState<(Media & { media_type: MediaType })[]>([])
+  const [items, setItems] = useState<MediaSearchResult[]>([])
   const [filter, setFilter] = useState<SearchFilter>('all')
   const [state, setState] = useState<SearchState>(initialQuery ? 'loading' : 'idle')
   const [recentSearches, setRecentSearches] = useState<string[]>([])
@@ -108,7 +108,7 @@ function SearchContent() {
     const timer = setTimeout(async () => {
       setState('loading')
       try {
-        const res = await fetch(`/api/search?query=${encodeURIComponent(query)}`, {
+        const res = await fetch(`/api/search?query=${encodeURIComponent(query)}&scope=${filter}`, {
           signal: controller.signal,
         })
         const data = await res.json()
@@ -119,14 +119,7 @@ function SearchContent() {
           return
         }
 
-        // Filter out person media_types and cast to movie | tv
-        const validResults: (Media & { media_type: MediaType })[] = (data.results ?? [])
-          .filter((item: Media) => item.media_type === 'movie' || item.media_type === 'tv')
-          .map((item: Media) => ({
-            ...item,
-            media_type: item.media_type as MediaType,
-          }))
-
+        const validResults = (data.results ?? []) as MediaSearchResult[]
         setItems(validResults)
         setState(validResults.length > 0 ? 'success' : 'empty')
 
@@ -145,12 +138,12 @@ function SearchContent() {
       controller.abort()
       clearTimeout(timer)
     }
-  }, [q, saveRecentSearch])
+  }, [q, filter, saveRecentSearch])
 
   // Filtered items by category tab
   const filteredItems = items.filter((item) => {
     if (filter === 'all') return true
-    return item.media_type === filter
+    return item.ref.kind === filter
   })
 
   return (
@@ -224,7 +217,7 @@ function SearchContent() {
                   : 'bg-surface text-muted-foreground hover:text-white'
               }`}
             >
-              Movies ({items.filter((i) => i.media_type === 'movie').length})
+              Movies ({items.filter((i) => i.ref.kind === 'movie').length})
             </button>
             <button
               type="button"
@@ -235,7 +228,14 @@ function SearchContent() {
                   : 'bg-surface text-muted-foreground hover:text-white'
               }`}
             >
-              Series ({items.filter((i) => i.media_type === 'tv').length})
+              Series ({items.filter((i) => i.ref.kind === 'tv').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter('anime')}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${filter === 'anime' ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground hover:text-white'}`}
+            >
+              Anime ({items.filter((i) => i.ref.kind === 'anime').length})
             </button>
           </div>
           <span className="text-xs text-muted-foreground hidden sm:inline">
@@ -250,10 +250,12 @@ function SearchContent() {
 
         {state === 'success' && (
           filteredItems.length > 0 ? (
-            <MediaGrid items={filteredItems} />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 lg:gap-4">
+              {filteredItems.map((item) => <SearchResultCard key={`${item.ref.source}:${item.ref.kind}:${item.ref.sourceId}`} item={item} />)}
+            </div>
           ) : (
             <EmptyState
-              title={`No ${filter === 'movie' ? 'movies' : 'series'} found`}
+              title={`No ${filter === 'movie' ? 'movies' : filter === 'tv' ? 'series' : filter === 'anime' ? 'anime' : 'titles'} found`}
               description={`We found matches in other categories for "${q}".`}
               action={
                 <button

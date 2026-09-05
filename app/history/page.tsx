@@ -7,6 +7,7 @@ import { History, Play, Trash2, Clock } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { store, subscribeToStorageChanges, type HistoryItem, showToast } from '@/lib/store'
 import { backdrop } from '@/lib/tmdb'
+import { libraryMediaHref } from '@/lib/media/library'
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryItem[]>([])
@@ -22,12 +23,12 @@ export default function HistoryPage() {
     return subscribeToStorageChanges('veyra-history', reload)
   }, [])
 
-  const handleRemove = (id: number, mediaType: HistoryItem['media_type'], title: string) => {
-    store.removeFromHistory(id, mediaType)
+  const handleRemove = (item: HistoryItem) => {
+    store.removeFromHistory(item.id, item.media_type, item)
     reload()
     showToast({
       title: 'Removed from history',
-      description: title,
+      description: item.title,
       type: 'info',
     })
   }
@@ -104,10 +105,12 @@ export default function HistoryPage() {
         {mounted && history.length > 0 && (
           <div className="mt-8 space-y-3">
             {history.map((item) => {
-              const watchHref = item.media_type === 'tv'
+              const watchHref = item.media_type === 'anime'
+                ? `${libraryMediaHref(item)}${item.season && item.episode ? `?season=${item.season}&episode=${item.episode}` : ''}`
+                : item.media_type === 'tv'
                 ? `/watch/tv/${item.id}/${item.season || 1}/${item.episode || 1}`
                 : `/watch/movie/${item.id}`
-              const detailHref = `/${item.media_type}/${item.id}`
+              const detailHref = libraryMediaHref(item)
               const dateStr = new Date(item.watchedAt).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -124,7 +127,7 @@ export default function HistoryPage() {
                     {/* Thumbnail */}
                     <div className="relative aspect-video w-24 sm:w-32 shrink-0 overflow-hidden rounded-xl bg-black/50">
                       <Image
-                        src={backdrop(item.backdrop_path || item.poster_path, 'w300')}
+                        src={item.source === 'anilist' && item.poster_path?.startsWith('http') ? item.poster_path : backdrop(item.backdrop_path || item.poster_path, 'w300')}
                         alt={item.title}
                         fill
                         sizes="128px"
@@ -144,7 +147,7 @@ export default function HistoryPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/70">
-                          {item.media_type === 'tv' ? 'Series' : 'Film'}
+                          {item.media_type === 'anime' ? 'Anime' : item.media_type === 'tv' ? 'Series' : 'Film'}
                         </span>
                         {item.season && item.episode ? (
                           <span className="text-xs font-mono font-bold text-cyan">
@@ -184,7 +187,7 @@ export default function HistoryPage() {
                     <button
                       type="button"
                       aria-label={`Remove ${item.title} from history`}
-                      onClick={() => handleRemove(item.id, item.media_type, item.title)}
+                      onClick={() => handleRemove(item)}
                       className="grid size-9 place-items-center rounded-full border border-white/10 text-white/50 hover:border-rose-500/50 hover:text-rose-400 transition-colors"
                     >
                       <Trash2 size={13} />

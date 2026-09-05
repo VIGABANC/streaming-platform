@@ -7,7 +7,6 @@ import { Play, Clock, X } from 'lucide-react'
 import { store, type ContinueWatchingItem } from '@/lib/store'
 import { poster } from '@/lib/tmdb'
 import { formatDate } from '@/lib/utils'
-import type { LibraryMediaType } from '@/lib/media/types'
 
 export function ContinueWatchingRail() {
   const [items, setItems] = useState<ContinueWatchingItem[]>([])
@@ -30,8 +29,8 @@ export function ContinueWatchingRail() {
 
   if (!hydrated || items.length === 0) return null
 
-  const remove = (id: number, mediaType: LibraryMediaType) => {
-    store.removeFromContinueWatching(id, mediaType)
+  const remove = (item: ContinueWatchingItem) => {
+    store.removeFromContinueWatching(item.id, item.media_type, item)
     loadItems()
   }
 
@@ -46,16 +45,18 @@ export function ContinueWatchingRail() {
         {items.map((item) => {
           const href =
             item.media_type === 'anime'
-              ? `/anime/${item.sourceId ?? item.id}`
+              ? `/anime/${item.sourceId ?? item.id}${item.season && item.episode ? `?season=${item.season}&episode=${item.episode}` : ''}`
               : item.media_type === 'tv' && item.season && item.episode
               ? `/watch/tv/${item.id}/${item.season}/${item.episode}`
               : `/watch/movie/${item.id}`
 
-          const imgSrc = poster(item.backdrop_path ?? item.poster_path, 'w780')
+          const imgSrc = item.source === 'anilist' && item.poster_path?.startsWith('http')
+            ? item.poster_path
+            : poster(item.backdrop_path ?? item.poster_path, 'w780')
 
           return (
             <article
-              key={`${item.source ?? 'tmdb'}-${item.sourceId ?? item.id}-${item.media_type}`}
+              key={`${item.source ?? 'tmdb'}-${item.sourceId ?? item.id}-${item.media_type}-${item.season ?? ''}-${item.episode ?? ''}`}
               className="group relative w-64 shrink-0"
             >
               <Link
@@ -96,7 +97,7 @@ export function ContinueWatchingRail() {
               <button
                 type="button"
                 aria-label={`Remove ${item.title} from continue watching`}
-                onClick={() => remove(item.id, item.media_type)}
+                onClick={() => remove(item)}
                 className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/90 focus-visible:opacity-100"
               >
                 <X size={12} />

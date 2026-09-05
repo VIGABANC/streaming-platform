@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AnimeCard } from './AnimeCard'
 import type { AnimeListItem } from '@/lib/anilist'

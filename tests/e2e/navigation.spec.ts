@@ -10,7 +10,7 @@ test.describe('Responsive Navigation', () => {
     await expect(mobileNav.getByRole('link', { name: 'Home' })).toBeVisible()
     await expect(mobileNav.getByRole('link', { name: 'Movies' })).toBeVisible()
     await expect(mobileNav.getByRole('link', { name: 'TV' })).toBeVisible()
-    await expect(mobileNav.getByRole('link', { name: 'Discover' })).toBeVisible()
+    await expect(mobileNav.getByRole('link', { name: 'Anime' })).toBeVisible()
     await expect(mobileNav.getByRole('link', { name: 'My List' })).toBeVisible()
   })
 

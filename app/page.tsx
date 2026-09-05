@@ -1,60 +1,22 @@
-import { Suspense } from 'react'
-import { Shell } from '@/components/layout/Shell'
-import { HeroCarousel } from '@/components/media/HeroCarousel'
-import { MediaRail } from '@/components/media/MediaRail'
-import { SkeletonRail, SkeletonHero } from '@/components/feedback/Skeletons'
-import { ContinueWatchingRail } from '@/components/media/ContinueWatchingRail'
-import { ProviderRail } from '@/components/providers/ProviderRail'
-import { CatalogEmptyState, CatalogFailureState } from '@/components/feedback/CatalogState'
-import { loadCatalog, type CatalogResult } from '@/lib/catalog'
-import { getTrending, getPopularMovies, getPopularTV, getTopRatedMovies, getTopRatedTV, getNowPlaying, getUpcoming, getProviders, type Media, type MediaType } from '@/lib/tmdb'
+import { CinematicHero } from '@/components/landing/CinematicHero'
+import { LandingNav } from '@/components/landing/LandingNav'
+import { LandingFooter } from '@/components/landing/LandingFooter'
+import { ProviderSwitcher } from '@/components/landing/ProviderSwitcher'
+import { HomeCatalog } from '@/components/landing/HomeCatalog'
+import { FinalCTA } from '@/components/landing/FinalCTA'
+import { discoverByProvider, getAiringToday, getNowPlaying, getPopularMovies, getPopularTV, getProviders, getTopRatedMovies, getTopRatedTV, getTrending } from '@/lib/tmdb'
 
-type Feed = (Media & { media_type: MediaType })[]
+export const metadata = { title: 'VEYRA — The Night Signal', description: 'Find the story worth staying up for. Discover movies and television across every signal.' }
 
-async function loadMediaList(loader: () => Promise<{ results: Media[] }>, mediaType: MediaType): Promise<CatalogResult<Feed>> {
-  return loadCatalog(async () => {
-    const data = await loader()
-    return data.results.map((item) => ({ ...item, media_type: (item.media_type as MediaType) ?? mediaType }))
-  })
-}
+type SearchParams = Promise<{ provider?: string }>
 
-async function HomeFeed() {
-  const [trending, providers, popular, popularTv, topRated, topRatedTv, nowPlaying, upcoming] = await Promise.all([
-    loadMediaList(getTrending, 'movie'),
-    loadCatalog(getProviders),
-    loadMediaList(getPopularMovies, 'movie'),
-    loadMediaList(getPopularTV, 'tv'),
-    loadMediaList(getTopRatedMovies, 'movie'),
-    loadMediaList(getTopRatedTV, 'tv'),
-    loadMediaList(getNowPlaying, 'movie'),
-    loadMediaList(getUpcoming, 'movie'),
-  ])
+export default async function LandingPage({ searchParams }: { searchParams?: SearchParams }) {
+  const params = searchParams ? await searchParams : {}
+  const providerId = params.provider ? Number(params.provider) : undefined
+  const [providers, trending] = await Promise.all([getProviders().catch(() => []), getTrending().then((data) => data.results.filter((item) => item.media_type !== 'person').slice(0, 12)).catch(() => [])])
+  const provider = providers.find((item) => item.provider_id === providerId)
+  const selectedId = provider?.provider_id
+  const [popularMovies, popularTV, topRatedMovies, topRatedTV, nowPlaying, airingToday] = await Promise.all(selectedId ? [discoverByProvider('movie', selectedId).catch(() => ({ results: [] })), discoverByProvider('tv', selectedId).catch(() => ({ results: [] })), discoverByProvider('movie', selectedId, 'US').then((data) => ({ results: data.results.filter((item) => (item.vote_average ?? 0) > 7) })).catch(() => ({ results: [] })), discoverByProvider('tv', selectedId, 'US').then((data) => ({ results: data.results.filter((item) => (item.vote_average ?? 0) > 7) })).catch(() => ({ results: [] })), Promise.resolve({ results: [] }), Promise.resolve({ results: [] })] : [getPopularMovies().catch(() => ({ results: [] })), getPopularTV().catch(() => ({ results: [] })), getTopRatedMovies().catch(() => ({ results: [] })), getTopRatedTV().catch(() => ({ results: [] })), getNowPlaying().catch(() => ({ results: [] })), getAiringToday().catch(() => ({ results: [] }))])
 
-  const feeds = [trending, providers, popular, popularTv, topRated, topRatedTv, nowPlaying, upcoming]
-  const failed = feeds.filter((feed) => feed.status === 'failure')
-  const available = feeds.some((feed) => feed.status !== 'failure')
-  if (!available) {
-    return <CatalogFailureState error={failed[0]?.error} />
-  }
-
-  const media = (result: CatalogResult<Feed>) => result.status === 'success' ? result.data ?? [] : []
-  const providerItems = providers.status === 'success' ? providers.data ?? [] : []
-  return <>
-    {trending.status === 'failure' ? <CatalogFailureState error={trending.error} /> : <HeroCarousel items={media(trending).slice(0, 5)} />}
-    <ContinueWatchingRail />
-    {providers.status === 'failure' ? <CatalogFailureState error={providers.error} /> : <ProviderRail providers={providerItems} />}
-    {trending.status === 'success' && <MediaRail title="Trending today" items={media(trending).slice(5)} />}
-    {nowPlaying.status === 'failure' ? <CatalogFailureState error={nowPlaying.error} /> : <MediaRail title="New & fresh" items={media(nowPlaying)} href="/new" />}
-    {popular.status === 'failure' ? <CatalogFailureState error={popular.error} /> : <MediaRail title="Popular movies" items={media(popular)} href="/movies" />}
-    {popularTv.status === 'failure' ? <CatalogFailureState error={popularTv.error} /> : <MediaRail title="Popular TV shows" items={media(popularTv)} href="/tv" />}
-    {(topRated.status === 'failure' || topRatedTv.status === 'failure') ? <CatalogFailureState error={topRated.error ?? topRatedTv.error} /> : <MediaRail title="Top rated" items={[...media(topRated), ...media(topRatedTv)]} />}
-    {upcoming.status === 'failure' ? <CatalogFailureState error={upcoming.error} /> : <MediaRail title="Coming soon" items={media(upcoming)} landscape />}
-    {feeds.every((feed) => feed.status === 'empty') && <CatalogEmptyState />}
-  </>
-}
-
-export const metadata = { title: 'VEYRA — Discover what to watch', description: 'Find movies and series worth staying up for.' }
-
-export default function HomePage() {
-  return <Shell><Suspense fallback={<><SkeletonHero /><SkeletonRail /><SkeletonRail /></>}><HomeFeed /></Suspense></Shell>
+  return <div className="min-h-screen overflow-x-hidden bg-[#050507] text-white selection:bg-amber-400/30"><a href="#main-content" className="skip-link">Skip to main content</a><LandingNav /><main id="main-content"><CinematicHero trending={trending} /><ProviderSwitcher providers={providers} activeProviderId={selectedId} /><HomeCatalog providerName={provider?.provider_name} trending={trending} popularMovies={popularMovies.results} popularTV={popularTV.results} topRatedMovies={topRatedMovies.results} topRatedTV={topRatedTV.results} nowPlaying={nowPlaying.results} airingToday={airingToday.results} /><FinalCTA trending={trending} /></main><LandingFooter /></div>
 }

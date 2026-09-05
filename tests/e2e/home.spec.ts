@@ -17,5 +17,13 @@ test.describe('Home Page & Core Layout', () => {
     const skipLink = page.locator('a.skip-link')
     await expect(skipLink).toBeAttached()
   })
+
+  test('renders the catalog feed at /browse', async ({ page }) => {
+    await page.goto('/browse')
+
+    await expect(page).toHaveURL(/\/browse$/)
+    await expect(page.locator('header')).toBeVisible()
+    await expect(page.getByRole('main')).toBeVisible()
+  })
 })
 

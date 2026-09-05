@@ -41,7 +41,7 @@ export default function MyListPage() {
   if (activeTab === 'favorites') {
     displayItems = favorites.map((item) => ({
       ...item,
-      media_type: item.media_type,
+      media_type: item.media_type as MediaType,
     }))
   } else if (activeTab === 'movies') {
     displayItems = watchlist
@@ -54,7 +54,7 @@ export default function MyListPage() {
   } else {
     displayItems = watchlist.map((item) => ({
       ...item,
-      media_type: item.media_type,
+      media_type: item.media_type as MediaType,
     }))
   }
 

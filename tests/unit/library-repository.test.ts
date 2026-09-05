@@ -25,7 +25,13 @@ describe('local library repository', () => {
 
     writeLocalLibrary(snapshot)
 
-    expect(readLocalLibrary().watchlist).toEqual(snapshot.watchlist)
+    expect(readLocalLibrary().watchlist[0]).toMatchObject({
+      id: 550,
+      title: 'Fight Club',
+      source: 'tmdb',
+      sourceId: 550,
+      kind: 'movie',
+    })
   })
 
   it('clears the account owner marker with cached account data', () => {

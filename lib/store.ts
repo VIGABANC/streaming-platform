@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Media, MediaType } from './tmdb'
+import { sourceKey, type LibraryMediaType, type MediaKind, type MediaSource } from './media/types'
 import { parseLibraryBackup, serializeLibraryBackup, type ImportResult } from './library/backup-schema'
 import { DEFAULT_USER_SETTINGS, normalizeUserSettings } from './settings'
 
@@ -23,8 +24,11 @@ export interface WatchlistItem extends Pick<
   | 'overview'
   | 'backdrop_path'
 > {
-  media_type: MediaType
+  media_type: LibraryMediaType
   addedAt: number
+  source?: MediaSource
+  sourceId?: number
+  kind?: MediaKind
 }
 
 export interface FavoriteItem extends WatchlistItem {
@@ -33,7 +37,7 @@ export interface FavoriteItem extends WatchlistItem {
 
 export interface ContinueWatchingItem {
   id: number
-  media_type: MediaType
+  media_type: LibraryMediaType
   title: string
   poster_path?: string | null
   backdrop_path?: string | null
@@ -41,20 +45,26 @@ export interface ContinueWatchingItem {
   episode?: number
   episodeTitle?: string
   lastOpenedAt: number
+  source?: MediaSource
+  sourceId?: number
+  kind?: MediaKind
 }
 
 export interface RatingItem {
   id: number
-  media_type: MediaType
+  media_type: LibraryMediaType
   rating: number // 1 - 10
   ratedAt: number
   title?: string
   poster_path?: string | null
+  source?: MediaSource
+  sourceId?: number
+  kind?: MediaKind
 }
 
 export interface HistoryItem {
   id: number
-  media_type: MediaType
+  media_type: LibraryMediaType
   title: string
   poster_path?: string | null
   backdrop_path?: string | null
@@ -62,6 +72,9 @@ export interface HistoryItem {
   episode?: number
   episodeTitle?: string
   watchedAt: number
+  source?: MediaSource
+  sourceId?: number
+  kind?: MediaKind
 }
 
 export interface UserProfile {
@@ -94,32 +107,32 @@ export interface UserMediaStore {
   // Watchlist
   getWatchlist(): WatchlistItem[]
   addToWatchlist(item: WatchlistItem): void
-  removeFromWatchlist(id: number, mediaType: MediaType): void
+  removeFromWatchlist(id: number, mediaType: LibraryMediaType): void
   toggleWatchlist(item: WatchlistItem): void
-  isInWatchlist(id: number, mediaType: MediaType): boolean
+  isInWatchlist(id: number, mediaType: LibraryMediaType): boolean
 
   // Favorites
   getFavorites(): FavoriteItem[]
   addToFavorites(item: FavoriteItem): void
-  removeFromFavorites(id: number, mediaType: MediaType): void
+  removeFromFavorites(id: number, mediaType: LibraryMediaType): void
   toggleFavorite(item: FavoriteItem): void
-  isInFavorites(id: number, mediaType: MediaType): boolean
+  isInFavorites(id: number, mediaType: LibraryMediaType): boolean
 
   // Ratings
   getRatings(): RatingItem[]
-  getRating(id: number, mediaType: MediaType): number | null
-  setRating(id: number, mediaType: MediaType, rating: number, meta?: { title?: string; poster_path?: string | null }): void
-  removeRating(id: number, mediaType: MediaType): void
+  getRating(id: number, mediaType: LibraryMediaType): number | null
+  setRating(id: number, mediaType: LibraryMediaType, rating: number, meta?: { title?: string; poster_path?: string | null }): void
+  removeRating(id: number, mediaType: LibraryMediaType): void
 
   // Continue Watching
   getContinueWatching(): ContinueWatchingItem[]
   updateContinueWatching(item: ContinueWatchingItem): void
-  removeFromContinueWatching(id: number, mediaType: MediaType): void
+  removeFromContinueWatching(id: number, mediaType: LibraryMediaType): void
 
   // Watch History
   getHistory(): HistoryItem[]
   addToHistory(item: Omit<HistoryItem, 'watchedAt'>): void
-  removeFromHistory(id: number, mediaType: MediaType): void
+  removeFromHistory(id: number, mediaType: LibraryMediaType): void
   clearHistory(): void
 
   // Profile
@@ -182,6 +195,13 @@ function writeStorage<T>(key: string, data: T): void {
   }
 }
 
+function itemKey(item: { id: number; media_type: LibraryMediaType; source?: MediaSource; sourceId?: number; kind?: MediaKind; season?: number; episode?: number }): string {
+  const source = item.source ?? (item.media_type === 'anime' ? 'anilist' : 'tmdb')
+  const kind = item.kind ?? item.media_type
+  const sourceId = item.sourceId ?? item.id
+  return sourceKey({ source, sourceId, kind }, { season: item.season, episode: item.episode })
+}
+
 // ── Implementation ────────────────────────────────────────────────────────────
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -202,14 +222,13 @@ class LocalStorageMediaStore implements UserMediaStore {
 
   addToWatchlist(item: WatchlistItem): void {
     const current = this.getWatchlist()
-    const exists = current.some(
-      (x) => x.id === item.id && x.media_type === item.media_type,
-    )
+    const key = itemKey(item)
+    const exists = current.some((x) => itemKey(x) === key)
     if (exists) return
     writeStorage(STORE_KEYS.watchlist, [item, ...current])
   }
 
-  removeFromWatchlist(id: number, mediaType: MediaType): void {
+  removeFromWatchlist(id: number, mediaType: LibraryMediaType): void {
     const current = this.getWatchlist()
     writeStorage(
       STORE_KEYS.watchlist,
@@ -225,7 +244,7 @@ class LocalStorageMediaStore implements UserMediaStore {
     }
   }
 
-  isInWatchlist(id: number, mediaType: MediaType): boolean {
+  isInWatchlist(id: number, mediaType: LibraryMediaType): boolean {
     return this.getWatchlist().some(
       (x) => x.id === id && x.media_type === mediaType,
     )
@@ -239,14 +258,13 @@ class LocalStorageMediaStore implements UserMediaStore {
 
   addToFavorites(item: FavoriteItem): void {
     const current = this.getFavorites()
-    const exists = current.some(
-      (x) => x.id === item.id && x.media_type === item.media_type,
-    )
+    const key = itemKey(item)
+    const exists = current.some((x) => itemKey(x) === key)
     if (exists) return
     writeStorage(STORE_KEYS.favorites, [item, ...current])
   }
 
-  removeFromFavorites(id: number, mediaType: MediaType): void {
+  removeFromFavorites(id: number, mediaType: LibraryMediaType): void {
     const current = this.getFavorites()
     writeStorage(
       STORE_KEYS.favorites,
@@ -262,7 +280,7 @@ class LocalStorageMediaStore implements UserMediaStore {
     }
   }
 
-  isInFavorites(id: number, mediaType: MediaType): boolean {
+  isInFavorites(id: number, mediaType: LibraryMediaType): boolean {
     return this.getFavorites().some(
       (x) => x.id === id && x.media_type === mediaType,
     )
@@ -274,12 +292,12 @@ class LocalStorageMediaStore implements UserMediaStore {
     return readStorage<RatingItem[]>(STORE_KEYS.ratings, [])
   }
 
-  getRating(id: number, mediaType: MediaType): number | null {
+  getRating(id: number, mediaType: LibraryMediaType): number | null {
     const item = this.getRatings().find((r) => r.id === id && r.media_type === mediaType)
     return item ? item.rating : null
   }
 
-  setRating(id: number, mediaType: MediaType, rating: number, meta?: { title?: string; poster_path?: string | null }): void {
+  setRating(id: number, mediaType: LibraryMediaType, rating: number, meta?: { title?: string; poster_path?: string | null }): void {
     const current = this.getRatings()
     const filtered = current.filter((r) => !(r.id === id && r.media_type === mediaType))
     const item: RatingItem = {
@@ -293,7 +311,7 @@ class LocalStorageMediaStore implements UserMediaStore {
     writeStorage(STORE_KEYS.ratings, [item, ...filtered])
   }
 
-  removeRating(id: number, mediaType: MediaType): void {
+  removeRating(id: number, mediaType: LibraryMediaType): void {
     const current = this.getRatings()
     writeStorage(
       STORE_KEYS.ratings,
@@ -327,7 +345,7 @@ class LocalStorageMediaStore implements UserMediaStore {
     })
   }
 
-  removeFromContinueWatching(id: number, mediaType: MediaType): void {
+  removeFromContinueWatching(id: number, mediaType: LibraryMediaType): void {
     const current = this.getContinueWatching()
     writeStorage(
       STORE_KEYS.continueWatching,
@@ -355,7 +373,7 @@ class LocalStorageMediaStore implements UserMediaStore {
     writeStorage(STORE_KEYS.history, [entry, ...filtered].slice(0, 100))
   }
 
-  removeFromHistory(id: number, mediaType: MediaType): void {
+  removeFromHistory(id: number, mediaType: LibraryMediaType): void {
     const current = this.getHistory()
     writeStorage(
       STORE_KEYS.history,
@@ -427,7 +445,7 @@ class LocalStorageMediaStore implements UserMediaStore {
 
   exportData(): string {
     return serializeLibraryBackup({
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       watchlist: this.getWatchlist(),
       favorites: this.getFavorites(),
@@ -542,6 +560,9 @@ export function mediaToWatchlistItem(
     overview: media.overview,
     media_type: mediaType,
     addedAt: Date.now(),
+    source: 'tmdb',
+    sourceId: media.id,
+    kind: mediaType,
   }
 }
 

@@ -7,10 +7,12 @@ import type {
   UserSettings,
   WatchlistItem,
 } from '@/lib/store'
+import { sourceKey } from '@/lib/media/types'
+import { migrateLibrarySnapshot } from './migration'
 import { parseLibraryBackup } from './backup-schema'
 
 export interface LibrarySnapshot {
-  version: 1
+  version: 2
   exportedAt: string
   watchlist: WatchlistItem[]
   favorites: FavoriteItem[]
@@ -38,7 +40,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 
 export function createEmptyLibrarySnapshot(): LibrarySnapshot {
   return {
-    version: 1,
+    version: 2,
     exportedAt: new Date(0).toISOString(),
     watchlist: [],
     favorites: [],
@@ -50,15 +52,18 @@ export function createEmptyLibrarySnapshot(): LibrarySnapshot {
   }
 }
 
-function itemKey(item: { id: number; media_type: string; season?: number; episode?: number }): string {
-  return [item.media_type, item.id, item.season ?? '', item.episode ?? ''].join(':')
+function itemKey(item: { id: number; media_type: WatchlistItem['media_type']; source?: 'tmdb' | 'anilist'; sourceId?: number; kind?: WatchlistItem['media_type']; season?: number; episode?: number }): string {
+  const source = item.source ?? (item.media_type === 'anime' ? 'anilist' : 'tmdb')
+  const kind = item.kind ?? item.media_type
+  const sourceId = item.sourceId ?? item.id
+  return sourceKey({ source, sourceId, kind }, { season: item.season, episode: item.episode })
 }
 
 function timestampOf(item: { addedAt?: number; favoritedAt?: number; ratedAt?: number; watchedAt?: number; lastOpenedAt?: number }): number {
   return Math.max(item.addedAt ?? 0, item.favoritedAt ?? 0, item.ratedAt ?? 0, item.watchedAt ?? 0, item.lastOpenedAt ?? 0)
 }
 
-function mergeCollection<T extends { id: number; media_type: string; season?: number; episode?: number; addedAt?: number; favoritedAt?: number; ratedAt?: number; watchedAt?: number; lastOpenedAt?: number }>(local: T[], remote: T[]): T[] {
+function mergeCollection<T extends { id: number; media_type: WatchlistItem['media_type']; source?: 'tmdb' | 'anilist'; sourceId?: number; kind?: WatchlistItem['media_type']; season?: number; episode?: number; addedAt?: number; favoritedAt?: number; ratedAt?: number; watchedAt?: number; lastOpenedAt?: number }>(local: T[], remote: T[]): T[] {
   const merged = new Map<string, T>()
   for (const item of [...local, ...remote]) {
     const key = itemKey(item)
@@ -73,7 +78,7 @@ export function mergeLibrarySnapshots(local: LibrarySnapshot, remote: LibrarySna
   const newerSettings = remote.exportedAt >= local.exportedAt ? remote.settings : local.settings
 
   return {
-    version: 1,
+    version: 2,
     exportedAt: remote.exportedAt >= local.exportedAt ? remote.exportedAt : local.exportedAt,
     watchlist: mergeCollection(local.watchlist, remote.watchlist),
     favorites: mergeCollection(local.favorites, remote.favorites),
@@ -86,9 +91,12 @@ export function mergeLibrarySnapshots(local: LibrarySnapshot, remote: LibrarySna
 }
 
 export function normalizeLibrarySnapshot(value: unknown): LibrarySnapshot | null {
-  if (!value || typeof value !== 'object') return null
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const data = value as Record<string, unknown>
-  const { version: _version, schemaVersion: _schemaVersion, ...payload } = data
-  const result = parseLibraryBackup(JSON.stringify({ ...payload, schemaVersion: 1 }))
-  return result.ok ? result.snapshot : null
+  if (data.schemaVersion !== undefined) {
+    const result = parseLibraryBackup(JSON.stringify(value))
+    return result.ok ? result.snapshot : null
+  }
+  const migrated = migrateLibrarySnapshot(value)
+  return migrated as LibrarySnapshot | null
 }

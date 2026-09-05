@@ -7,6 +7,7 @@ import { Play, Clock, X } from 'lucide-react'
 import { store, type ContinueWatchingItem } from '@/lib/store'
 import { poster } from '@/lib/tmdb'
 import { formatDate } from '@/lib/utils'
+import type { LibraryMediaType } from '@/lib/media/types'
 
 export function ContinueWatchingRail() {
   const [items, setItems] = useState<ContinueWatchingItem[]>([])
@@ -29,7 +30,7 @@ export function ContinueWatchingRail() {
 
   if (!hydrated || items.length === 0) return null
 
-  const remove = (id: number, mediaType: 'movie' | 'tv') => {
+  const remove = (id: number, mediaType: LibraryMediaType) => {
     store.removeFromContinueWatching(id, mediaType)
     loadItems()
   }
@@ -44,7 +45,9 @@ export function ContinueWatchingRail() {
       <div className="flex gap-3 overflow-x-auto px-5 pb-4 no-scrollbar lg:gap-4 lg:px-8">
         {items.map((item) => {
           const href =
-            item.media_type === 'tv' && item.season && item.episode
+            item.media_type === 'anime'
+              ? `/anime/${item.sourceId ?? item.id}`
+              : item.media_type === 'tv' && item.season && item.episode
               ? `/watch/tv/${item.id}/${item.season}/${item.episode}`
               : `/watch/movie/${item.id}`
 
@@ -52,7 +55,7 @@ export function ContinueWatchingRail() {
 
           return (
             <article
-              key={`${item.id}-${item.media_type}`}
+              key={`${item.source ?? 'tmdb'}-${item.sourceId ?? item.id}-${item.media_type}`}
               className="group relative w-64 shrink-0"
             >
               <Link

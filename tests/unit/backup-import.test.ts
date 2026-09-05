@@ -16,7 +16,7 @@ global.localStorage = {
 const validBackup = {
   schemaVersion: BACKUP_SCHEMA_VERSION,
   exportedAt: '2026-09-05T12:00:00.000Z',
-  watchlist: [{ id: 550, title: 'Fight Club', media_type: 'movie', addedAt: 1 }],
+  watchlist: [{ id: 550, title: 'Fight Club', media_type: 'movie', addedAt: 1, source: 'tmdb', sourceId: 550, kind: 'movie' }],
   favorites: [],
   ratings: [],
   history: [],
@@ -35,6 +35,35 @@ describe('library backup validation', () => {
 
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.snapshot.watchlist[0].id).toBe(550)
+  })
+
+  it('migrates schema v1 records to explicit TMDB identity', () => {
+    const { source: _source, sourceId: _sourceId, kind: _kind, ...legacyItem } = validBackup.watchlist[0]
+    const legacy = { ...validBackup, schemaVersion: 1, watchlist: [legacyItem] }
+    const result = parseLibraryBackup(JSON.stringify(legacy))
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.snapshot.version).toBe(2)
+      expect(result.snapshot.watchlist[0]).toMatchObject({ source: 'tmdb', sourceId: 550, kind: 'movie' })
+    }
+  })
+
+  it('accepts source-aware anime records in schema v2', () => {
+    const anime = {
+      ...validBackup,
+      watchlist: [{ id: 100, title: 'Signal', media_type: 'anime', addedAt: 1, source: 'anilist', sourceId: 100, kind: 'anime' }],
+    }
+    const result = parseLibraryBackup(JSON.stringify(anime))
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.snapshot.watchlist[0]).toMatchObject({ source: 'anilist', sourceId: 100, kind: 'anime' })
+  })
+
+  it('rejects schema v2 records without a valid source identity', () => {
+    const malformed = { ...validBackup, watchlist: [{ id: 100, title: 'Signal', media_type: 'anime', addedAt: 1 }] }
+
+    expect(parseLibraryBackup(JSON.stringify(malformed))).toMatchObject({ ok: false, reason: 'invalid-schema' })
   })
 
   it('rejects malformed items and future versions', () => {

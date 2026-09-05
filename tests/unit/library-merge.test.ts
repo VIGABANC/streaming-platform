@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mergeLibrarySnapshots, normalizeLibrarySnapshot, type LibrarySnapshot } from '@/lib/library/types'
 
 const base: LibrarySnapshot = {
-  version: 1,
+  version: 2,
   exportedAt: '2026-09-05T10:00:00.000Z',
   watchlist: [{ id: 1, media_type: 'movie', title: 'One', addedAt: 10 } as LibrarySnapshot['watchlist'][number]],
   favorites: [],

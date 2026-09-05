@@ -57,6 +57,11 @@ export function formatAIStatus(statuses: AIProviderStatus[]): string {
   return ['VEYRA AI Router', '', ...lines, '⚪ Deterministic — always available'].join('\n')
 }
 
+export function formatTelegramWebhookError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.replace(/(https?:\/\/[^\s/]+\/bot\d+):[^\s/]+/gi, '$1:[REDACTED]').slice(0, 240)
+}
+
 export function createTelegramClient(env: Environment = process.env, fetchImpl: typeof fetch = fetch): TelegramMessenger {
   return {
     async sendMessage(chatId, text) {

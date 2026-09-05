@@ -15,6 +15,7 @@ export interface EpisodeRef {
 
 export function sourceKey(ref: MediaRef, episode?: EpisodeRef): string {
   if (!Number.isSafeInteger(ref.sourceId) || ref.sourceId < 1) throw new Error('INVALID_MEDIA_REF')
+  if ((ref.source === 'tmdb' && ref.kind === 'anime') || (ref.source === 'anilist' && ref.kind !== 'anime')) throw new Error('INVALID_SOURCE_KIND')
   const parts = [`${ref.source}:${ref.kind}:${ref.sourceId}`]
   if (episode?.season !== undefined) {
     if (!Number.isSafeInteger(episode.season) || episode.season < 0) throw new Error('INVALID_SEASON')
@@ -35,6 +36,8 @@ export function parseMediaRef(value: unknown): MediaRef | null {
       typeof candidate.sourceId !== 'number' || !Number.isSafeInteger(candidate.sourceId) || candidate.sourceId < 1) {
     return null
   }
+  if ((candidate.source === 'anilist' && candidate.kind !== 'anime') ||
+      (candidate.source === 'tmdb' && candidate.kind === 'anime')) return null
   return { source: candidate.source, sourceId: candidate.sourceId, kind: candidate.kind }
 }
 

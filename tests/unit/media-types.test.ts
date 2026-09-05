@@ -24,4 +24,8 @@ describe('source-aware media identity', () => {
     expect(libraryMediaHref({ id: 7, media_type: 'tv' })).toBe('/tv/7')
     expect(libraryMediaHref({ id: 7, media_type: 'anime', sourceId: 99 })).toBe('/anime/99')
   })
+
+  it('rejects source and kind combinations that cross provider boundaries', () => {
+    expect(() => sourceKey({ source: 'tmdb', sourceId: 1, kind: 'anime' })).toThrow()
+  })
 })

@@ -18,13 +18,15 @@ interface LibraryMediaCardProps {
 export function LibraryMediaCard({ item, collection, onRemoved }: LibraryMediaCardProps) {
   const title = item.title ?? item.name ?? 'Untitled signal'
   const href = libraryMediaHref(item)
-  const image = poster(item.poster_path, 'w342')
+  const image = item.source === 'anilist' && item.poster_path?.startsWith('http')
+    ? item.poster_path
+    : poster(item.poster_path, 'w342')
 
   const remove = () => {
     if (collection === 'favorites') {
-      store.removeFromFavorites(item.id, item.media_type)
+      store.removeFromFavorites(item.id, item.media_type, item)
     } else {
-      store.removeFromWatchlist(item.id, item.media_type)
+      store.removeFromWatchlist(item.id, item.media_type, item)
     }
     onRemoved()
   }

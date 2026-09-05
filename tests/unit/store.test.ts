@@ -101,6 +101,48 @@ describe('UserMediaStore (LocalStorage abstraction)', () => {
       expect(history[0].id).toBe(200) // Most recent first
       expect(history[1].id).toBe(100)
     })
+
+    it('preserves source-aware anime episodes in continue watching and history', () => {
+      const episodeOne: ContinueWatchingItem = {
+        id: 77,
+        media_type: 'anime',
+        source: 'anilist',
+        sourceId: 77,
+        kind: 'anime',
+        title: 'Signal',
+        season: 1,
+        episode: 1,
+        lastOpenedAt: 1000,
+      }
+      const episodeTwo = { ...episodeOne, episode: 2, lastOpenedAt: 2000 }
+
+      store.updateContinueWatching(episodeOne)
+      store.updateContinueWatching(episodeTwo)
+
+      expect(store.getContinueWatching()).toHaveLength(2)
+      expect(store.getHistory()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ source: 'anilist', sourceId: 77, kind: 'anime', episode: 1 }),
+        expect.objectContaining({ source: 'anilist', sourceId: 77, kind: 'anime', episode: 2 }),
+      ]))
+    })
+  })
+
+  it('keeps the previous state when the single import commit fails', () => {
+    store.addToWatchlist({ id: 1, media_type: 'movie', title: 'Keep', addedAt: 1 })
+    const before = store.getWatchlist()
+    const valid = JSON.parse(store.exportData()) as Record<string, unknown>
+    valid.watchlist = []
+    const originalSetItem = localStorage.setItem
+    localStorage.setItem = ((key: string, value: string) => {
+      if (key === 'veyra-library-snapshot') throw new Error('quota')
+      return originalSetItem.call(localStorage, key, value)
+    }) as Storage['setItem']
+
+    const result = store.importData(JSON.stringify(valid))
+
+    localStorage.setItem = originalSetItem
+    expect(result).toMatchObject({ ok: false })
+    expect(store.getWatchlist()).toEqual(before)
   })
 
   describe('Ratings operations', () => {

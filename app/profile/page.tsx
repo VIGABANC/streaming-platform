@@ -97,8 +97,8 @@ export default function ProfilePage() {
     reader.onload = (event) => {
       const text = event.target?.result as string
       if (text) {
-        const ok = store.importData(text)
-        if (ok) {
+        const result = store.importData(text)
+        if (result.ok) {
           reload()
           showToast({
             title: 'Data restored successfully',
@@ -107,7 +107,7 @@ export default function ProfilePage() {
         } else {
           showToast({
             title: 'Failed to import backup file',
-            description: 'Invalid JSON structure',
+            description: result.reason === 'unsupported-version' ? 'This backup version is not supported.' : 'Invalid backup structure.',
             type: 'error',
           })
         }

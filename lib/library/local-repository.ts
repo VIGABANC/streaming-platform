@@ -10,7 +10,8 @@ export function readLocalLibrary(): LibrarySnapshot {
 }
 
 export function writeLocalLibrary(snapshot: LibrarySnapshot): void {
-  store.importData(serializeLibraryBackup(snapshot))
+  const result = store.importData(serializeLibraryBackup(snapshot))
+  if (!result.ok) throw new Error(`LIBRARY_WRITE_FAILED:${result.reason}`)
 }
 
 export function clearLocalLibrary(): void {

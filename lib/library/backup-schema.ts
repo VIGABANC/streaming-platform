@@ -237,7 +237,7 @@ export function serializeLibraryBackup(snapshot: LibrarySnapshot): string {
   // normalize them as v1 input before emitting the strict v2 wire format.
   const migrated = migrateLibrarySnapshot({ ...snapshot, version: LEGACY_BACKUP_SCHEMA_VERSION })
   if (!migrated) throw new Error('INVALID_LIBRARY_SNAPSHOT')
-  return JSON.stringify({
+  const wire = {
     schemaVersion: BACKUP_SCHEMA_VERSION,
     exportedAt: migrated.exportedAt,
     watchlist: migrated.watchlist,
@@ -247,5 +247,8 @@ export function serializeLibraryBackup(snapshot: LibrarySnapshot): string {
     continueWatching: migrated.continueWatching,
     profile: migrated.profile,
     settings: migrated.settings,
-  }, null, 2)
+  }
+  const validated = backupV2.safeParse(wire)
+  if (!validated.success) throw new Error('INVALID_LIBRARY_SNAPSHOT')
+  return JSON.stringify(wire, null, 2)
 }

@@ -107,16 +107,16 @@ export interface UserMediaStore {
   // Watchlist
   getWatchlist(): WatchlistItem[]
   addToWatchlist(item: WatchlistItem): void
-  removeFromWatchlist(id: number, mediaType: LibraryMediaType): void
+  removeFromWatchlist(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<WatchlistItem, 'source' | 'sourceId' | 'kind'>>): void
   toggleWatchlist(item: WatchlistItem): void
-  isInWatchlist(id: number, mediaType: LibraryMediaType): boolean
+  isInWatchlist(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<WatchlistItem, 'source' | 'sourceId' | 'kind'>>): boolean
 
   // Favorites
   getFavorites(): FavoriteItem[]
   addToFavorites(item: FavoriteItem): void
-  removeFromFavorites(id: number, mediaType: LibraryMediaType): void
+  removeFromFavorites(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<FavoriteItem, 'source' | 'sourceId' | 'kind'>>): void
   toggleFavorite(item: FavoriteItem): void
-  isInFavorites(id: number, mediaType: LibraryMediaType): boolean
+  isInFavorites(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<FavoriteItem, 'source' | 'sourceId' | 'kind'>>): boolean
 
   // Ratings
   getRatings(): RatingItem[]
@@ -153,6 +153,7 @@ export interface UserMediaStore {
 // ── Storage keys ──────────────────────────────────────────────────────────────
 
 export const STORE_KEYS = {
+  snapshot: 'veyra-library-snapshot',
   watchlist: 'veyra-watchlist',
   favorites: 'veyra-favorites',
   ratings: 'veyra-ratings',
@@ -161,6 +162,16 @@ export const STORE_KEYS = {
   profile: 'veyra-profile',
   settings: 'veyra-settings',
 } as const
+
+const SNAPSHOT_FIELD_BY_KEY: Record<string, string> = {
+  [STORE_KEYS.watchlist]: 'watchlist',
+  [STORE_KEYS.favorites]: 'favorites',
+  [STORE_KEYS.ratings]: 'ratings',
+  [STORE_KEYS.continueWatching]: 'continueWatching',
+  [STORE_KEYS.history]: 'history',
+  [STORE_KEYS.profile]: 'profile',
+  [STORE_KEYS.settings]: 'settings',
+}
 
 // ── Safe localStorage helpers ─────────────────────────────────────────────────
 
@@ -174,6 +185,12 @@ function readStorage<T>(key: string, fallback: T): T {
   const storage = getStorage()
   if (!storage) return fallback
   try {
+    const snapshot = storage.getItem(STORE_KEYS.snapshot)
+    const field = SNAPSHOT_FIELD_BY_KEY[key]
+    if (snapshot && field) {
+      const parsed = JSON.parse(snapshot) as Record<string, unknown>
+      if (field in parsed) return parsed[field] as T
+    }
     const raw = storage.getItem(key)
     if (!raw) return fallback
     return JSON.parse(raw) as T
@@ -186,6 +203,17 @@ function writeStorage<T>(key: string, data: T): void {
   const storage = getStorage()
   if (!storage) return
   try {
+    const snapshot = storage.getItem(STORE_KEYS.snapshot)
+    const field = SNAPSHOT_FIELD_BY_KEY[key]
+    if (snapshot && field) {
+      const parsed = JSON.parse(snapshot) as Record<string, unknown>
+      parsed[field] = data
+      storage.setItem(STORE_KEYS.snapshot, JSON.stringify(parsed))
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('veyra-store-change', { detail: { key } }))
+      }
+      return
+    }
     storage.setItem(key, JSON.stringify(data))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('veyra-store-change', { detail: { key } }))
@@ -200,6 +228,15 @@ function itemKey(item: { id: number; media_type: LibraryMediaType; source?: Medi
   const kind = item.kind ?? item.media_type
   const sourceId = item.sourceId ?? item.id
   return sourceKey({ source, sourceId, kind }, { season: item.season, episode: item.episode })
+}
+
+function matchesIdentity(
+  item: { id: number; media_type: LibraryMediaType; source?: MediaSource; sourceId?: number; kind?: MediaKind; season?: number; episode?: number },
+  id: number,
+  mediaType: LibraryMediaType,
+  identity?: Partial<Pick<WatchlistItem, 'source' | 'sourceId' | 'kind'>>,
+): boolean {
+  return itemKey(item) === itemKey({ id, media_type: mediaType, ...identity })
 }
 
 // ── Implementation ────────────────────────────────────────────────────────────
@@ -228,26 +265,24 @@ class LocalStorageMediaStore implements UserMediaStore {
     writeStorage(STORE_KEYS.watchlist, [item, ...current])
   }
 
-  removeFromWatchlist(id: number, mediaType: LibraryMediaType): void {
+  removeFromWatchlist(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<WatchlistItem, 'source' | 'sourceId' | 'kind'>>): void {
     const current = this.getWatchlist()
     writeStorage(
       STORE_KEYS.watchlist,
-      current.filter((x) => !(x.id === id && x.media_type === mediaType)),
+      current.filter((x) => !matchesIdentity(x, id, mediaType, identity)),
     )
   }
 
   toggleWatchlist(item: WatchlistItem): void {
-    if (this.isInWatchlist(item.id, item.media_type)) {
-      this.removeFromWatchlist(item.id, item.media_type)
+    if (this.isInWatchlist(item.id, item.media_type, item)) {
+      this.removeFromWatchlist(item.id, item.media_type, item)
     } else {
       this.addToWatchlist(item)
     }
   }
 
-  isInWatchlist(id: number, mediaType: LibraryMediaType): boolean {
-    return this.getWatchlist().some(
-      (x) => x.id === id && x.media_type === mediaType,
-    )
+  isInWatchlist(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<WatchlistItem, 'source' | 'sourceId' | 'kind'>>): boolean {
+    return this.getWatchlist().some((x) => matchesIdentity(x, id, mediaType, identity))
   }
 
   // ── Favorites ────────────────────────────────────────────────────────────
@@ -264,26 +299,24 @@ class LocalStorageMediaStore implements UserMediaStore {
     writeStorage(STORE_KEYS.favorites, [item, ...current])
   }
 
-  removeFromFavorites(id: number, mediaType: LibraryMediaType): void {
+  removeFromFavorites(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<FavoriteItem, 'source' | 'sourceId' | 'kind'>>): void {
     const current = this.getFavorites()
     writeStorage(
       STORE_KEYS.favorites,
-      current.filter((x) => !(x.id === id && x.media_type === mediaType)),
+      current.filter((x) => !matchesIdentity(x, id, mediaType, identity)),
     )
   }
 
   toggleFavorite(item: FavoriteItem): void {
-    if (this.isInFavorites(item.id, item.media_type)) {
-      this.removeFromFavorites(item.id, item.media_type)
+    if (this.isInFavorites(item.id, item.media_type, item)) {
+      this.removeFromFavorites(item.id, item.media_type, item)
     } else {
       this.addToFavorites(item)
     }
   }
 
-  isInFavorites(id: number, mediaType: LibraryMediaType): boolean {
-    return this.getFavorites().some(
-      (x) => x.id === id && x.media_type === mediaType,
-    )
+  isInFavorites(id: number, mediaType: LibraryMediaType, identity?: Partial<Pick<FavoriteItem, 'source' | 'sourceId' | 'kind'>>): boolean {
+    return this.getFavorites().some((x) => matchesIdentity(x, id, mediaType, identity))
   }
 
   // ── Ratings ──────────────────────────────────────────────────────────────
@@ -328,9 +361,7 @@ class LocalStorageMediaStore implements UserMediaStore {
 
   updateContinueWatching(item: ContinueWatchingItem): void {
     const current = this.getContinueWatching()
-    const without = current.filter(
-      (x) => !(x.id === item.id && x.media_type === item.media_type),
-    )
+    const without = current.filter((x) => itemKey(x) !== itemKey(item))
     writeStorage(STORE_KEYS.continueWatching, [item, ...without].slice(0, 25))
     // Also record in watch history
     this.addToHistory({
@@ -342,6 +373,9 @@ class LocalStorageMediaStore implements UserMediaStore {
       season: item.season,
       episode: item.episode,
       episodeTitle: item.episodeTitle,
+      source: item.source,
+      sourceId: item.sourceId,
+      kind: item.kind,
     })
   }
 
@@ -367,9 +401,7 @@ class LocalStorageMediaStore implements UserMediaStore {
       watchedAt: Date.now(),
     }
     // De-duplicate same title / episode watched within the same day
-    const filtered = current.filter(
-      (x) => !(x.id === item.id && x.media_type === item.media_type && x.season === item.season && x.episode === item.episode),
-    )
+    const filtered = current.filter((x) => itemKey(x) !== itemKey(item))
     writeStorage(STORE_KEYS.history, [entry, ...filtered].slice(0, 100))
   }
 
@@ -464,25 +496,13 @@ class LocalStorageMediaStore implements UserMediaStore {
     const storage = getStorage()
     if (!storage) return result
 
-    const values: Record<string, string> = {
-      [STORE_KEYS.watchlist]: JSON.stringify(result.snapshot.watchlist),
-      [STORE_KEYS.favorites]: JSON.stringify(result.snapshot.favorites),
-      [STORE_KEYS.ratings]: JSON.stringify(result.snapshot.ratings),
-      [STORE_KEYS.history]: JSON.stringify(result.snapshot.history),
-      [STORE_KEYS.continueWatching]: JSON.stringify(result.snapshot.continueWatching),
-      [STORE_KEYS.profile]: JSON.stringify(result.snapshot.profile),
-      [STORE_KEYS.settings]: JSON.stringify(result.snapshot.settings),
-    }
-    const previous = Object.fromEntries(Object.keys(values).map((key) => [key, storage.getItem(key)]))
     try {
-      Object.entries(values).forEach(([key, value]) => storage.setItem(key, value))
+      // Keep imported state behind one storage key. A single setItem is the
+      // atomic boundary; collection reads resolve through this snapshot.
+      storage.setItem(STORE_KEYS.snapshot, JSON.stringify(result.snapshot))
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('veyra-store-change', { detail: { key: 'all' } }))
       return result
     } catch {
-      Object.entries(previous).forEach(([key, value]) => {
-        if (value === null) storage.removeItem(key)
-        else storage.setItem(key, value)
-      })
       return { ok: false, reason: 'invalid-schema' }
     }
   }
@@ -501,7 +521,7 @@ export function subscribeToStorageChanges(
   if (typeof window === 'undefined') return () => {}
 
   const storageHandler = (e: StorageEvent) => {
-    if (key === 'all' || e.key === key) onChange()
+    if (key === 'all' || e.key === key || e.key === STORE_KEYS.snapshot) onChange()
   }
 
   const customHandler = (e: Event) => {

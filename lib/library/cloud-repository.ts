@@ -22,10 +22,12 @@ export async function writeCloudLibrary(snapshot: LibrarySnapshot): Promise<void
   const { data: authData, error: authError } = await supabase.auth.getUser()
   if (authError) throw authError
   if (!authData.user) throw new Error('AUTH_REQUIRED')
+  const normalized = normalizeLibrarySnapshot({ ...snapshot, version: 1 })
+  if (!normalized) throw new Error('INVALID_LIBRARY_SNAPSHOT')
   const { error } = await supabase
     .from('user_library_snapshots')
     .upsert(
-      { user_id: authData.user.id, version: snapshot.version, payload: snapshot, updated_at: new Date().toISOString() },
+      { user_id: authData.user.id, version: normalized.version, payload: normalized, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' },
     )
 

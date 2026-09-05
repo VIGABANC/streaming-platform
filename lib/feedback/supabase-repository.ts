@@ -30,8 +30,18 @@ function fromRow(row: Row): FeedbackRecord {
   }
 }
 
-function safeError(error: { message?: string } | null): Error {
-  return new Error(error?.message ? 'Feedback storage operation failed' : 'Feedback storage operation failed')
+type SupabaseError = { code?: string; message?: string } | null
+
+export function formatFeedbackStorageError(error: SupabaseError): string {
+  const code = error?.code?.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32)
+  const message = error?.message?.replace(/\s+/g, ' ').trim().slice(0, 180)
+  if (code && message) return `Feedback storage operation failed (${code}): ${message}`
+  if (message) return `Feedback storage operation failed: ${message}`
+  return 'Feedback storage operation failed'
+}
+
+function safeError(error: SupabaseError): Error {
+  return new Error(formatFeedbackStorageError(error))
 }
 
 export function createFeedbackRepository(env: Record<string, string | undefined> = process.env): FeedbackRepository {

@@ -85,7 +85,7 @@ export function HeroCarousel({ items, autoSlideIntervalMs = 7000 }: HeroCarousel
       {/* Background Slides with Cross-Fade */}
       {slides.map((slide, index) => {
         const isActive = index === currentIndex
-        const src = backdrop(slide.backdrop_path, 'original')
+        const src = backdrop(slide.backdrop_path, 'w1280')
         return (
           <div
             key={slide.id}

@@ -5,6 +5,8 @@ import { Shell } from '@/components/layout/Shell'
 import { Hero } from '@/components/media/Hero'
 import { MediaRail } from '@/components/media/MediaRail'
 import { SkeletonRail, SkeletonHero } from '@/components/feedback/Skeletons'
+import { CatalogFailureState, CatalogEmptyState } from '@/components/feedback/CatalogState'
+import { loadCatalog, type CatalogResult } from '@/lib/catalog'
 import {
   getPopularTV,
   getTopRatedTV,
@@ -13,7 +15,6 @@ import {
   getTrendingTV,
   genres,
   type Media,
-  type MediaType,
 } from '@/lib/tmdb'
 
 export const metadata: Metadata = {
@@ -25,57 +26,53 @@ export const metadata: Metadata = {
   },
 }
 
-async function safeTVList(
+type TVFeed = (Media & { media_type: 'tv' })[]
+
+async function loadTVList(
   loader: () => Promise<{ results: Media[] }>,
-): Promise<(Media & { media_type: MediaType })[]> {
-  try {
+): Promise<CatalogResult<TVFeed>> {
+  return loadCatalog(async () => {
     const data = await loader()
     return (data.results ?? []).map((item) => ({
       ...item,
       media_type: 'tv' as const,
     }))
-  } catch {
-    return []
-  }
+  })
 }
 
 async function TVHeroSection() {
   const [trending, popular] = await Promise.all([
-    safeTVList(getTrendingTV),
-    safeTVList(getPopularTV),
+    loadTVList(getTrendingTV),
+    loadTVList(getPopularTV),
   ])
-  const heroItem = trending[0] || popular[0]
-  if (!heroItem) return null
+  const heroItem = trending.data?.[0] ?? popular.data?.[0]
+  if (heroItem) return <Hero item={heroItem} />
+  if (trending.status === 'failure' && popular.status === 'failure') {
+    return <CatalogFailureState error={trending.error ?? popular.error} />
+  }
+  if (trending.status === 'empty' && popular.status === 'empty') return <CatalogEmptyState />
 
-  return <Hero item={heroItem} />
+  return null
 }
 
 async function TVRailsSection() {
   const [popular, topRated, airingToday, onTheAir, trending] = await Promise.all([
-    safeTVList(getPopularTV),
-    safeTVList(getTopRatedTV),
-    safeTVList(getAiringToday),
-    safeTVList(getOnTheAir),
-    safeTVList(getTrendingTV),
+    loadTVList(getPopularTV),
+    loadTVList(getTopRatedTV),
+    loadTVList(getAiringToday),
+    loadTVList(getOnTheAir),
+    loadTVList(getTrendingTV),
   ])
+
+  const items = (result: CatalogResult<TVFeed>) => result.status === 'success' ? result.data ?? [] : []
 
   return (
     <>
-      {trending.length > 1 && (
-        <MediaRail title="Trending series" items={trending.slice(1)} />
-      )}
-      {popular.length > 0 && (
-        <MediaRail title="Popular TV series" items={popular} />
-      )}
-      {topRated.length > 0 && (
-        <MediaRail title="Top rated of all time" items={topRated} />
-      )}
-      {airingToday.length > 0 && (
-        <MediaRail title="Airing today" items={airingToday} />
-      )}
-      {onTheAir.length > 0 && (
-        <MediaRail title="Currently on the air" items={onTheAir} landscape />
-      )}
+      {trending.status === 'failure' ? <CatalogFailureState error={trending.error} /> : <MediaRail title="Trending series" items={items(trending).slice(1)} />}
+      {popular.status === 'failure' ? <CatalogFailureState error={popular.error} /> : <MediaRail title="Popular TV series" items={items(popular)} />}
+      {topRated.status === 'failure' ? <CatalogFailureState error={topRated.error} /> : <MediaRail title="Top rated of all time" items={items(topRated)} />}
+      {airingToday.status === 'failure' ? <CatalogFailureState error={airingToday.error} /> : <MediaRail title="Airing today" items={items(airingToday)} />}
+      {onTheAir.status === 'failure' ? <CatalogFailureState error={onTheAir.error} /> : <MediaRail title="Currently on the air" items={items(onTheAir)} landscape />}
     </>
   )
 }

@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Film, Tv, Search, User } from 'lucide-react'
+import { Home, Film, Tv, Compass, Bookmark } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/movies', label: 'Movies', icon: Film },
-  { href: '/tv', label: 'Series', icon: Tv },
-  { href: '/search', label: 'Search', icon: Search },
-  { href: '/profile', label: 'My VEYRA', icon: User },
+  { href: '/tv', label: 'TV', icon: Tv },
+  { href: '/discover', label: 'Discover', icon: Compass },
+  { href: '/my-list', label: 'My List', icon: Bookmark },
 ] as const
 
 export function MobileNav() {

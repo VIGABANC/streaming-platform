@@ -21,6 +21,7 @@ import {
   type MediaType,
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
+import { serializeJsonLd } from '@/lib/seo/json-ld'
 
 interface MoviePageProps {
   params: Promise<{ id: string }>
@@ -35,6 +36,7 @@ export async function generateMetadata({ params }: MoviePageProps): Promise<Meta
     return {
       title: `${title} (${year}) — VEYRA`,
       description: movie.overview || `Watch ${title} on VEYRA.`,
+      alternates: { canonical: `/movie/${id}` },
       openGraph: {
         title: `${title} (${year}) — VEYRA`,
         description: movie.overview || `Watch ${title} on VEYRA.`,
@@ -118,7 +120,7 @@ export default async function MovieDetailPage({ params }: MoviePageProps) {
     <Shell>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       {/* Hero Backdrop Section */}
       <section className="relative overflow-hidden pb-12 pt-6 lg:pb-16" aria-label={`${title} overview`}>

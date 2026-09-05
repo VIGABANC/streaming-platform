@@ -5,6 +5,8 @@ import { Shell } from '@/components/layout/Shell'
 import { Hero } from '@/components/media/Hero'
 import { MediaRail } from '@/components/media/MediaRail'
 import { SkeletonRail, SkeletonHero } from '@/components/feedback/Skeletons'
+import { CatalogFailureState, CatalogEmptyState } from '@/components/feedback/CatalogState'
+import { loadCatalog, type CatalogResult } from '@/lib/catalog'
 import {
   getPopularMovies,
   getTopRatedMovies,
@@ -13,7 +15,6 @@ import {
   getTrendingMovies,
   genres,
   type Media,
-  type MediaType,
 } from '@/lib/tmdb'
 
 export const metadata: Metadata = {
@@ -25,57 +26,53 @@ export const metadata: Metadata = {
   },
 }
 
-async function safeMovieList(
+type MovieFeed = (Media & { media_type: 'movie' })[]
+
+async function loadMovieList(
   loader: () => Promise<{ results: Media[] }>,
-): Promise<(Media & { media_type: MediaType })[]> {
-  try {
+): Promise<CatalogResult<MovieFeed>> {
+  return loadCatalog(async () => {
     const data = await loader()
     return (data.results ?? []).map((item) => ({
       ...item,
       media_type: 'movie' as const,
     }))
-  } catch {
-    return []
-  }
+  })
 }
 
 async function MoviesHeroSection() {
   const [trending, popular] = await Promise.all([
-    safeMovieList(getTrendingMovies),
-    safeMovieList(getPopularMovies),
+    loadMovieList(getTrendingMovies),
+    loadMovieList(getPopularMovies),
   ])
-  const heroItem = trending[0] || popular[0]
-  if (!heroItem) return null
+  const heroItem = (trending.data?.[0] ?? popular.data?.[0])
+  if (heroItem) return <Hero item={heroItem} />
+  if (trending.status === 'failure' && popular.status === 'failure') {
+    return <CatalogFailureState error={trending.error ?? popular.error} />
+  }
+  if (trending.status === 'empty' && popular.status === 'empty') return <CatalogEmptyState />
 
-  return <Hero item={heroItem} />
+  return null
 }
 
 async function MovieRailsSection() {
   const [popular, topRated, nowPlaying, upcoming, trending] = await Promise.all([
-    safeMovieList(getPopularMovies),
-    safeMovieList(getTopRatedMovies),
-    safeMovieList(getNowPlaying),
-    safeMovieList(getUpcoming),
-    safeMovieList(getTrendingMovies),
+    loadMovieList(getPopularMovies),
+    loadMovieList(getTopRatedMovies),
+    loadMovieList(getNowPlaying),
+    loadMovieList(getUpcoming),
+    loadMovieList(getTrendingMovies),
   ])
+
+  const items = (result: CatalogResult<MovieFeed>) => result.status === 'success' ? result.data ?? [] : []
 
   return (
     <>
-      {trending.length > 1 && (
-        <MediaRail title="Trending this week" items={trending.slice(1)} />
-      )}
-      {popular.length > 0 && (
-        <MediaRail title="Popular movies" items={popular} />
-      )}
-      {topRated.length > 0 && (
-        <MediaRail title="Top rated of all time" items={topRated} />
-      )}
-      {nowPlaying.length > 0 && (
-        <MediaRail title="In theaters & streaming now" items={nowPlaying} />
-      )}
-      {upcoming.length > 0 && (
-        <MediaRail title="Coming soon" items={upcoming} landscape />
-      )}
+      {trending.status === 'failure' ? <CatalogFailureState error={trending.error} /> : <MediaRail title="Trending this week" items={items(trending).slice(1)} />}
+      {popular.status === 'failure' ? <CatalogFailureState error={popular.error} /> : <MediaRail title="Popular movies" items={items(popular)} />}
+      {topRated.status === 'failure' ? <CatalogFailureState error={topRated.error} /> : <MediaRail title="Top rated of all time" items={items(topRated)} />}
+      {nowPlaying.status === 'failure' ? <CatalogFailureState error={nowPlaying.error} /> : <MediaRail title="In theaters & streaming now" items={items(nowPlaying)} />}
+      {upcoming.status === 'failure' ? <CatalogFailureState error={upcoming.error} /> : <MediaRail title="Coming soon" items={items(upcoming)} landscape />}
     </>
   )
 }

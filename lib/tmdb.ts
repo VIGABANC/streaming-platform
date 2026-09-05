@@ -159,6 +159,8 @@ export interface TVDetail extends Media {
 export type TMDBErrorCode =
   | 'TMDB_API_KEY_MISSING'
   | 'TMDB_AUTH_FAILED'
+  | 'TMDB_RATE_LIMITED'
+  | 'TMDB_INVALID_RESPONSE'
   | 'TMDB_NOT_FOUND'
   | 'TMDB_REQUEST_FAILED'
   | 'TMDB_NETWORK_ERROR'
@@ -245,9 +247,14 @@ async function tmdb<T>(path: string, revalidate = 300): Promise<T> {
 
   if (res.status === 401) throw new TMDBError('TMDB_AUTH_FAILED', 'Invalid TMDB API key')
   if (res.status === 404) throw new TMDBError('TMDB_NOT_FOUND', `Not found: ${path}`)
+  if (res.status === 429) throw new TMDBError('TMDB_RATE_LIMITED', 'TMDB rate limit reached')
   if (!res.ok) throw new TMDBError('TMDB_REQUEST_FAILED', `TMDB error ${res.status}`)
 
-  return res.json() as Promise<T>
+  try {
+    return await res.json() as T
+  } catch {
+    throw new TMDBError('TMDB_INVALID_RESPONSE', 'TMDB returned invalid JSON')
+  }
 }
 
 // ── List helpers ──────────────────────────────────────────────────────────────

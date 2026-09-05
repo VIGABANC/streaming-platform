@@ -69,6 +69,12 @@ export const PROVIDERS: StreamProvider[] = [
 /** Default provider if NEXT_PUBLIC_EMBED_PROVIDER is not set */
 export const DEFAULT_PROVIDER = PROVIDERS[0].id
 
+export function getInitialProviderId(savedProvider?: string): string {
+  return savedProvider && PROVIDERS.some((provider) => provider.id === savedProvider)
+    ? savedProvider
+    : DEFAULT_PROVIDER
+}
+
 export function getPlayerProvider(): string {
   const raw = process.env.NEXT_PUBLIC_EMBED_PROVIDER
   if (!raw) return 'https://v1.vidsrc.wiki'

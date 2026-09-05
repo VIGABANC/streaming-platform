@@ -1,8 +1,8 @@
-import { Suspense } from 'react'
 import { Header } from './Header'
 import { MobileNav } from './MobileNav'
 import { Footer } from './Footer'
 import { ToastContainer } from '@/components/feedback/Toast'
+import { LibrarySync } from '@/components/library/LibrarySync'
 
 interface ShellProps {
   children: React.ReactNode
@@ -16,9 +16,7 @@ export function Shell({ children }: ShellProps) {
         Skip to main content
       </a>
 
-      <Suspense fallback={null}>
-        <Header />
-      </Suspense>
+      <Header />
 
       <main id="main-content" className="mx-auto min-h-screen max-w-[1440px] pb-20 md:pb-8">
         {children}
@@ -29,6 +27,8 @@ export function Shell({ children }: ShellProps) {
       <MobileNav />
 
       <ToastContainer />
+
+      <LibrarySync />
     </>
   )
 }

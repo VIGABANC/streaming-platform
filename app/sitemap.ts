@@ -5,14 +5,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const staticRoutes = [
     '',
+    '/landing',
+    '/browse',
     '/movies',
     '/tv',
     '/discover',
-    '/search',
-    '/my-list',
+    '/new',
+    '/top10',
+    '/providers',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date().toISOString(),
     changeFrequency: 'daily' as const,
     priority: route === '' ? 1.0 : 0.8,
   }))

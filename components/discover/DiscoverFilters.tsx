@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { Filter, X, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { genres, sortOptions, languageOptions, type MediaType } from '@/lib/tmdb'
 
@@ -20,6 +20,49 @@ export function DiscoverFilters() {
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!mobileFiltersOpen) return
+
+    const previouslyFocused = document.activeElement as HTMLElement | null
+    const trigger = filterButtonRef.current
+    const dialog = dialogRef.current
+    const focusable = dialog
+      ? Array.from(dialog.querySelectorAll<HTMLElement>('button, select, a, input, [tabindex]:not([tabindex="-1"])'))
+      : []
+    const closeButton = dialog?.querySelector<HTMLElement>('[data-dialog-close]')
+    closeButton?.focus()
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setMobileFiltersOpen(false)
+        return
+      }
+      if (event.key !== 'Tab' || focusable.length === 0) return
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', onKeyDown)
+      previouslyFocused?.focus()
+      trigger?.focus()
+    }
+  }, [mobileFiltersOpen])
 
   const activeType = (searchParams.get('type') as MediaType) || 'movie'
   const activeGenre = searchParams.get('genre') || ''
@@ -234,8 +277,11 @@ export function DiscoverFilters() {
       {/* Mobile Filter Toggle Button */}
       <div className="flex items-center justify-between lg:hidden mb-6">
         <button
+          ref={filterButtonRef}
           type="button"
           onClick={() => setMobileFiltersOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={mobileFiltersOpen}
           className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-surface px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:border-primary"
         >
           <SlidersHorizontal size={14} className="text-primary" />
@@ -282,16 +328,24 @@ export function DiscoverFilters() {
             onClick={() => setMobileFiltersOpen(false)}
           />
           {/* Sheet */}
-          <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-[#0F1020] p-6 shadow-2xl overflow-y-auto border-l border-white/10 z-10 flex flex-col justify-between">
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-filter-title"
+            className="fixed inset-y-0 right-0 w-full max-w-xs bg-[#0F1020] p-6 shadow-2xl overflow-y-auto border-l border-white/10 z-10 flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
                 <div className="flex items-center gap-2 font-semibold text-white">
                   <Filter size={18} className="text-primary" />
-                  <span>Filters</span>
+                  <span id="mobile-filter-title">Filters</span>
                 </div>
                 <button
+                  data-dialog-close
                   type="button"
                   onClick={() => setMobileFiltersOpen(false)}
+                  aria-label="Close filters"
                   className="rounded-full p-2 text-muted-foreground hover:text-white"
                 >
                   <X size={18} />

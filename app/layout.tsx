@@ -1,8 +1,17 @@
 import type { Metadata, Viewport } from 'next'
+import { Manrope, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
+import { WebVitals } from '@/components/observability/WebVitals'
 import './globals.css'
 
+const displayFont = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk', display: 'swap' })
+const bodyFont = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' })
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://veyra.stream'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'VEYRA — Discover Movies & TV After Dark',
     template: '%s — VEYRA',
@@ -12,6 +21,7 @@ export const metadata: Metadata = {
   keywords: ['movies', 'TV shows', 'streaming', 'discovery', 'cinema', 'VEYRA', 'The Night Signal', 'movie discovery', 'TV discovery'],
   authors: [{ name: 'VEYRA' }],
   creator: 'VEYRA',
+  alternates: { canonical: './' },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -40,20 +50,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} dark`}>
       <head>
         {/* Provider connection hints */}
         <link rel="dns-prefetch" href="https://v1.vidsrc.wiki" />
         <link rel="preconnect" href="https://v1.vidsrc.wiki" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
-        {/* Google Fonts — preconnect */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
-        />
         {/* PWA */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -63,6 +66,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         {children}
+        <ServiceWorkerRegistration />
+        <WebVitals />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

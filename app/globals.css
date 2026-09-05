@@ -17,8 +17,8 @@
   --color-cyan: var(--cyan);
 
   /* Fonts */
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-sans: 'Manrope', sans-serif;
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-sans: var(--font-manrope), sans-serif;
   --font-mono: 'Geist Mono', monospace;
 
   /* Radius */

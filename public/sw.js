@@ -1,7 +1,7 @@
 // VEYRA Service Worker — App Shell & Offline Support
 // Strictly caches navigation shell & static UI assets. Does NOT cache third-party video streams.
 
-const CACHE_NAME = 'veyra-shell-v1'
+const CACHE_NAME = 'veyra-shell-v2'
 const STATIC_ASSETS = [
   '/',
   '/offline',
@@ -31,6 +31,10 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
@@ -38,7 +42,13 @@ self.addEventListener('fetch', (event) => {
   if (
     url.origin !== self.location.origin ||
     url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/watch/')
+    url.pathname.startsWith('/watch/') ||
+    url.pathname.startsWith('/auth/') ||
+    url.pathname.startsWith('/profile') ||
+    url.pathname.startsWith('/my-list') ||
+    url.pathname.startsWith('/favorites') ||
+    url.pathname.startsWith('/history') ||
+    url.pathname.startsWith('/settings')
   ) {
     return
   }
@@ -52,6 +62,10 @@ self.addEventListener('fetch', (event) => {
     )
     return
   }
+
+  // Only cache immutable framework assets and the explicit app-shell assets.
+  const cacheable = url.pathname.startsWith('/_next/static/') || STATIC_ASSETS.includes(url.pathname)
+  if (!cacheable) return
 
   // Stale-while-revalidate for static assets
   event.respondWith(

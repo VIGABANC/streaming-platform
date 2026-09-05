@@ -15,7 +15,7 @@ export function MediaGrid({ items, className }: MediaGridProps) {
         <MediaCard
           key={`${item.id}-${item.media_type}-${i}`}
           item={item}
-          priority={i < 6}
+          priority={i < 2}
         />
       ))}
     </div>

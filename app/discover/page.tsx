@@ -5,7 +5,9 @@ import { MediaGrid } from '@/components/media/MediaGrid'
 import { DiscoverFilters } from '@/components/discover/DiscoverFilters'
 import { SkeletonGrid } from '@/components/feedback/Skeletons'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { discover, type Media, type MediaType } from '@/lib/tmdb'
+import { CatalogFailureState } from '@/components/feedback/CatalogState'
+import { loadCatalog } from '@/lib/catalog'
+import { discover, type MediaType } from '@/lib/tmdb'
 
 export const metadata: Metadata = {
   title: 'Discover — VEYRA',
@@ -63,45 +65,18 @@ async function DiscoverResults({ searchParams }: DiscoverPageProps) {
 
   const queryString = queryParts.join('&')
 
-  let items: (Media & { media_type: MediaType })[] = []
-  let hasError = false
-  let isConfigMissing = false
-
-  try {
+  const result = await loadCatalog(async () => {
     const data = await discover(mediaType, queryString)
-    items = (data.results ?? []).map((item) => ({
+    return (data.results ?? []).map((item) => ({
       ...item,
       media_type: mediaType,
     }))
-  } catch (err) {
-    hasError = true
-    if (err instanceof Error && err.message.includes('TMDB_API_KEY_MISSING')) {
-      isConfigMissing = true
-    }
-  }
+  })
 
-  if (isConfigMissing) {
-    return (
-      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center">
-        <h3 className="text-lg font-bold text-white font-display">Catalog not connected</h3>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Add your <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">TMDB_API_KEY</code> to{' '}
-          <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">.env.local</code> to browse live filtered catalog results.
-        </p>
-      </div>
-    )
-  }
+  if (result.status === 'failure') return <CatalogFailureState error={result.error} resetHref={`/discover?${new URLSearchParams({ type: mediaType }).toString()}`} />
 
-  if (hasError) {
-    return (
-      <EmptyState
-        title="Could not load titles"
-        description="There was an issue querying TMDB catalog. Please try adjusting your filters or reloading."
-      />
-    )
-  }
-
-  if (items.length === 0) {
+  const items = result.data ?? []
+  if (result.status === 'empty' || items.length === 0) {
     return (
       <EmptyState
         title="No titles match your filter"

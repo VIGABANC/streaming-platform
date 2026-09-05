@@ -24,6 +24,7 @@ import {
   type MediaType,
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
+import { serializeJsonLd } from '@/lib/seo/json-ld'
 
 interface TVPageProps {
   params: Promise<{ id: string }>
@@ -38,6 +39,7 @@ export async function generateMetadata({ params }: TVPageProps): Promise<Metadat
     return {
       title: `${title} (${year}) — VEYRA`,
       description: show.overview || `Watch ${title} on VEYRA.`,
+      alternates: { canonical: `/tv/${id}` },
       openGraph: {
         title: `${title} (${year}) — VEYRA`,
         description: show.overview || `Watch ${title} on VEYRA.`,
@@ -134,7 +136,7 @@ export default async function TVDetailPage({ params }: TVPageProps) {
     <Shell>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       {/* Hero Backdrop Section */}
       <section className="relative overflow-hidden pb-12 pt-6 lg:pb-16" aria-label={`${title} overview`}>

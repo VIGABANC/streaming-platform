@@ -25,6 +25,7 @@ export default ts.config(
       'dist/**',
       'coverage/**',
       'test-results/**',
+      '.worktrees/**',
       '*.config.mjs',
       '*.config.ts',
       'public/sw.js',

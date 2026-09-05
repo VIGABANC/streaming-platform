@@ -16,10 +16,12 @@ import {
   warmPlayerConnection,
   playerErrorMessage,
   PROVIDERS,
+  getInitialProviderId,
   getMovieEmbedUrl,
   getTVEmbedUrl,
   type PlayerErrorCode,
 } from '@/lib/player'
+import { store } from '@/lib/store'
 
 interface PlayerFrameProps {
   mediaType: 'movie' | 'tv'
@@ -56,10 +58,23 @@ export function PlayerFrame({
   const [retryCount, setRetryCount] = useState(0)
   const [errorCode, setErrorCode] = useState<PlayerErrorCode>('UNKNOWN')
   const [isCinemaMode, setIsCinemaMode] = useState(false)
+  const [reducedMotion, setReducedMotion] = useState(false)
   const startedAtRef = useRef(Date.now())
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const settings = store.getSettings()
+    setSelectedProvider(getInitialProviderId(settings.defaultServer))
+    setIsCinemaMode(settings.ambientLighting)
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updateMotion = () => setReducedMotion(settings.reducedMotion || mediaQuery.matches)
+    updateMotion()
+    mediaQuery.addEventListener?.('change', updateMotion)
+    return () => mediaQuery.removeEventListener?.('change', updateMotion)
+  }, [])
 
   // Compute active embed source
   const getEmbedUrl = useCallback(
@@ -196,6 +211,7 @@ export function PlayerFrame({
                 <button
                   key={p.id}
                   type="button"
+                  aria-pressed={isActive}
                   onClick={() => switchProvider(p.id)}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
                     isActive
@@ -221,7 +237,11 @@ export function PlayerFrame({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsCinemaMode((prev) => !prev)}
+            onClick={() => setIsCinemaMode((prev) => {
+              const next = !prev
+              store.updateSettings({ ambientLighting: next })
+              return next
+            })}
             className={`hidden sm:inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
               isCinemaMode
                 ? 'bg-accent/20 text-accent font-semibold'
@@ -321,7 +341,7 @@ export function PlayerFrame({
             <div className="relative z-10 text-center px-6">
               <div
                 aria-hidden="true"
-                className="mx-auto mb-4 size-10 animate-spin rounded-full border-2 border-white/10 border-t-[#E50914]"
+                className="mx-auto mb-4 size-10 animate-spin rounded-full border-2 border-white/10 border-t-[#E50914] motion-reduce:animate-none"
               />
               <p className="text-sm font-semibold text-white font-display">
                 {state === 'timeout-warning'
@@ -363,8 +383,8 @@ export function PlayerFrame({
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
-            className={`h-full w-full transition-opacity duration-500 ${
-              state === 'loaded' ? 'opacity-100' : 'opacity-0'
+            className={`h-full w-full ${reducedMotion ? 'opacity-100' : 'transition-opacity duration-500'} ${
+              reducedMotion || state === 'loaded' ? 'opacity-100' : 'opacity-0'
             }`}
             onLoad={handleLoad}
             onError={handleError}

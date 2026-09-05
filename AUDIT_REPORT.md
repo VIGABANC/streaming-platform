@@ -143,3 +143,14 @@ Installed and read outside the repository under `C:\Users\ossam\.codex\audit-ski
 | PWA | `alinaqi/maggy@pwa-development` | Manifest/service-worker/installability checks only; generic recipe limitations noted |
 
 Mandatory discovery searches also covered structured data, route handlers, image performance, Supabase/Postgres, iframe/player safety, PWA, GSAP, SEO, accessibility, and web security. No trustworthy high-signal structured-data specialist was selected; the SEO skill’s structured-data guidance was used instead.
+
+## Remediation appendix
+
+The baseline findings above describe the pre-remediation state. The approved
+follow-up implementation is recorded in `REMEDIATION_REPORT.md` and the
+`/audit` route. It adds regression coverage and source-level fixes for F-01
+through F-08 and F-10, plus stable canonical/noindex/sitemap policy for F-09.
+F-03 remains deployment-gated on applying the versioned Supabase migration;
+F-09 remains intentionally partial because dynamic catalog URL expansion needs
+an explicit crawl-surface decision; F-10 still requires production-device
+measurement. No live Supabase project or production credentials were modified.

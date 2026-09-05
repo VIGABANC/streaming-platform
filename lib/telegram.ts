@@ -106,9 +106,15 @@ export async function handleTelegramUpdate(update: ParsedTelegramUpdate, depende
 }
 
 export function createDefaultTelegramDependencies(env: Environment = process.env): TelegramHandlerDependencies {
-  const repository = createFeedbackRepository(env)
+  let repository: ReturnType<typeof createFeedbackRepository> | undefined
+  const getRepository = () => repository ??= createFeedbackRepository(env)
+  const lazyRepository: TelegramHandlerDependencies['repository'] = {
+    create: (seed) => getRepository().create(seed),
+    update: (id, patch) => getRepository().update(id, patch),
+    getByTicket: (ticket) => getRepository().getByTicket(ticket),
+  }
   const router = getAIRouter()
   let issueTracker: IssueTracker
   try { issueTracker = createGitHubIssueTracker(env) } catch { issueTracker = { createIssue: async () => { throw new Error('GitHub issue integration is unavailable') } } }
-  return { env, repository, router, issueTracker, messenger: createTelegramClient(env) }
+  return { env, repository: lazyRepository, router, issueTracker, messenger: createTelegramClient(env) }
 }

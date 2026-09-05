@@ -3,6 +3,7 @@
 Date: 2026-09-05
 Branch: `codex/veyra-production-remediation`
 Starting commit: `4d126479e40e91034b1d3763a9c9cd844bddf8d7` (`main`)
+Remediation implementation commit: `f4f5954b546f8a8ef5020ba37071cef0366844bb`
 
 ## Outcome
 

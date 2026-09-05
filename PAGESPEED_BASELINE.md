@@ -47,8 +47,8 @@ must not be presented as a production Core Web Vitals result.
 
 | Browser project | Viewport | DOMContentLoaded | load | First Paint | FCP | Resources |
 |---|---:|---:|---:|---:|---:|---:|
-| Chromium | 1280×720 | 88ms | 283ms | 220ms | 220ms | 32 |
-| Mobile Chrome | 393×727 | 192ms | 300ms | 212ms | 212ms | 24 |
+| Chromium | 1280×720 | 173ms | 365ms | 300ms | 300ms | 32 |
+| Mobile Chrome | 393×727 | 304ms | 305ms | 212ms | 212ms | 24 |
 
 The test passed in both projects. The local route was `/landing`, with the
 normal test environment's unavailable external catalog configuration; these

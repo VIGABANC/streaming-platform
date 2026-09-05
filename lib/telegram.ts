@@ -28,6 +28,7 @@ export function parseTelegramUpdate(update: unknown): ParsedTelegramUpdate {
   const command = normalized?.[1]?.toLowerCase()
   const argument = normalized?.[2]?.trim() ?? ''
   const privateChat = message.chat?.type === 'private'
+  if (text.startsWith('/') && !normalized) return { kind: 'ignore' }
   if (command === 'start' || command === 'help' || command === 'aistatus') return { kind: 'command', chatId: String(chatId), messageId: validMessageId, privateChat, command, argument }
   if (command === 'reprocess') return { kind: 'command', chatId: String(chatId), messageId: validMessageId, privateChat, command, argument }
   const type = command === 'bug' || command === 'complaint' || command === 'feature' || command === 'playback' || command === 'ux' ? command : 'bug'

@@ -1,70 +1,68 @@
 'use client'
 
+import Image from 'next/image'
+import Link from 'next/link'
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ArrowUpRight, Clock3, Star } from 'lucide-react'
+import { TrailerModal } from '@/components/media/TrailerModal'
+import { LandingSection } from '@/components/landing/LandingSection'
+import { formatRuntime } from '@/lib/utils'
+import type { MovieDetail, TVDetail, WatchProvider } from '@/lib/tmdb'
 
 gsap.registerPlugin(ScrollTrigger)
 
-export function DetailShowcase() {
-  const root = useRef<HTMLElement>(null)
+function titleOf(detail: MovieDetail | TVDetail) { return detail.title || detail.name || 'Untitled' }
+function yearOf(detail: MovieDetail | TVDetail) { return (detail.release_date || detail.first_air_date || '').slice(0, 4) }
+function backdropSource(path?: string | null) { return path ? `https://image.tmdb.org/t/p/w1280${path}` : '/backdrop-fallback.svg' }
+function posterSource(path?: string | null) { return path ? `https://image.tmdb.org/t/p/w342${path}` : '/poster-fallback.svg' }
 
+export function DetailShowcase({ detail, providers = [] }: { detail?: MovieDetail | TVDetail; providers?: WatchProvider[] }) {
+  const root = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: root.current,
-          start: 'top 70%',
-        }
+    const context = gsap.context(() => {
+      const media = gsap.matchMedia()
+      media.add('(prefers-reduced-motion: reduce)', () => gsap.set('[data-detail-reveal]', { clearProps: 'all', autoAlpha: 1 }))
+      media.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo('[data-detail-reveal]', { autoAlpha: 0, y: 28, scale: 0.99 }, {
+          autoAlpha: 1, y: 0, scale: 1, duration: 0.7, ease: 'power2.out', stagger: 0.12,
+          scrollTrigger: { trigger: root.current, start: 'top 78%' },
+        })
       })
-
-      tl.fromTo('.detail-bg',
-        { scale: 1.1, opacity: 0 },
-        { scale: 1, opacity: 0.4, duration: 1.5, ease: 'power3.out' }
-      )
-      .fromTo('.detail-content',
-        { y: 50, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, ease: 'power2.out' },
-        "-=1"
-      )
-      .fromTo('.detail-meta',
-        { x: -20, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power2.out' },
-        "-=0.5"
-      )
-
+      return () => media.revert()
     }, root)
-    return () => ctx.revert()
+    return () => context.revert()
   }, [])
 
-  return (
-    <section ref={root} className="py-32 relative z-20 bg-[#050507] overflow-hidden min-h-[80vh] flex items-center">
-      
-      <div className="detail-bg absolute inset-0 bg-gradient-to-b from-cyan-900/20 to-[#050507] pointer-events-none" />
-      
-      <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-12 relative z-10 flex flex-col justify-end h-full">
-        <div className="max-w-2xl detail-content">
-          <h2 className="text-5xl md:text-6xl font-bold text-white mb-4">Go beyond the poster.</h2>
-          <p className="text-xl text-white/70 mb-8 leading-relaxed">
-            Immerse yourself in the details. Cast, trailers, recommendations, and deep production metadata. Everything you need to decide if it's the right signal for tonight.
-          </p>
-          
-          <div className="flex flex-wrap gap-3 mb-8">
-            {['Action', 'Sci-Fi', 'Thriller', '1999', '2h 16m', '★ 8.7'].map((tag, i) => (
-              <span key={i} className="detail-meta px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-sm">
-                {tag}
-              </span>
-            ))}
-          </div>
+  if (!detail) return <div ref={root}><LandingSection id="detail-experience" eyebrow="The detail signal" title="Every signal has a story." description="When a title is available, VEYRA brings its essentials into focus before you decide."><div data-detail-reveal className="rounded-2xl border border-white/10 bg-[#0b111a] p-8"><p className="font-display text-2xl font-bold text-white">Detail signal unavailable</p><p className="mt-2 max-w-xl text-sm leading-6 text-white/60">We could not load a representative title right now. The live catalog is still available to explore.</p><Link href="/browse" className="mt-5 inline-flex min-h-11 items-center gap-1 rounded-full border border-white/20 px-5 text-xs font-semibold text-white hover:border-white/50">Browse the catalog <ArrowUpRight className="size-3.5" /></Link></div></LandingSection></div>
 
-          <div className="flex gap-4">
-            <div className="detail-meta w-32 h-10 bg-white rounded-full flex items-center justify-center font-bold text-black text-sm">Watch Trailer</div>
-            <div className="detail-meta w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
-              <div className="w-4 h-4 bg-white/60" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} />
-            </div>
-          </div>
+  const title = titleOf(detail)
+  const type = detail.media_type === 'tv' ? 'TV series' : 'Film'
+  const trailer = detail.videos?.results.find((video) => video.site === 'YouTube' && video.type === 'Trailer')
+  const cast = detail.credits?.cast.slice(0, 4).map((person) => person.name) ?? []
+  const runtime = detail.media_type === 'movie' ? formatRuntime(detail.runtime) : ''
+  const href = `/${detail.media_type}/${detail.id}`
+
+  return <div ref={root}><LandingSection id="detail-experience" eyebrow="The detail signal" title="Go beyond the poster." description="A closer look at the people, mood, and practical details behind a title.">
+    <article data-detail-reveal className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[#0b111a] shadow-2xl">
+      <Image src={backdropSource(detail.backdrop_path)} alt="" fill sizes="(max-width: 1440px) 100vw, 1440px" className="-z-20 object-cover opacity-45" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#050507] via-[#050507]/85 to-[#050507]/35" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#050507] via-transparent to-[#050507]/30" />
+      <div className="grid gap-7 p-5 sm:p-8 md:grid-cols-[150px_minmax(0,1fr)] lg:p-10">
+        <div className="relative hidden aspect-[2/3] overflow-hidden rounded-xl border border-white/15 bg-black/30 shadow-2xl md:block"><Image src={posterSource(detail.poster_path)} alt={`${title} poster`} fill sizes="150px" className="object-cover" /></div>
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#b8f7d4]">{type}</p>
+          <h3 className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-5xl">{title}</h3>
+          {detail.tagline ? <p className="mt-2 text-sm italic text-white/75">“{detail.tagline}”</p> : null}
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/75"><span>{yearOf(detail) || 'Year unavailable'}</span>{detail.vote_average ? <span className="inline-flex items-center gap-1 text-amber-300"><Star className="size-3.5" fill="currentColor" />{detail.vote_average.toFixed(1)}</span> : null}{runtime ? <span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" />{runtime}</span> : null}</div>
+          {detail.genres?.length ? <div className="mt-4 flex flex-wrap gap-2">{detail.genres.slice(0, 4).map((genre) => <span key={genre.id} className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] text-white/80">{genre.name}</span>)}</div> : null}
+          <p className="mt-5 max-w-2xl text-sm leading-6 text-white/75">{detail.overview || 'A full story profile is available in the live catalog.'}</p>
+          {cast.length ? <p className="mt-4 text-xs text-white/60"><span className="font-semibold text-white/80">Cast:</span> {cast.join(' · ')}</p> : null}
+          {providers.length ? <p className="mt-3 text-xs text-white/60"><span className="font-semibold text-white/80">Provider signals:</span> {providers.slice(0, 4).map((provider) => provider.provider_name).join(' · ')}</p> : null}
+          <div className="mt-6 flex flex-wrap gap-3"><Link href={href} className="inline-flex min-h-11 items-center gap-1 rounded-full bg-[#b8f7d4] px-5 text-xs font-bold text-[#050507] hover:bg-[#d2ffe7]">Open title <ArrowUpRight className="size-3.5" /></Link>{trailer ? <TrailerModal trailerKey={trailer.key} title={title} /> : null}</div>
         </div>
       </div>
-    </section>
-  )
+    </article>
+  </LandingSection></div>
 }

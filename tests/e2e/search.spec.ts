@@ -26,5 +26,16 @@ test.describe('Search Flow', () => {
     await page.waitForTimeout(400)
     await expect(page).toHaveURL(/\/search$/)
   })
+
+  test('submits the landing finder and renders a truthful search outcome', async ({ page }) => {
+    await page.goto('/')
+
+    const finder = page.getByRole('search', { name: '' }).filter({ has: page.getByLabel('Search the catalog') })
+    const input = finder.getByLabel('Search the catalog')
+    await input.fill('Dune')
+    await input.press('Enter')
+
+    await expect(page.locator('[data-search-showcase-results]')).toContainText(/Dune|No signals found|Search unavailable/, { timeout: 10_000 })
+  })
 })
 

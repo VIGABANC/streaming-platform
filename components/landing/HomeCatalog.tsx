@@ -1,5 +1,7 @@
 import { DiscoveryShowcase } from '@/components/landing/DiscoveryShowcase'
+import { DetailShowcase } from '@/components/landing/DetailShowcase'
 import { MediaRailSection } from '@/components/landing/MediaRailSection'
+import { SearchShowcase } from '@/components/landing/SearchShowcase'
 import type { LandingData } from '@/components/landing/landing-types'
 
 interface HomeCatalogProps {
@@ -25,5 +27,7 @@ export function HomeCatalog({ data, providerName }: HomeCatalogProps) {
     <MediaRailSection id="now-playing" title="Now Playing" items={lists.nowPlaying} href="/new" />
     <MediaRailSection id="airing-today" title="Airing Today" items={lists.airingToday} href="/tv" />
     <DiscoveryShowcase categories={categories} />
+    <SearchShowcase initialItems={[...lists.trending, ...lists.popularMovies, ...lists.popularTV]} />
+    <DetailShowcase detail={data.detail?.detail} providers={data.detail?.providers} />
   </>
 }

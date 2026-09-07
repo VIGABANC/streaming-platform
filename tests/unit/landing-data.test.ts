@@ -7,6 +7,7 @@ import {
   mediaTypeOf,
   usableMedia,
 } from '@/components/landing/landing-types'
+import { normalizeSearchResults, searchShowcaseStatus } from '@/components/landing/search-showcase-data'
 import type { Media } from '@/lib/tmdb'
 
 const movie: Media = {
@@ -83,5 +84,18 @@ describe('landing data normalization', () => {
 
     expect(usableMedia([untitled, second, third], 2)).toEqual([untitled, second])
     expect(usableMedia([untitled, second, third], 0)).toEqual([])
+  })
+})
+
+describe('landing finder data', () => {
+  it('normalizes only movie and TV results from the existing search response', () => {
+    expect(normalizeSearchResults({ results: [movie, series, { id: 303, media_type: 'person' }] })).toEqual([movie, series])
+    expect(normalizeSearchResults({ results: 'not-an-array' })).toEqual([])
+  })
+
+  it('uses clear status labels for result, empty, and failure states', () => {
+    expect(searchShowcaseStatus('results', 2, 'Dune')).toBe('2 signals found for Dune.')
+    expect(searchShowcaseStatus('empty', 0, 'Dune')).toBe('No signals found for Dune.')
+    expect(searchShowcaseStatus('error')).toContain('unavailable')
   })
 })

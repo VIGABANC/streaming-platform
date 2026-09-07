@@ -2,9 +2,7 @@ import { headers } from 'next/headers'
 import { CinematicHero } from '@/components/landing/CinematicHero'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { LandingFooter } from '@/components/landing/LandingFooter'
-import { LandingMotion } from '@/components/landing/LandingMotion'
-import { LandingSection } from '@/components/landing/LandingSection'
-import { MediaPosterCard } from '@/components/landing/MediaPosterCard'
+import { HomeCatalog } from '@/components/landing/HomeCatalog'
 import { ProviderSwitcher } from '@/components/landing/ProviderSwitcher'
 import { firstMovieWithBackdrop, firstWithBackdrop, type LandingData } from '@/components/landing/landing-types'
 import { MobileNav } from '@/components/layout/MobileNav'
@@ -81,13 +79,6 @@ async function loadLandingData(providerId?: number): Promise<LandingData> {
   return { lists: landingLists, detail: tvEnrichment ? tvEnrichment : movieDetail ? { detail: movieDetail } : undefined }
 }
 
-function LandingRail({ items }: { items: Media[] }) {
-  if (items.length === 0) return <p className="text-sm text-white/55">The signal is quiet for now. Check back shortly.</p>
-  return <LandingMotion className="landing-rail -mx-5 px-5 sm:-mx-6 sm:px-6 lg:-mx-12 lg:px-12">
-    {items.slice(0, 12).map((item) => <div key={`${item.media_type ?? 'movie'}-${item.id}`} data-landing-reveal><MediaPosterCard item={item} /></div>)}
-  </LandingMotion>
-}
-
 export default async function LandingPage({ searchParams }: { searchParams?: SearchParams }) {
   const params = searchParams ? await searchParams : {}
   const useUnavailableFixture = (await headers()).get('x-veyra-e2e-landing-data') === 'unavailable'
@@ -103,9 +94,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Sea
     <main id="main-content">
       <CinematicHero item={heroItem} />
       <ProviderSwitcher providers={providers} activeProviderId={provider?.provider_id} />
-      <LandingSection id="trending-tonight" eyebrow="Live transmission" title="Trending Tonight" description="Signals everyone is following right now."><LandingRail items={landingData.lists.trending} /></LandingSection>
-      <LandingSection id="popular-movies" eyebrow={provider ? `On ${provider.provider_name}` : 'Feature reel'} title={provider ? `Popular on ${provider.provider_name}` : 'Popular Movies'} description="A faster route to the stories drawing a crowd."><LandingRail items={landingData.lists.popularMovies} /></LandingSection>
-      <LandingSection id="popular-tv" eyebrow="Series desk" title="Popular TV Shows" description="Return to a world with another episode waiting."><LandingRail items={landingData.lists.popularTV} /></LandingSection>
+      <HomeCatalog data={landingData} providerName={provider?.provider_name} />
     </main>
     <LandingFooter />
     <MobileNav variant="landing" />

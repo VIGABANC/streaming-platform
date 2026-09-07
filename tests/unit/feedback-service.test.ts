@@ -33,6 +33,7 @@ function recordingRepo(events: string[]) {
       return record
     },
     async getByTicket(ticket: string) { return records.find((record) => record.ticket === ticket) ?? null },
+    async getByMessage(chatId: string, messageId: number) { return records.find((record) => record.chatId === chatId && record.messageId === messageId) ?? null },
   }
 }
 
@@ -65,5 +66,16 @@ describe('feedback workflow', () => {
     expect(resultValue.accepted).toBe(true)
     expect(resultValue.githubStatus).toBe('PENDING')
     expect(repository.records[0].ticket).toBe(resultValue.ticket)
+  })
+
+  it('does not repeat AI or GitHub side effects when Telegram retries the same message', async () => {
+    const repository = recordingRepo([])
+    let aiCalls = 0
+    let githubCalls = 0
+    await processFeedback(report, { repository, router: { normalize: async () => { aiCalls += 1; return result(true) } }, issueTracker: { createIssue: async () => { githubCalls += 1; return { number: 1, url: 'https://github.com/veyra/issues/1' } } }, messenger: { sendMessage: async () => undefined } })
+    const retry = await processFeedback(report, { repository, router: { normalize: async () => { aiCalls += 1; return result(true) } }, issueTracker: { createIssue: async () => { githubCalls += 1; return { number: 2, url: 'https://github.com/veyra/issues/2' } } }, messenger: { sendMessage: async () => undefined } })
+    expect(retry.duplicate).toBe(true)
+    expect(aiCalls).toBe(1)
+    expect(githubCalls).toBe(1)
   })
 })

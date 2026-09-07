@@ -59,6 +59,7 @@ export type NormalizedFeedback = z.infer<typeof normalizedFeedbackSchema>
 
 export type AIStatus = 'AI_PENDING' | 'SUCCESS' | 'AI_UNAVAILABLE'
 export type GitHubStatus = 'PENDING' | 'CREATED' | 'FAILED'
+export type FeedbackPublicStatus = 'STORED' | 'IN_REVIEW' | 'NEED_INFO' | 'RESOLVED' | 'CLOSED'
 
 export interface FeedbackRecord {
   id: string
@@ -74,6 +75,9 @@ export interface FeedbackRecord {
   githubStatus: GitHubStatus
   githubIssueNumber: number | null
   githubIssueUrl: string | null
+  publicStatus?: FeedbackPublicStatus
+  assignee?: string | null
+  adminMessageId?: number | null
   createdAt: string
   updatedAt: string
 }

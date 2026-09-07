@@ -2,12 +2,14 @@ import { randomUUID } from 'node:crypto'
 import { deterministicFallback } from './normalize'
 import type { AIRouter, AIRouterResult } from '@/lib/ai/router'
 import type { AIProviderStatus } from '@/lib/ai/types'
+import type { TelegramReplyMarkup } from '@/lib/telegram-ui'
 import type { AIStatus, FeedbackRecord, GitHubStatus, NormalizedFeedback, SanitizedFeedback } from './types'
 
 export interface FeedbackRepository {
   create(seed: Omit<FeedbackRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<FeedbackRecord>
   update(id: string, patch: Partial<FeedbackRecord>): Promise<FeedbackRecord>
   getByTicket(ticket: string): Promise<FeedbackRecord | null>
+  getByMessage?(chatId: string, messageId: number): Promise<FeedbackRecord | null>
 }
 
 export interface IssueTracker {
@@ -16,7 +18,9 @@ export interface IssueTracker {
 }
 
 export interface TelegramMessenger {
-  sendMessage(chatId: string, text: string): Promise<void>
+  sendMessage(chatId: string, text: string, options?: { replyMarkup?: TelegramReplyMarkup }): Promise<void>
+  answerCallbackQuery?(callbackId: string, text?: string): Promise<void>
+  editMessageText?(chatId: string, messageId: number, text: string, options?: { replyMarkup?: TelegramReplyMarkup }): Promise<void>
 }
 
 export interface FeedbackSubmission {
@@ -43,6 +47,7 @@ export interface FeedbackResult {
   feedback: NormalizedFeedback
   githubIssueNumber: number | null
   githubIssueUrl: string | null
+  duplicate?: boolean
 }
 
 const fallbackResult = (input: SanitizedFeedback): AIRouterResult => ({
@@ -60,6 +65,10 @@ function acknowledgement(result: FeedbackResult): string {
 }
 
 export async function processFeedback(submission: FeedbackSubmission, dependencies: FeedbackDependencies): Promise<FeedbackResult> {
+  const existing = await dependencies.repository.getByMessage?.(submission.chatId, submission.messageId)
+  if (existing) {
+    return { accepted: true, ticket: existing.ticket, aiStatus: existing.aiStatus, githubStatus: existing.githubStatus, feedback: existing.normalized, githubIssueNumber: existing.githubIssueNumber, githubIssueUrl: existing.githubIssueUrl, duplicate: true }
+  }
   const ticket = dependencies.nextTicket?.() ?? ticketId()
   const seed: Omit<FeedbackRecord, 'id' | 'createdAt' | 'updatedAt'> = {
     ticket,

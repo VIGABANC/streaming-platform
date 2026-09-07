@@ -16,6 +16,9 @@ type Row = {
   github_status: FeedbackRecord['githubStatus']
   github_issue_number: number | null
   github_issue_url: string | null
+  public_status?: FeedbackRecord['publicStatus']
+  assignee?: string | null
+  admin_message_id?: number | null
   created_at: string
   updated_at: string
 }
@@ -26,7 +29,8 @@ function fromRow(row: Row): FeedbackRecord {
     input: row.input, normalized: row.normalized, aiStatus: row.ai_status,
     aiProvider: row.ai_provider, aiModel: row.ai_model, fallbackDepth: row.fallback_depth,
     githubStatus: row.github_status, githubIssueNumber: row.github_issue_number,
-    githubIssueUrl: row.github_issue_url, createdAt: row.created_at, updatedAt: row.updated_at,
+    githubIssueUrl: row.github_issue_url, publicStatus: row.public_status, assignee: row.assignee, adminMessageId: row.admin_message_id,
+    createdAt: row.created_at, updatedAt: row.updated_at,
   }
 }
 
@@ -53,6 +57,7 @@ export function createFeedbackRepository(env: Record<string, string | undefined>
         input: seed.input, normalized: seed.normalized, ai_status: seed.aiStatus,
         ai_provider: seed.aiProvider, ai_model: seed.aiModel, fallback_depth: seed.fallbackDepth,
         github_status: seed.githubStatus, github_issue_number: seed.githubIssueNumber, github_issue_url: seed.githubIssueUrl,
+        public_status: seed.publicStatus ?? 'STORED', assignee: seed.assignee ?? null, admin_message_id: seed.adminMessageId ?? null,
       }).select('*').single()
       if (error || !data) throw safeError(error)
       return fromRow(data as Row)
@@ -67,12 +72,20 @@ export function createFeedbackRepository(env: Record<string, string | undefined>
       if (patch.githubStatus) values.github_status = patch.githubStatus
       if (patch.githubIssueNumber !== undefined) values.github_issue_number = patch.githubIssueNumber
       if (patch.githubIssueUrl !== undefined) values.github_issue_url = patch.githubIssueUrl
+      if (patch.publicStatus !== undefined) values.public_status = patch.publicStatus
+      if (patch.assignee !== undefined) values.assignee = patch.assignee
+      if (patch.adminMessageId !== undefined) values.admin_message_id = patch.adminMessageId
       const { data, error } = await client.from('feedback_reports').update(values).eq('id', id).select('*').single()
       if (error || !data) throw safeError(error)
       return fromRow(data as Row)
     },
     async getByTicket(ticket) {
       const { data, error } = await client.from('feedback_reports').select('*').eq('ticket', ticket).maybeSingle()
+      if (error) throw safeError(error)
+      return data ? fromRow(data as Row) : null
+    },
+    async getByMessage(chatId, messageId) {
+      const { data, error } = await client.from('feedback_reports').select('*').eq('chat_id', chatId).eq('message_id', messageId).maybeSingle()
       if (error) throw safeError(error)
       return data ? fromRow(data as Row) : null
     },

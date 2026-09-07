@@ -7,7 +7,7 @@ test.describe('Home Page & Core Layout', () => {
     // Header and logo
     const banner = page.getByRole('banner')
     await expect(banner).toBeVisible()
-    await expect(banner.getByRole('link', { name: 'VEYRA' })).toBeVisible()
+    await expect(banner.getByRole('link', { name: 'VEYRA — home', exact: true })).toBeVisible()
 
     // TMDB attribution in footer
     await expect(page.locator('footer')).toContainText('TMDB')

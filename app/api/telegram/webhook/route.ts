@@ -4,7 +4,7 @@ import { createDefaultTelegramDependencies, formatTelegramWebhookError, handleTe
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
-  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET
+  const expectedSecret = process.env.TELEGRAM_FEEDBACK_WEBHOOK_SECRET ?? process.env.TELEGRAM_WEBHOOK_SECRET
   if (expectedSecret && request.headers.get('x-telegram-bot-api-secret-token') !== expectedSecret) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }

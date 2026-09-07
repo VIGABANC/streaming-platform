@@ -9,7 +9,7 @@ import { SkeletonGrid } from '@/components/feedback/Skeletons'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import type { MediaSearchResult } from '@/lib/search/types'
 
-type SearchState = 'idle' | 'loading' | 'success' | 'empty' | 'error' | 'missing-config'
+type SearchState = 'idle' | 'loading' | 'success' | 'empty' | 'error'
 type SearchFilter = 'all' | 'movie' | 'tv' | 'anime'
 
 const RECENT_SEARCHES_KEY = 'veyra-recent-searches'
@@ -115,7 +115,7 @@ function SearchContent() {
 
         if (!res.ok) {
           setItems([])
-          setState(res.status === 503 ? 'missing-config' : 'error')
+          setState('error')
           return
         }
 
@@ -275,16 +275,6 @@ function SearchContent() {
             title={`No titles found for "${q}"`}
             description="Try checking for typos or searching for a broader title keyword."
           />
-        )}
-
-        {state === 'missing-config' && (
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center max-w-lg mx-auto">
-            <h3 className="text-lg font-bold text-white font-display">Catalog not connected</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Add your <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">TMDB_API_KEY</code> to{' '}
-              <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">.env.local</code> to activate multi-search.
-            </p>
-          </div>
         )}
 
         {state === 'error' && (

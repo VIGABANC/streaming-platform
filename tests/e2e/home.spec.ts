@@ -33,8 +33,8 @@ test.describe('Home Page & Core Layout', () => {
     await expect(page.getByTestId('media-rail-trending-tonight')).toBeVisible()
     await expect(page.getByTestId('media-rail-trending-tonight')).toContainText('The signal is quiet for now. Check back shortly.')
     await expect(page.getByTestId('discovery-showcase')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Popular' })).toHaveAttribute('href', '/discover')
-    await expect(page.getByRole('link', { name: 'Airing Today' })).toHaveAttribute('href', '/tv')
+    await expect(page.getByRole('link', { name: 'Popular', exact: true })).toHaveAttribute('href', '/discover')
+    await expect(page.getByRole('link', { name: 'Airing Today', exact: true })).toHaveAttribute('href', '/tv')
   })
 
   test('skip link focuses main content', async ({ page }) => {

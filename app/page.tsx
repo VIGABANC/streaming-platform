@@ -52,8 +52,8 @@ async function loadLandingData(providerId?: number): Promise<LandingData> {
     safe(() => providerId ? discoverByProvider('tv', providerId) : getPopularTV(), emptyList),
     safe(() => providerId ? discoverByProvider('movie', providerId, 'US').then((data) => ({ results: data.results.filter((item) => (item.vote_average ?? 0) > 7) })) : getTopRatedMovies(), emptyList),
     safe(() => providerId ? discoverByProvider('tv', providerId, 'US').then((data) => ({ results: data.results.filter((item) => (item.vote_average ?? 0) > 7) })) : getTopRatedTV(), emptyList),
-    safe(() => providerId ? Promise.resolve(emptyList) : getNowPlaying(), emptyList),
-    safe(() => providerId ? Promise.resolve(emptyList) : getAiringToday(), emptyList),
+    safe(() => getNowPlaying(), emptyList),
+    safe(() => getAiringToday(), emptyList),
   ])
   const [trending, popularMovies, popularTV, topRatedMovies, topRatedTV, nowPlaying, airingToday] = lists
   const landingLists = {

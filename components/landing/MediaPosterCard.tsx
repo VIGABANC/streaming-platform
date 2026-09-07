@@ -29,7 +29,7 @@ export function MediaPosterCard({ item, priority = false, size = 'rail' }: Media
             fill
             priority={priority}
             sizes={isFeature ? '(max-width: 640px) 220px, 260px' : '(max-width: 640px) 148px, 172px'}
-            className="object-cover transition-transform duration-500 motion-reduce:transition-none group-hover:scale-[1.04] motion-reduce:group-hover:scale-100"
+            className="object-cover transition-transform duration-500 motion-reduce:transition-none group-hover:scale-[1.02] motion-reduce:group-hover:scale-100"
           />
         </div>
         <div className="p-2.5">

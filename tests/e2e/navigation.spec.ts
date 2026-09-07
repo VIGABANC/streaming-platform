@@ -47,4 +47,27 @@ test.describe('Responsive Navigation', () => {
     await page.keyboard.press('Escape')
     await expect(menuButton).toHaveAttribute('aria-expanded', 'false')
   })
+
+  test('landing mobile menu applies its final state immediately with reduced motion', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+
+    const menuButton = page.getByRole('button', { name: 'Open navigation menu' })
+    const menu = page.locator('#landing-mobile-menu')
+    await menuButton.click()
+
+    const opacitySamples = await menu.evaluate((element) => new Promise<string[]>((resolve) => {
+      requestAnimationFrame(() => {
+        const first = getComputedStyle(element).opacity
+        requestAnimationFrame(() => resolve([first, getComputedStyle(element).opacity]))
+      })
+    }))
+    expect(opacitySamples).toEqual(['1', '1'])
+    await expect(menu.getByRole('link', { name: 'Home' })).toHaveAttribute('tabindex', '0')
+
+    await page.keyboard.press('Escape')
+    await expect(menuButton).toBeFocused()
+    await expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+  })
 })

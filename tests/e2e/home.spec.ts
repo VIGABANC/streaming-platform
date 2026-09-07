@@ -14,9 +14,20 @@ test.describe('Home Page & Core Layout', () => {
   })
 
   test('renders a usable cinematic hero when landing data is unavailable', async ({ page }) => {
+    await page.route('**/*', async (route) => {
+      if (!route.request().isNavigationRequest()) return route.continue()
+
+      await route.continue({
+        headers: {
+          ...route.request().headers(),
+          'x-veyra-e2e-landing-data': 'unavailable',
+        },
+      })
+    })
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find the story worth staying up for.')
+    await expect(page.getByRole('region', { name: 'Featured story' }).locator('img')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Start Exploring' })).toHaveAttribute('href', '/browse')
     await expect(page.getByRole('link', { name: 'Trending Tonight' })).toHaveAttribute('href', '#trending-tonight')
   })

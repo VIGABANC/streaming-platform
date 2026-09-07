@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   firstWithBackdrop,
+  firstMovieWithBackdrop,
+  heroGenreNames,
   mediaHref,
   mediaTypeOf,
   usableMedia,
@@ -42,6 +44,29 @@ describe('landing data normalization', () => {
     const laterBackdrop = { ...movie, id: 404, backdrop_path: '/later.jpg' }
 
     expect(firstWithBackdrop([noBackdrop, personBackdrop, firstBackdrop, laterBackdrop])).toBe(firstBackdrop)
+  })
+
+  it('selects only movie media for movie detail enrichment', () => {
+    const tvBackdrop = { ...series, backdrop_path: '/tv-first.jpg' }
+    const movieBackdrop = { ...movie, backdrop_path: '/movie-second.jpg' }
+
+    expect(firstMovieWithBackdrop([tvBackdrop, movieBackdrop])).toBe(movieBackdrop)
+  })
+
+  it('uses named detail genres or list genre ids and limits hero metadata to three genres', () => {
+    const detail = {
+      ...movie,
+      genres: [
+        { id: 1, name: 'Neo-noir' },
+        { id: 2, name: 'Mystery' },
+        { id: 3, name: 'Thriller' },
+        { id: 4, name: 'Drama' },
+      ],
+    }
+    const listItem = { ...series, genre_ids: [10765, 18, 9648, 80] }
+
+    expect(heroGenreNames(detail)).toEqual(['Neo-noir', 'Mystery', 'Thriller'])
+    expect(heroGenreNames(listItem)).toEqual(['Sci-Fi & Fantasy', 'Drama', 'Mystery'])
   })
 
   it('uses missing-art items only when no poster-bearing media is available', () => {

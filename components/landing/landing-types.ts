@@ -1,4 +1,5 @@
 import type {
+  Genre,
   Media,
   MediaType,
   MovieDetail,
@@ -6,6 +7,7 @@ import type {
   TVDetail,
   WatchProvider,
 } from '@/lib/tmdb'
+import { getGenreNames } from '@/lib/tmdb'
 
 export interface LandingLists {
   trending: Media[]
@@ -50,4 +52,21 @@ export function usableMedia(items: Media[], limit?: number): Media[] {
 
 export function firstWithBackdrop(items: Media[]): Media | undefined {
   return items.find((item) => isUsableMedia(item) && Boolean(item.backdrop_path))
+}
+
+export function firstMovieWithBackdrop(items: Media[]): Media | undefined {
+  return firstWithBackdrop(items.filter((item) => item.media_type === 'movie'))
+}
+
+type MediaWithNamedGenres = Media & { genres?: Genre[] }
+
+export function heroGenreNames(item: MediaWithNamedGenres): string[] {
+  const namedGenres = item.genres
+    ?.map((genre) => genre.name.trim())
+    .filter(Boolean)
+
+  return (namedGenres?.length
+    ? namedGenres
+    : getGenreNames(item.genre_ids, item.media_type === 'tv' ? 'tv' : 'movie'))
+    .slice(0, 3)
 }

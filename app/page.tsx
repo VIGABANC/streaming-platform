@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import { CinematicHero } from '@/components/landing/CinematicHero'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { LandingFooter } from '@/components/landing/LandingFooter'
@@ -5,7 +6,7 @@ import { LandingMotion } from '@/components/landing/LandingMotion'
 import { LandingSection } from '@/components/landing/LandingSection'
 import { MediaPosterCard } from '@/components/landing/MediaPosterCard'
 import { ProviderSwitcher } from '@/components/landing/ProviderSwitcher'
-import { firstWithBackdrop, type LandingData } from '@/components/landing/landing-types'
+import { firstMovieWithBackdrop, firstWithBackdrop, type LandingData } from '@/components/landing/landing-types'
 import { MobileNav } from '@/components/layout/MobileNav'
 import {
   discoverByProvider, getAiringToday, getMovieDetail, getNowPlaying, getPopularMovies,
@@ -20,6 +21,18 @@ export const metadata = {
 
 type SearchParams = Promise<{ provider?: string }>
 type MediaList = { results: Media[] }
+
+const unavailableLandingData: LandingData = {
+  lists: {
+    trending: [],
+    popularMovies: [],
+    popularTV: [],
+    topRatedMovies: [],
+    topRatedTV: [],
+    nowPlaying: [],
+    airingToday: [],
+  },
+}
 
 async function safe<T>(loader: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -55,7 +68,7 @@ async function loadLandingData(providerId?: number): Promise<LandingData> {
     airingToday: withMediaType(airingToday.results, 'tv'),
   }
   const tvCandidate = [...landingLists.popularTV, ...landingLists.airingToday].find((item) => item.id)
-  const movieCandidate = firstWithBackdrop([...landingLists.trending, ...landingLists.popularMovies, ...landingLists.nowPlaying])
+  const movieCandidate = firstMovieWithBackdrop([...landingLists.trending, ...landingLists.popularMovies, ...landingLists.nowPlaying])
   const [tvEnrichment, movieDetail] = await Promise.all([
     tvCandidate ? safe(async () => {
       const detail = await getTVDetail(tvCandidate.id)
@@ -77,10 +90,11 @@ function LandingRail({ items }: { items: Media[] }) {
 
 export default async function LandingPage({ searchParams }: { searchParams?: SearchParams }) {
   const params = searchParams ? await searchParams : {}
+  const useUnavailableFixture = (await headers()).get('x-veyra-e2e-landing-data') === 'unavailable'
   const requestedProviderId = params.provider ? Number(params.provider) : undefined
-  const providers = await safe(() => getProviders(), [])
+  const providers = useUnavailableFixture ? [] : await safe(() => getProviders(), [])
   const provider = providers.find((item) => item.provider_id === requestedProviderId)
-  const landingData = await loadLandingData(provider?.provider_id)
+  const landingData = useUnavailableFixture ? unavailableLandingData : await loadLandingData(provider?.provider_id)
   const heroItem = landingData.detail?.detail.backdrop_path ? landingData.detail.detail : firstWithBackdrop(landingData.lists.trending) ?? firstWithBackdrop(landingData.lists.popularMovies)
 
   return <div className="min-h-screen overflow-x-hidden bg-[#050507] text-white selection:bg-amber-400/30">

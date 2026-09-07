@@ -5,7 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { backdrop, getGenreNames, titleOf, yearOf, type Media } from '@/lib/tmdb'
+import { heroGenreNames } from '@/components/landing/landing-types'
+import { backdrop, titleOf, yearOf, type Media } from '@/lib/tmdb'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -16,7 +17,7 @@ export function CinematicHero({ item }: CinematicHeroProps) {
   const hasArtwork = Boolean(item?.backdrop_path)
   const title = item ? titleOf(item) : 'Find the story worth staying up for.'
   const mediaType = item?.media_type === 'tv' ? 'TV series' : item ? 'Film' : undefined
-  const genres = item ? getGenreNames(item.genre_ids, item.media_type === 'tv' ? 'tv' : 'movie').slice(0, 3) : []
+  const genres = item ? heroGenreNames(item) : []
   const overview = item?.overview || 'Discover cinematic moments. VEYRA brings movies and television discovery into one elegant experience.'
 
   useLayoutEffect(() => {

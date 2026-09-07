@@ -39,6 +39,10 @@ export function LandingNav() {
   useLayoutEffect(() => {
     const context = gsap.context(() => {
       if (!menu.current) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        gsap.set(menu.current, { autoAlpha: menuOpen ? 1 : 0, y: menuOpen ? 0 : -12 })
+        return
+      }
       gsap.to(menu.current, { autoAlpha: menuOpen ? 1 : 0, y: menuOpen ? 0 : -12, duration: 0.2, ease: 'power2.out', overwrite: true })
     }, root)
     return () => context.revert()

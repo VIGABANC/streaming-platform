@@ -14,4 +14,19 @@ describe('VEYRA Community Bot', () => {
     expect(sent[0].text).toContain('Welcome')
     expect(JSON.stringify(sent[0].options)).toContain('start=bug')
   })
+
+  it('does not spam the group with extra messages for menu callbacks', async () => {
+    const sent: string[] = []
+    const answers: string[] = []
+    const update = parseCommunityUpdate({ callback_query: { id: 'cb1', data: 'community:series', message: { message_id: 3, chat: { id: -10, type: 'group' } } } }, 'veyra_bot')
+    await handleCommunityUpdate(update, {
+      feedbackBotUsername: 'veyra_feedback_bot',
+      messenger: {
+        sendMessage: async (_chat, text) => { sent.push(text) },
+        answerCallbackQuery: async (_id, text) => { if (text) answers.push(text) },
+      },
+    })
+    expect(sent).toEqual([])
+    expect(answers).toEqual(['Browse Series for TV shows and seasonal releases.'])
+  })
 })

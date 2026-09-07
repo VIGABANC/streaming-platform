@@ -33,18 +33,18 @@ export interface CommunityDependencies {
 }
 
 function feedbackLink(username: string, type: string): TelegramReplyMarkup {
-  return inlineKeyboard([[{ text: 'Open private Feedback Bot', url: deepLink(username, isFeedbackType(type) ? type : 'bug') }]])
+  return inlineKeyboard([[{ text: 'Open Feedback Bot', url: deepLink(username, isFeedbackType(type) ? type : 'bug') }]])
 }
 
 export async function handleCommunityUpdate(update: ParsedCommunityUpdate, dependencies: CommunityDependencies): Promise<void> {
   if (update.kind === 'ignore') return
   if (update.kind === 'callback') {
-    await dependencies.messenger.answerCallbackQuery?.(update.callbackId)
     const [, action, type] = update.data.split(':')
     if (action === 'report') {
       const username = dependencies.feedbackBotUsername
-      if (!username) { await dependencies.messenger.sendMessage(update.chatId, 'Open the VEYRA Feedback Bot privately and choose a report type.'); return }
-      await dependencies.messenger.sendMessage(update.chatId, 'Please send the details privately so your report stays out of the public group.', { replyMarkup: feedbackLink(username, type ?? 'bug') })
+      await dependencies.messenger.answerCallbackQuery?.(update.callbackId, username ? 'Open the private Feedback Bot to continue.' : 'Feedback Bot is not configured yet.')
+      if (!username) { await dependencies.messenger.sendMessage(update.chatId, 'Feedback Bot is not configured yet. Please contact a VEYRA admin.'); return }
+      await dependencies.messenger.sendMessage(update.chatId, 'Open the private Feedback Bot to send your report safely.', { replyMarkup: feedbackLink(username, type ?? 'bug') })
       return
     }
     const answers: Record<string, string> = {
@@ -55,21 +55,25 @@ export async function handleCommunityUpdate(update: ParsedCommunityUpdate, depen
       anime: 'Use Anime to explore anime discovery and search.',
       help: 'I can help you discover VEYRA content. Use Search, Discover, or Report if something is not working.',
     }
-    await dependencies.messenger.sendMessage(update.chatId, answers[action ?? 'help'] ?? answers.help, { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername) })
+    const answer = answers[action ?? 'help'] ?? answers.help
+    await dependencies.messenger.answerCallbackQuery?.(update.callbackId, answer)
+    if (!dependencies.messenger.answerCallbackQuery) {
+      await dependencies.messenger.sendMessage(update.chatId, answer, { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername) })
+    }
     return
   }
   const command = update.text.match(/^\/(start|help|report)\b/i)?.[1]?.toLowerCase()
   if (command === 'start' || command === 'help' || command === 'report') {
-    await dependencies.messenger.sendMessage(update.chatId, 'Welcome to VEYRA Community 🎬\n\nDiscover movies, series and anime, or send a private report.', { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername) })
+    await dependencies.messenger.sendMessage(update.chatId, 'Welcome to VEYRA Community 🎬\n\nChoose what you need:', { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername) })
     return
   }
   const text = update.text.replace(/@\w+/g, '').trim()
   const feedbackUsername = dependencies.feedbackBotUsername
   if (/\b(bug|problem|broken|not working|شكوى|مشكلة|لا يعمل|problème)\b/i.test(text)) {
-    await dependencies.messenger.sendMessage(update.chatId, 'I can help route that safely. Please describe it privately in Feedback Bot.', { replyMarkup: feedbackUsername ? feedbackLink(feedbackUsername, 'bug') : undefined })
+    await dependencies.messenger.sendMessage(update.chatId, feedbackUsername ? 'Open the private Feedback Bot to send your report safely.' : 'Feedback Bot is not configured yet. Please contact a VEYRA admin.', { replyMarkup: feedbackUsername ? feedbackLink(feedbackUsername, 'bug') : undefined })
     return
   }
-  await dependencies.messenger.sendMessage(update.chatId, 'I can help with VEYRA discovery, search, movies, series, and anime.', { replyMarkup: communityKeyboard(feedbackUsername) })
+  await dependencies.messenger.sendMessage(update.chatId, 'Choose what you need:', { replyMarkup: communityKeyboard(feedbackUsername) })
 }
 
 export function createCommunityTelegramDependencies(env: Record<string, string | undefined> = process.env): CommunityDependencies {

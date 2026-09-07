@@ -5,122 +5,57 @@ import Image from 'next/image'
 import Link from 'next/link'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { backdrop } from '@/lib/tmdb'
-import type { Media } from '@/lib/tmdb'
+import { backdrop, getGenreNames, titleOf, yearOf, type Media } from '@/lib/tmdb'
 
 gsap.registerPlugin(ScrollTrigger)
 
-interface CinematicHeroProps {
-  trending: Media[]
-}
+interface CinematicHeroProps { item?: Media }
 
-export function CinematicHero({ trending }: CinematicHeroProps) {
-  const root = useRef<HTMLDivElement>(null)
-  
-  // Use first movie with a backdrop
-  const heroItem = trending.find(t => t.backdrop_path) || trending[0]
+export function CinematicHero({ item }: CinematicHeroProps) {
+  const root = useRef<HTMLElement>(null)
+  const hasArtwork = Boolean(item?.backdrop_path)
+  const title = item ? titleOf(item) : 'Find the story worth staying up for.'
+  const mediaType = item?.media_type === 'tv' ? 'TV series' : item ? 'Film' : undefined
+  const genres = item ? getGenreNames(item.genre_ids, item.media_type === 'tv' ? 'tv' : 'movie').slice(0, 3) : []
+  const overview = item?.overview || 'Discover cinematic moments. VEYRA brings movies and television discovery into one elegant experience.'
 
   useLayoutEffect(() => {
-    const mm = gsap.matchMedia()
-    
-    mm.add({
-      reduceMotion: "(prefers-reduced-motion: reduce)",
-      desktop: "(min-width: 1024px)",
-      mobile: "(max-width: 1023px)",
-    }, (context) => {
-      const { reduceMotion, desktop } = context.conditions ?? {}
-
-      if (reduceMotion) {
-        gsap.set(root.current, { clearProps: "all" })
-        return
-      }
-
-      // Timeline for entrance
-      const tl = gsap.timeline()
-      
-      tl.fromTo('.hero-bg', 
-        { scale: 1.08, filter: 'blur(10px)', opacity: 0 },
-        { scale: 1, filter: 'blur(0px)', opacity: 1, duration: 2, ease: 'power3.out' }
-      )
-      .fromTo('.hero-content > *',
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, stagger: 0.15, ease: 'power2.out' },
-        "-=1.2"
-      )
-
-      if (desktop) {
-        // Parallax scroll effect
-        gsap.to('.hero-bg', {
-          yPercent: 30,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: root.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: true
+    if (!root.current) return
+    let context: gsap.Context | undefined
+    try {
+      context = gsap.context(() => {
+        const media = gsap.matchMedia()
+        media.add({ reduceMotion: '(prefers-reduced-motion: reduce)', desktop: '(min-width: 1024px)' }, (match) => {
+          if (match.conditions?.reduceMotion) return
+          gsap.timeline()
+            .fromTo('[data-hero-backdrop]', { scale: 1.04, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.2, ease: 'power3.out' })
+            .fromTo('[data-hero-atmosphere]', { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, '<0.1')
+            .fromTo('[data-hero-content]', { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' }, '<0.15')
+          if (match.conditions?.desktop) {
+            gsap.to('[data-hero-backdrop]', { yPercent: 12, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: 'bottom top', scrub: true } })
           }
         })
-      }
-    })
-
-    return () => mm.revert()
+        return () => media.revert()
+      }, root)
+    } catch {
+      // Base styles keep the title and calls to action visible if motion cannot initialize.
+    }
+    return () => context?.revert()
   }, [])
 
-  if (!heroItem) return null
-
-  return (
-    <section ref={root} className="relative h-screen w-full flex items-center overflow-hidden" aria-label="Hero section">
-      {/* Background image & gradients */}
-      <div className="absolute inset-0 z-0" aria-hidden="true">
-        <div className="hero-bg absolute inset-0 transform-gpu">
-          <Image
-            src={backdrop(heroItem.backdrop_path, 'original')}
-            alt=""
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
-            quality={90}
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#050507] via-[#050507]/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050507] via-transparent to-transparent opacity-90" />
-        <div className="absolute inset-0 bg-black/20" />
-      </div>
-
-      <div className="relative z-10 mx-auto w-full max-w-[1440px] px-6 lg:px-12 pt-20">
-        <div className="hero-content max-w-2xl">
-          <p className="text-sm md:text-base font-bold tracking-[0.2em] text-amber-500 uppercase mb-4">
-            The Night Signal
-          </p>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white mb-6 leading-[1.05]">
-            Find the story worth staying up for.
-          </h1>
-          <p className="text-lg md:text-xl text-white/70 mb-10 max-w-xl font-medium leading-relaxed">
-            Discover cinematic moments. VEYRA brings movies and television discovery into one elegant experience.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <Link 
-              href="/browse" 
-              className="px-8 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-white/90 transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#050507] focus:ring-white"
-            >
-              Start Exploring
-            </Link>
-            <Link 
-              href="/browse" 
-              className="px-8 py-4 rounded-full bg-white/10 text-white font-bold text-lg backdrop-blur-md hover:bg-white/20 transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#050507] focus:ring-white"
-            >
-              Trending Tonight
-            </Link>
-          </div>
-          
-          <div className="mt-8 flex items-center gap-2 text-white/50 text-sm">
-            <span className="px-2 py-1 rounded border border-white/20 bg-white/5 text-xs font-mono">/</span>
-            <span>Press / to search</span>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
+  return <section ref={root} className="relative flex min-h-[42rem] items-end overflow-hidden bg-[#050507] pb-16 pt-32 sm:min-h-screen sm:items-center" aria-label="Featured story">
+    <div className="absolute inset-0" aria-hidden="true">
+      {hasArtwork ? <div data-hero-backdrop className="absolute -inset-[4%] transform-gpu"><Image src={backdrop(item?.backdrop_path, 'w1280')} alt="" fill priority sizes="100vw" className="object-cover" /></div> : <div data-hero-backdrop className="absolute inset-0 bg-[radial-gradient(circle_at_72%_28%,rgba(0,242,254,0.16),transparent_30%),radial-gradient(circle_at_20%_75%,rgba(229,9,20,0.18),transparent_34%),linear-gradient(135deg,#050507,#0d111c_52%,#050507)]" />}
+      <div data-hero-atmosphere className="absolute inset-0 bg-gradient-to-r from-[#050507] via-[#050507]/85 to-[#050507]/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#050507] via-transparent to-black/35" />
+    </div>
+    <div data-hero-content className="relative z-10 mx-auto w-full max-w-[1440px] px-5 sm:px-6 lg:px-12"><div className="max-w-2xl">
+      <p className="eyebrow">The Night Signal</p>
+      <h1 className="hero-title mt-4">{title}</h1>
+      {item ? <p className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-white/70">{yearOf(item) ? <span>{yearOf(item)}</span> : null}{item.vote_average ? <span>{item.vote_average.toFixed(1)} rating</span> : null}{mediaType ? <span>{mediaType}</span> : null}{genres.map((genre) => <span key={genre}>{genre}</span>)}</p> : null}
+      <p className="mt-5 max-w-xl text-base leading-7 text-white/70 sm:text-lg">{overview}</p>
+      <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center"><Link href="/browse" className="btn-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Start Exploring</Link><Link href="#trending-tonight" className="inline-flex h-12 items-center rounded-full border border-white/20 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Trending Tonight</Link></div>
+      <p className="mt-7 flex items-center gap-2 text-sm text-white/55"><kbd className="rounded border border-white/20 bg-white/5 px-2 py-1 font-mono text-xs text-white/80">/</kbd> Search the signal</p>
+    </div></div>
+  </section>
 }

@@ -26,7 +26,7 @@ interface NavLinkItem {
 }
 
 const NAV_LINKS: NavLinkItem[] = [
-  { href: '/', label: 'Home' },
+  { href: '/browse', label: 'Home' },
   { href: '/movies', label: 'Movies' },
   { href: '/tv', label: 'TV Shows' },
   { href: '/new', label: 'New', badge: 'Fresh' },
@@ -104,7 +104,7 @@ export function Header() {
   )
 
   const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href)
+    href === '/browse' ? pathname === '/browse' : pathname.startsWith(href)
 
   return (
     <header

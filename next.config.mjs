@@ -8,6 +8,14 @@ const nextConfig = {
         pathname: '/t/p/**',
       },
     ],
+  async redirects() {
+    return [
+      {
+        source: '/audit',
+        destination: '/',
+        permanent: true,
+      },
+    ]
   },
   async headers() {
     const cspHeader = [

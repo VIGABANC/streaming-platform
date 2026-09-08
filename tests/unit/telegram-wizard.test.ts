@@ -22,6 +22,18 @@ function dependencies(sent: string[]): TelegramHandlerDependencies {
 }
 
 describe('Feedback Bot wizard', () => {
+  it('starts missing title and recommendation requests with specific prompts', async () => {
+    const missingSent: string[] = []
+    await handleTelegramUpdate(parseTelegramUpdate({ message: { message_id: 1, from: { id: 42 }, chat: { id: 42, type: 'private' }, text: '/start missing-movie' } }), dependencies(missingSent))
+    expect(missingSent[0]).toContain('missing movie request')
+    expect(missingSent[0]).toContain('Which movie is missing?')
+
+    const recommendationSent: string[] = []
+    await handleTelegramUpdate(parseTelegramUpdate({ message: { message_id: 1, from: { id: 43 }, chat: { id: 43, type: 'private' }, text: '/start recommendation' } }), dependencies(recommendationSent))
+    expect(recommendationSent[0]).toContain('recommendation request')
+    expect(recommendationSent[0]).toContain('What kind of recommendation')
+  })
+
   it('walks from deep-link type to a durable submission', async () => {
     const sent: string[] = []
     const deps = dependencies(sent)

@@ -5,6 +5,7 @@ export type TelegramSessionStep = 'type' | 'description' | 'context' | 'review'
 
 export interface TelegramFeedbackDraft {
   type?: FeedbackType
+  category?: string
   description?: string
   route?: string
   messageId?: number

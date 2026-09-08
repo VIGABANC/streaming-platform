@@ -34,6 +34,8 @@ export function communityKeyboard(feedbackUsername = '', baseUrl = DEFAULT_VEYRA
     feedback ? [{ text: '▶️ Playback issue', url: deepLink(feedbackUsername, 'playback') }] : [{ text: '▶️ Playback issue', callback_data: 'community:report:playback' }],
     feedback ? [{ text: '🐛 Report a problem', url: feedback }] : [{ text: '🐛 Report a problem', callback_data: 'community:report:bug' }],
     feedback ? [{ text: '💡 Suggest a feature', url: deepLink(feedbackUsername, 'feature') }] : [{ text: '💡 Suggest a feature', callback_data: 'community:report:feature' }],
+    feedback ? [{ text: '➕ Missing movie', url: deepLink(feedbackUsername, 'missing-movie') }, { text: '➕ Missing series', url: deepLink(feedbackUsername, 'missing-series') }] : [{ text: '➕ Missing movie', callback_data: 'community:report:missing-movie' }, { text: '➕ Missing series', callback_data: 'community:report:missing-series' }],
+    feedback ? [{ text: '➕ Missing anime', url: deepLink(feedbackUsername, 'missing-anime') }, { text: '⭐ Recommendation', url: deepLink(feedbackUsername, 'recommendation') }] : [{ text: '➕ Missing anime', callback_data: 'community:report:missing-anime' }, { text: '⭐ Recommendation', callback_data: 'community:report:recommendation' }],
   ])
 }
 

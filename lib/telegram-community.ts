@@ -1,5 +1,5 @@
 import { createTelegramClient, formatTelegramWebhookError } from '@/lib/telegram'
-import { communityKeyboard, deepLink, inlineKeyboard, isFeedbackType, type TelegramReplyMarkup } from '@/lib/telegram-ui'
+import { communityKeyboard, deepLink, inlineKeyboard, type TelegramReplyMarkup } from '@/lib/telegram-ui'
 import type { TelegramMessenger } from '@/lib/feedback/service'
 
 type RawMessage = { message_id?: number; text?: string; chat?: { id?: string | number; type?: string }; reply_to_message?: unknown }
@@ -36,7 +36,7 @@ export interface CommunityDependencies {
 }
 
 function feedbackLink(username: string, type: string): TelegramReplyMarkup {
-  return inlineKeyboard([[{ text: 'Open Feedback Bot', url: deepLink(username, isFeedbackType(type) ? type : 'bug') }]])
+  return inlineKeyboard([[{ text: 'Open Feedback Bot', url: deepLink(username, type || 'bug') }]])
 }
 
 export async function handleCommunityUpdate(update: ParsedCommunityUpdate, dependencies: CommunityDependencies): Promise<void> {

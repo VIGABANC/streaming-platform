@@ -10,6 +10,7 @@ import { createMemoryTelegramSessionStore, createTelegramSessionStore, type Tele
 type TelegramMessage = { message_id?: number; chat?: { id?: number | string; type?: string }; text?: string; from?: { id?: number | string; username?: string; first_name?: string; last_name?: string } }
 type TelegramCallbackQuery = { id?: string; data?: string; from?: { id?: number | string }; message?: TelegramMessage }
 type Environment = Record<string, string | undefined>
+type FeedbackEntry = { type: ReturnType<typeof sanitizeFeedback>['type']; category: string; label: string; prompt: string }
 
 export type ParsedTelegramUpdate =
   | { kind: 'report'; chatId: string; userId: string; messageId: number; feedback: ReturnType<typeof sanitizeFeedback> }
@@ -105,11 +106,34 @@ export interface TelegramHandlerDependencies extends Omit<FeedbackDependencies, 
   feedbackBotUsername?: string
 }
 
+function feedbackEntry(value?: string): FeedbackEntry | undefined {
+  if (!value) return undefined
+  const entries: Record<string, FeedbackEntry> = {
+    bug: { type: 'bug', category: 'bug', label: 'bug', prompt: 'Describe what happened.' },
+    playback: { type: 'playback', category: 'streaming', label: 'playback issue', prompt: 'Tell me what happened during playback. Include the title and device if you can.' },
+    ux: { type: 'ux', category: 'ux', label: 'UX issue', prompt: 'Describe the confusing screen or action.' },
+    complaint: { type: 'complaint', category: 'complaint', label: 'complaint', prompt: 'Tell me what went wrong.' },
+    feature: { type: 'feature', category: 'feature', label: 'feature request', prompt: 'Describe the feature you want VEYRA to add.' },
+    'missing-movie': { type: 'feature', category: 'missing_movie', label: 'missing movie request', prompt: 'Which movie is missing? Send the title, year, and any details you know.' },
+    'missing-series': { type: 'feature', category: 'missing_series', label: 'missing series request', prompt: 'Which series is missing? Send the title, season, year, and any details you know.' },
+    'missing-anime': { type: 'feature', category: 'missing_anime', label: 'missing anime request', prompt: 'Which anime is missing? Send the title, season, year, and any details you know.' },
+    missing_movie: { type: 'feature', category: 'missing_movie', label: 'missing movie request', prompt: 'Which movie is missing? Send the title, year, and any details you know.' },
+    missing_series: { type: 'feature', category: 'missing_series', label: 'missing series request', prompt: 'Which series is missing? Send the title, season, year, and any details you know.' },
+    missing_anime: { type: 'feature', category: 'missing_anime', label: 'missing anime request', prompt: 'Which anime is missing? Send the title, season, year, and any details you know.' },
+    recommendation: { type: 'feature', category: 'recommendation', label: 'recommendation request', prompt: 'What kind of recommendation do you want? Tell me genre, mood, language, or examples you like.' },
+  }
+  return entries[value.toLowerCase()]
+}
+
+function categoryLabel(category?: string): string {
+  return (category ?? '').replace(/_/g, ' ') || 'Not provided'
+}
+
 function feedbackPrompt(session: TelegramFeedbackSession): { text: string; replyMarkup?: TelegramReplyMarkup } {
   if (session.step === 'type') return { text: 'What would you like to report?', replyMarkup: feedbackTypeKeyboard() }
-  if (session.step === 'description') return { text: 'Tell me what happened. Please include the title or page if relevant.' }
+  if (session.step === 'description') return { text: feedbackEntry(session.draft.category)?.prompt ?? 'Tell me what happened. Please include the title or page if relevant.' }
   if (session.step === 'context') return { text: 'Send the VEYRA page URL or title (optional), or skip it.', replyMarkup: feedbackContextKeyboard() }
-  return { text: `Please review your report:\n\nType: ${session.draft.type}\nDescription: ${session.draft.description}\nContext: ${session.draft.route || 'Not provided'}\n\nSubmit it?`, replyMarkup: feedbackReviewKeyboard() }
+  return { text: `Please review your report:\n\nType: ${session.draft.type}\nRequest: ${categoryLabel(session.draft.category)}\nDescription: ${session.draft.description}\nContext: ${session.draft.route || 'Not provided'}\n\nSubmit it?`, replyMarkup: feedbackReviewKeyboard() }
 }
 
 async function beginFeedbackSession(update: Extract<ParsedTelegramUpdate, { kind: 'command' }>, dependencies: TelegramHandlerDependencies, type?: string): Promise<void> {
@@ -118,11 +142,11 @@ async function beginFeedbackSession(update: Extract<ParsedTelegramUpdate, { kind
     await dependencies.messenger.sendMessage(update.chatId, 'Send /bug, /playback, /ux, /feature, or /complaint followed by what happened.')
     return
   }
-  const selectedType = type && isFeedbackType(type) ? type : undefined
-  const session: TelegramFeedbackSession = { bot: 'feedback', chatId: update.chatId, userId: update.userId, step: selectedType ? 'description' : 'type', draft: selectedType ? { type: selectedType } : {}, updatedAt: new Date().toISOString() }
+  const selectedEntry = feedbackEntry(type)
+  const session: TelegramFeedbackSession = { bot: 'feedback', chatId: update.chatId, userId: update.userId, step: selectedEntry ? 'description' : 'type', draft: selectedEntry ? { type: selectedEntry.type, category: selectedEntry.category } : {}, updatedAt: new Date().toISOString() }
   await store.save(session)
   const prompt = feedbackPrompt(session)
-  await dependencies.messenger.sendMessage(update.chatId, selectedType ? `You selected ${selectedType}.\n\n${prompt.text}` : prompt.text, { replyMarkup: prompt.replyMarkup })
+  await dependencies.messenger.sendMessage(update.chatId, selectedEntry ? `You selected ${selectedEntry.label}.\n\n${prompt.text}` : prompt.text, { replyMarkup: prompt.replyMarkup })
 }
 
 function adminUserAllowed(userId: string, dependencies: TelegramHandlerDependencies): boolean {
@@ -148,7 +172,8 @@ async function handleCallback(update: Extract<ParsedTelegramUpdate, { kind: 'cal
     const session = await dependencies.sessionStore.get('feedback', update.chatId, update.userId)
     if (action === 'cancel') { await dependencies.sessionStore.clear('feedback', update.chatId, update.userId); await dependencies.messenger.sendMessage(update.chatId, 'Cancelled. Use /start whenever you want to send a report.'); return }
     if (action === 'type' && value && isFeedbackType(value)) {
-      const next = { bot: 'feedback' as const, chatId: update.chatId, userId: update.userId, step: 'description' as const, draft: { ...(session?.draft ?? {}), type: value }, updatedAt: new Date().toISOString() }
+      const entry = feedbackEntry(value)
+      const next = { bot: 'feedback' as const, chatId: update.chatId, userId: update.userId, step: 'description' as const, draft: { ...(session?.draft ?? {}), type: value, category: entry?.category ?? value }, updatedAt: new Date().toISOString() }
       await dependencies.sessionStore.save(next); await dependencies.messenger.sendMessage(update.chatId, 'Describe what happened.'); return
     }
     if (!session) { await dependencies.messenger.sendMessage(update.chatId, 'This report session expired. Use /start to begin again.', { replyMarkup: feedbackTypeKeyboard() }); return }
@@ -156,7 +181,7 @@ async function handleCallback(update: Extract<ParsedTelegramUpdate, { kind: 'cal
     if (action === 'edit') { const next = { ...session, step: 'description' as const, updatedAt: new Date().toISOString() }; await dependencies.sessionStore.save(next); await dependencies.messenger.sendMessage(update.chatId, 'Send the corrected description.'); return }
     if (action === 'submit' && session.step === 'review' && session.draft.type && session.draft.description) {
       await dependencies.sessionStore.clear('feedback', update.chatId, update.userId)
-      const input = sanitizeFeedback({ type: session.draft.type, description: session.draft.description, route: session.draft.route, category: session.draft.type === 'playback' ? 'streaming' : session.draft.type, severity: session.draft.type === 'feature' ? 'P3' : 'P2' })
+      const input = sanitizeFeedback({ type: session.draft.type, description: session.draft.description, route: session.draft.route, category: session.draft.category ?? (session.draft.type === 'playback' ? 'streaming' : session.draft.type), severity: session.draft.type === 'feature' ? 'P3' : 'P2' })
       const result = await processFeedback({ chatId: update.chatId, messageId: session.draft.messageId ?? update.messageId, input }, dependencies)
       if (!result.duplicate) await notifyAdmins(result.ticket, input, result.aiStatus, result.githubStatus, dependencies)
       return

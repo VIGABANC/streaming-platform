@@ -12,6 +12,10 @@ describe('Telegram UI', () => {
     expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://streaming-platform-beryl.vercel.app/search')).toBe(true)
     expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://streaming-platform-beryl.vercel.app/movies')).toBe(true)
     expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://t.me/veyra_feedback_bot?start=playback')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://t.me/veyra_feedback_bot?start=missing-movie')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://t.me/veyra_feedback_bot?start=missing-series')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://t.me/veyra_feedback_bot?start=missing-anime')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://t.me/veyra_feedback_bot?start=recommendation')).toBe(true)
     expect(keyboard.inline_keyboard.flat().some((button) => button.callback_data === 'community:search')).toBe(false)
   })
 

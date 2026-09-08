@@ -8,8 +8,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ArrowUpRight, Clock3, Star } from 'lucide-react'
 import { TrailerModal } from '@/components/media/TrailerModal'
 import { LandingSection } from '@/components/landing/LandingSection'
-import { formatRuntime } from '@/lib/utils'
 import type { MovieDetail, TVDetail, WatchProvider } from '@/lib/tmdb'
+import { detailRuntime } from './detail-showcase-data'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -41,7 +41,7 @@ export function DetailShowcase({ detail, providers = [] }: { detail?: MovieDetai
   const type = detail.media_type === 'tv' ? 'TV series' : 'Film'
   const trailer = detail.videos?.results.find((video) => video.site === 'YouTube' && video.type === 'Trailer')
   const cast = detail.credits?.cast.slice(0, 4).map((person) => person.name) ?? []
-  const runtime = detail.media_type === 'movie' ? formatRuntime(detail.runtime) : ''
+  const runtime = detailRuntime(detail)
   const href = `/${detail.media_type}/${detail.id}`
 
   return <div ref={root}><LandingSection id="detail-experience" eyebrow="The detail signal" title="Go beyond the poster." description="A closer look at the people, mood, and practical details behind a title.">

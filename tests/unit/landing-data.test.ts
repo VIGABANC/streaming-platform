@@ -8,7 +8,8 @@ import {
   usableMedia,
 } from '@/components/landing/landing-types'
 import { normalizeSearchResults, searchShowcaseStatus } from '@/components/landing/search-showcase-data'
-import type { Media } from '@/lib/tmdb'
+import { detailRuntime } from '@/components/landing/detail-showcase-data'
+import type { Media, MovieDetail, TVDetail } from '@/lib/tmdb'
 
 const movie: Media = {
   id: 101,
@@ -97,5 +98,15 @@ describe('landing finder data', () => {
     expect(searchShowcaseStatus('results', 2, 'Dune')).toBe('2 signals found for Dune.')
     expect(searchShowcaseStatus('empty', 0, 'Dune')).toBe('No signals found for Dune.')
     expect(searchShowcaseStatus('error')).toContain('unavailable')
+  })
+})
+
+describe('landing detail metadata', () => {
+  it('uses movie runtime and TMDB TV episode runtime when available', () => {
+    const movieDetail = { ...movie, media_type: 'movie', runtime: 155 } as MovieDetail
+    const tvDetail = { ...series, media_type: 'tv', episode_run_time: [58] } as TVDetail
+
+    expect(detailRuntime(movieDetail)).toBe('2h 35m')
+    expect(detailRuntime(tvDetail)).toBe('58m')
   })
 })

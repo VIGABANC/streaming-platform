@@ -86,7 +86,7 @@ export function SearchShowcase({ initialItems }: { initialItems: Media[] }) {
           <label htmlFor="landing-search" className="text-sm font-semibold text-white">Search the catalog</label>
           <div className="mt-3 flex min-h-12 items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 focus-within:border-[#b8f7d4] focus-within:ring-2 focus-within:ring-[#b8f7d4]/20">
             <Search className="size-5 shrink-0 text-white/50" aria-hidden="true" />
-            <input ref={inputRef} id="landing-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try a movie, series, or franchise" aria-describedby="landing-search-status" autoFocus className="h-11 min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40" />
+            <input ref={inputRef} id="landing-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try a movie, series, or franchise" aria-describedby="landing-search-status" className="h-11 min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40" />
             {query ? <button type="button" onClick={() => { setQuery(''); inputRef.current?.focus() }} className="grid size-10 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b8f7d4]" aria-label="Clear landing search"><X className="size-4" /></button> : <kbd className="rounded border border-white/15 px-1.5 py-0.5 font-mono text-[10px] text-white/50">/</kbd>}
           </div>
           <p id="landing-search-status" aria-live="polite" className="mt-3 min-h-5 text-xs text-white/60">{status}</p>

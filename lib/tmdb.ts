@@ -137,6 +137,7 @@ export interface MovieDetail extends Media {
 
 export interface TVDetail extends Media {
   media_type: 'tv'
+  episode_run_time?: number[]
   genres: Genre[]
   production_companies: ProductionCompany[]
   original_name?: string

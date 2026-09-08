@@ -52,7 +52,10 @@ export function getAIConfig(env: Environment = process.env): AIConfig {
   }
 
   const configuredOrder = env.AI_PROVIDER_ORDER?.split(',').map((value) => value.trim()).filter(Boolean) ?? defaultOrder
-  const providerOrder = configuredOrder.filter((value): value is AIProviderId => (aiProviderIds as readonly string[]).includes(value))
+  const requestedOrder = configuredOrder.filter((value): value is AIProviderId => (aiProviderIds as readonly string[]).includes(value))
+  // Keep the configured primary provider first, then use every other
+  // configured provider as an automatic fallback.
+  const providerOrder = [...new Set([...requestedOrder, ...defaultOrder])]
   return {
     providerOrder: providerOrder.length ? providerOrder : defaultOrder,
     providerTimeoutMs: Math.min(15_000, Math.max(8_000, positiveInt(env, 'AI_PROVIDER_TIMEOUT_MS', 10_000))),

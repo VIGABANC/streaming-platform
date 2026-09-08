@@ -48,4 +48,13 @@ describe('Feedback Bot wizard', () => {
     expect(sent.some((text) => text.includes('Thanks'))).toBe(true)
     expect(sent.some((text) => text.includes('VEYRA Report'))).toBe(true)
   })
+
+  it('never shows an undefined description when a stale session is incomplete', async () => {
+    const sent: string[] = []
+    const deps = dependencies(sent)
+    await deps.sessionStore!.save({ bot: 'feedback', chatId: '42', userId: '42', step: 'context', draft: { type: 'bug', category: 'bug' }, updatedAt: new Date().toISOString() })
+    await handleTelegramUpdate(parseTelegramUpdate({ message: { message_id: 2, from: { id: 42 }, chat: { id: 42, type: 'private' }, text: 'Movie page' } }), deps)
+    expect(sent.at(-1)).toContain('description was missing')
+    expect(sent.join('\n')).not.toContain('Description: undefined')
+  })
 })

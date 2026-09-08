@@ -206,8 +206,31 @@ export async function handleTelegramUpdate(update: ParsedTelegramUpdate, depende
     try { session = dependencies.sessionStore ? await dependencies.sessionStore.get('feedback', update.chatId, update.userId) : null } catch (error) { dependencies.log?.('telegram.session_read_failed', { reason: error instanceof Error ? error.name : 'unknown' }) }
     if (session) {
       const now = new Date().toISOString()
-      if (session.step === 'description') { const next = { ...session, step: 'context' as const, draft: { ...session.draft, description: update.feedback.description, messageId: update.messageId }, updatedAt: now }; await dependencies.sessionStore!.save(next); const prompt = feedbackPrompt(next); await dependencies.messenger.sendMessage(update.chatId, prompt.text, { replyMarkup: prompt.replyMarkup }); return }
-      if (session.step === 'context') { const next = { ...session, step: 'review' as const, draft: { ...session.draft, route: update.feedback.description }, updatedAt: now }; await dependencies.sessionStore!.save(next); const prompt = feedbackPrompt(next); await dependencies.messenger.sendMessage(update.chatId, prompt.text, { replyMarkup: prompt.replyMarkup }); return }
+      if (session.step === 'description') {
+        const description = update.feedback.description.trim()
+        if (!description || description === 'Unknown — not provided by the user.') {
+          await dependencies.messenger.sendMessage(update.chatId, feedbackPrompt(session).text)
+          return
+        }
+        const next = { ...session, step: 'context' as const, draft: { ...session.draft, description, messageId: update.messageId }, updatedAt: now }
+        await dependencies.sessionStore!.save(next)
+        const prompt = feedbackPrompt(next)
+        await dependencies.messenger.sendMessage(update.chatId, prompt.text, { replyMarkup: prompt.replyMarkup })
+        return
+      }
+      if (session.step === 'context') {
+        if (!session.draft.description?.trim()) {
+          const next = { ...session, step: 'description' as const, updatedAt: now }
+          await dependencies.sessionStore!.save(next)
+          await dependencies.messenger.sendMessage(update.chatId, 'Your description was missing. Please describe what happened.')
+          return
+        }
+        const next = { ...session, step: 'review' as const, draft: { ...session.draft, route: update.feedback.description }, updatedAt: now }
+        await dependencies.sessionStore!.save(next)
+        const prompt = feedbackPrompt(next)
+        await dependencies.messenger.sendMessage(update.chatId, prompt.text, { replyMarkup: prompt.replyMarkup })
+        return
+      }
     }
     const result = await processFeedback({ chatId: update.chatId, messageId: update.messageId, input: update.feedback }, dependencies)
     if (!result.duplicate) await notifyAdmins(result.ticket, update.feedback, result.aiStatus, result.githubStatus, dependencies)

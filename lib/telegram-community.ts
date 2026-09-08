@@ -22,7 +22,9 @@ export function parseCommunityUpdate(update: unknown, username = ''): ParsedComm
   if (message.chat?.id === undefined || !Number.isInteger(message.message_id) || !message.text?.trim()) return { kind: 'ignore' }
   const text = message.text.trim()
   const privateChat = message.chat.type === 'private'
-  const addressed = privateChat || Boolean(message.reply_to_message) || (username ? text.toLowerCase().includes(`@${username.replace(/^@/, '').toLowerCase()}`) : /^\/(start|help)\b/i.test(text))
+  const commandAddressed = /^\/(start|help|report)(?:@\w+)?\b/i.test(text)
+  const mentioned = username ? text.toLowerCase().includes(`@${username.replace(/^@/, '').toLowerCase()}`) : false
+  const addressed = privateChat || Boolean(message.reply_to_message) || commandAddressed || mentioned
   if (!addressed) return { kind: 'ignore' }
   return { kind: 'message', chatId: String(message.chat.id), messageId: message.message_id as number, privateChat, text, addressed }
 }

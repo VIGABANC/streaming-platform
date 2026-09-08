@@ -7,6 +7,11 @@ describe('VEYRA Community Bot', () => {
     expect(parseCommunityUpdate({ message: { message_id: 2, chat: { id: 2, type: 'group' }, text: 'hey @veyra_bot help' } }, 'veyra_bot')).toMatchObject({ kind: 'message', addressed: true })
   })
 
+  it('accepts plain start and report commands in groups', () => {
+    expect(parseCommunityUpdate({ message: { message_id: 3, chat: { id: -2, type: 'group' }, text: '/start' } }, 'veyra_bot')).toMatchObject({ kind: 'message', addressed: true })
+    expect(parseCommunityUpdate({ message: { message_id: 4, chat: { id: -2, type: 'group' }, text: '/report' } }, 'veyra_bot')).toMatchObject({ kind: 'message', addressed: true })
+  })
+
   it('answers with a private report link when a user reports a problem', async () => {
     const sent: Array<{ text: string; options?: unknown }> = []
     const update = parseCommunityUpdate({ message: { message_id: 2, chat: { id: 2, type: 'private' }, text: '/start' } }, 'veyra_bot')

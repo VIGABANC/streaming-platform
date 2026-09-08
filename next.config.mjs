@@ -17,6 +17,15 @@ const nextConfig = {
       },
     ]
   },
+  async redirects() {
+    return [
+      {
+        source: '/audit',
+        destination: '/',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     const cspHeader = [
       "default-src 'self'",

@@ -33,7 +33,7 @@ export function parseTelegramUpdate(update: unknown): ParsedTelegramUpdate {
   const text = message.text?.trim()
   if (chatId === undefined || !Number.isInteger(messageId) || !text) return { kind: 'ignore' }
   const validMessageId = messageId as number
-  const normalized = text.match(/^\/?([a-z]+)(?:@[^\s]+)?(?:\s+([\s\S]*))?$/i)
+  const normalized = text.startsWith('/') ? text.match(/^\/([a-z]+)(?:@[^\s]+)?(?:\s+([\s\S]*))?$/i) : null
   const command = normalized?.[1]?.toLowerCase()
   const argument = normalized?.[2]?.trim() ?? ''
   const privateChat = message.chat?.type === 'private'

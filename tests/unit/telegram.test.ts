@@ -21,6 +21,19 @@ describe('Telegram feedback interface', () => {
       .toEqual({ kind: 'ignore' })
   })
 
+  it('keeps the first word of normal report text', () => {
+    const report = parseTelegramUpdate({
+      message: {
+        message_id: 8,
+        chat: { id: 22, type: 'private' },
+        from: { id: 99 },
+        text: 'Video keeps loading on movie page',
+      },
+    })
+
+    expect(report).toMatchObject({ kind: 'report', feedback: { description: 'Video keeps loading on movie page' } })
+  })
+
   it('restricts admin commands to configured private admin chats', () => {
     expect(isAdminChat('42', { TELEGRAM_ADMIN_CHAT_IDS: '42' })).toBe(true)
     expect(isAdminChat('43', { TELEGRAM_ADMIN_CHAT_IDS: '42' })).toBe(false)

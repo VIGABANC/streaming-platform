@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next'
+import { getPublicSiteUrl } from '@/lib/config'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://veyra.stream'
+  const baseUrl = getPublicSiteUrl()
 
   const staticRoutes = [
     '',

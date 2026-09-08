@@ -3,12 +3,13 @@ import { Manrope, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { WebVitals } from '@/components/observability/WebVitals'
+import { getPublicSiteUrl } from '@/lib/config'
 import './globals.css'
 
 const displayFont = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk', display: 'swap' })
 const bodyFont = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' })
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://veyra.stream'
+const SITE_URL = getPublicSiteUrl()
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

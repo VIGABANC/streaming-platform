@@ -1,4 +1,5 @@
 import { createTelegramClient, formatTelegramWebhookError } from '@/lib/telegram'
+import { getPublicSiteUrl } from '@/lib/config'
 import { communityKeyboard, deepLink, inlineKeyboard, type TelegramReplyMarkup } from '@/lib/telegram-ui'
 import type { TelegramMessenger } from '@/lib/feedback/service'
 
@@ -85,8 +86,7 @@ export async function handleCommunityUpdate(update: ParsedCommunityUpdate, depen
 }
 
 export function createCommunityTelegramDependencies(env: Record<string, string | undefined> = process.env): CommunityDependencies {
-  const productionUrl = env.NEXT_PUBLIC_SITE_URL ?? (env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined)
-  return { messenger: createTelegramClient(env, fetch, 'TELEGRAM_COMMUNITY_BOT_TOKEN'), feedbackBotUsername: env.TELEGRAM_FEEDBACK_BOT_USERNAME, siteBaseUrl: productionUrl }
+  return { messenger: createTelegramClient(env, fetch, 'TELEGRAM_COMMUNITY_BOT_TOKEN'), feedbackBotUsername: env.TELEGRAM_FEEDBACK_BOT_USERNAME, siteBaseUrl: getPublicSiteUrl(env) }
 }
 
 export function formatCommunityWebhookError(error: unknown): string { return formatTelegramWebhookError(error) }

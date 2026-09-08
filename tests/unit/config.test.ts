@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getPublicSupabaseConfig, isSupabaseConfigured } from '@/lib/config'
+import { getPublicSiteUrl, getPublicSupabaseConfig, isSupabaseConfigured } from '@/lib/config'
 
 describe('public Supabase configuration', () => {
   afterEach(() => {
@@ -25,5 +25,10 @@ describe('public Supabase configuration', () => {
       key: 'publishable-key',
     })
     expect(isSupabaseConfigured()).toBe(true)
+  })
+
+  it('falls back to the production site URL when env contains an invalid URL', () => {
+    expect(getPublicSiteUrl({ NEXT_PUBLIC_SITE_URL: 'not a url' })).toBe('https://streaming-platform-beryl.vercel.app')
+    expect(getPublicSiteUrl({ VERCEL_PROJECT_PRODUCTION_URL: 'streaming-platform-beryl.vercel.app' })).toBe('https://streaming-platform-beryl.vercel.app')
   })
 })

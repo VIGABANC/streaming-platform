@@ -6,13 +6,13 @@ describe('SEO route policy', () => {
     const urls = sitemap().map((entry) => entry.url)
 
     expect(urls).toEqual(expect.arrayContaining([
-      'https://veyra.stream',
-      'https://veyra.stream/landing',
-      'https://veyra.stream/browse',
-      'https://veyra.stream/providers',
+      'https://streaming-platform-beryl.vercel.app',
+      'https://streaming-platform-beryl.vercel.app/landing',
+      'https://streaming-platform-beryl.vercel.app/browse',
+      'https://streaming-platform-beryl.vercel.app/providers',
     ]))
-    expect(urls).not.toContain('https://veyra.stream/my-list')
-    expect(urls).not.toContain('https://veyra.stream/search')
+    expect(urls).not.toContain('https://streaming-platform-beryl.vercel.app/my-list')
+    expect(urls).not.toContain('https://streaming-platform-beryl.vercel.app/search')
   })
 
   it('does not claim a synthetic last-modified time', () => {

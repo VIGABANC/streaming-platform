@@ -4,6 +4,7 @@ export interface PublicSupabaseConfig {
 }
 
 export const SUPABASE_CONFIG_ERROR = 'SUPABASE_CONFIG_MISSING'
+const DEFAULT_SITE_URL = 'https://streaming-platform-beryl.vercel.app'
 
 function readEnv(name: string): string {
   return process.env[name]?.trim() ?? ''
@@ -27,6 +28,27 @@ export function getPublicSupabaseConfig(): PublicSupabaseConfig | null {
 
 export function isSupabaseConfigured(): boolean {
   return getPublicSupabaseConfig() !== null
+}
+
+export function getPublicSiteUrl(env: Record<string, string | undefined> = process.env): string {
+  const candidates = [
+    env.NEXT_PUBLIC_SITE_URL,
+    env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined,
+    DEFAULT_SITE_URL,
+  ]
+
+  for (const candidate of candidates) {
+    const value = candidate?.trim().replace(/\/$/, '')
+    if (!value) continue
+    try {
+      const parsed = new URL(value)
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return parsed.toString().replace(/\/$/, '')
+    } catch {
+      continue
+    }
+  }
+
+  return DEFAULT_SITE_URL
 }
 
 export function getSupabaseConfigError(): Error {

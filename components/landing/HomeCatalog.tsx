@@ -2,6 +2,11 @@ import { DiscoveryShowcase } from '@/components/landing/DiscoveryShowcase'
 import { DetailShowcase } from '@/components/landing/DetailShowcase'
 import { MediaRailSection } from '@/components/landing/MediaRailSection'
 import { SearchShowcase } from '@/components/landing/SearchShowcase'
+import { EpisodeShowcase } from '@/components/landing/EpisodeShowcase'
+import { LibraryShowcase } from '@/components/landing/LibraryShowcase'
+import { PlayerShowcase } from '@/components/landing/PlayerShowcase'
+import { DeviceShowcase } from '@/components/landing/DeviceShowcase'
+import { FinalCTA } from '@/components/landing/FinalCTA'
 import type { LandingData } from '@/components/landing/landing-types'
 
 interface HomeCatalogProps {
@@ -29,5 +34,10 @@ export function HomeCatalog({ data, providerName }: HomeCatalogProps) {
     <DiscoveryShowcase categories={categories} />
     <SearchShowcase initialItems={[...lists.trending, ...lists.popularMovies, ...lists.popularTV]} />
     <DetailShowcase detail={data.detail?.detail} providers={data.detail?.providers} />
+    <EpisodeShowcase detail={data.detail?.detail.media_type === 'tv' ? data.detail.detail : undefined} season={data.detail?.detail.media_type === 'tv' ? data.detail.season : undefined} />
+    <LibraryShowcase />
+    <PlayerShowcase item={lists.trending[0]} />
+    <DeviceShowcase />
+    <FinalCTA item={lists.trending[1] ?? lists.trending[0]} />
   </>
 }

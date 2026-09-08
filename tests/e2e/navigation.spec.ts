@@ -1,6 +1,29 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Responsive Navigation', () => {
+  test('landing product-story fallbacks retain actionable routes when TV data is unavailable', async ({ page }) => {
+    await page.setExtraHTTPHeaders({ 'x-veyra-e2e-landing-data': 'unavailable' })
+    await page.goto('/')
+
+    const seasons = page.getByRole('region', { name: 'Every season. Every episode.' })
+    await expect(seasons.getByText('Season information is unavailable right now.')).toBeVisible()
+    await expect(seasons.getByRole('link', { name: 'Explore TV shows' })).toHaveAttribute('href', '/tv')
+
+    const library = page.getByRole('region', { name: 'Your night, remembered.' })
+    await expect(library.getByRole('link', { name: 'Explore the catalog' })).toHaveAttribute('href', '/browse')
+    await expect(library.getByRole('link', { name: 'Open My List' })).toHaveAttribute('href', '/my-list')
+  })
+
+  test('landing footer and final CTA use real routes and preserve provider boundaries', async ({ page }) => {
+    await page.goto('/')
+
+    await expect(page.getByRole('link', { name: 'Explore VEYRA' }).last()).toHaveAttribute('href', '/browse')
+    const footer = page.getByRole('contentinfo')
+    await expect(footer.getByRole('link', { name: 'Browse' })).toHaveAttribute('href', '/browse')
+    await expect(footer.getByRole('link', { name: 'Favorites' })).toHaveAttribute('href', '/favorites')
+    await expect(footer.getByText('VEYRA does not host or store video media. Playback is provided by third-party providers.')).toBeVisible()
+  })
+
   test('mobile bottom navigation displays navigation items on small screens', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')

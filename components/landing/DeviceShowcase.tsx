@@ -1,83 +1,9 @@
-'use client'
-
-import { useLayoutEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { Monitor, Smartphone, Tablet } from 'lucide-react'
-
-gsap.registerPlugin(ScrollTrigger)
+import { Keyboard, Monitor, Smartphone, Tablet } from 'lucide-react'
+import { LandingSection } from './LandingSection'
 
 export function DeviceShowcase() {
-  const root = useRef<HTMLElement>(null)
-
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: root.current,
-          start: 'top 70%',
-        }
-      })
-
-      tl.fromTo('.device-header',
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, ease: 'power3.out' }
-      )
-      .fromTo('.device-card',
-        { y: 40, opacity: 0, scale: 0.95 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.8, stagger: 0.15, ease: 'power2.out' },
-        "-=0.5"
-      )
-
-    }, root)
-    return () => ctx.revert()
-  }, [])
-
-  const features = [
-    {
-      icon: Monitor,
-      title: 'Desktop',
-      desc: 'Cinematic 16:9 viewing with keyboard shortcuts and full-screen immersion.'
-    },
-    {
-      icon: Tablet,
-      title: 'Tablet',
-      desc: 'Touch-optimized interface with horizontal rails and gesture navigation.'
-    },
-    {
-      icon: Smartphone,
-      title: 'Mobile',
-      desc: 'Pocket-sized discovery with PWA installation and offline capability.'
-    }
-  ]
-
-  return (
-    <section ref={root} className="py-32 relative z-20 bg-[#050507]">
-      <div className="mx-auto max-w-[1440px] px-6 lg:px-12 text-center">
-        
-        <div className="device-header mb-16 max-w-3xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Cinema follows you.
-          </h2>
-          <p className="text-xl text-white/60">
-            VEYRA adapts to every screen. Install as a PWA. Navigate with keyboard. 
-            Pick up where you left off across devices.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {features.map((feature, i) => (
-            <div key={i} className="device-card p-8 rounded-2xl bg-gradient-to-b from-white/5 to-white/[0.02] border border-white/10 hover:border-white/20 transition-colors group">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-6 mx-auto group-hover:bg-white/10 transition-colors">
-                <feature.icon className="w-8 h-8 text-white/80" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-              <p className="text-white/60 leading-relaxed">{feature.desc}</p>
-            </div>
-          ))}
-        </div>
-
-      </div>
-    </section>
-  )
+  return <LandingSection id="every-screen" eyebrow="Every screen" title="Cinema follows you." description="The same discovery routes, local library, keyboard support, and touch-friendly rails travel with the interface.">
+    <div className="grid gap-8 lg:grid-cols-[1.2fr_.8fr] lg:items-center"><div className="relative mx-auto h-[270px] w-full max-w-xl" aria-hidden="true"><div className="absolute left-[4%] top-[8%] h-[180px] w-[72%] rounded-xl border-4 border-white/20 bg-[#0b111a] p-2 shadow-2xl"><div className="h-full rounded-md bg-[linear-gradient(135deg,rgba(184,247,212,.24),transparent_55%),#111b29]"><div className="m-4 h-2 w-20 rounded bg-white/30" /><div className="mx-4 mt-5 h-16 rounded bg-white/10" /></div></div><div className="absolute right-[2%] top-[28%] h-[170px] w-[27%] rounded-[1.25rem] border-4 border-white/20 bg-[#0b111a] p-2 shadow-2xl"><div className="h-full rounded-xl bg-[linear-gradient(160deg,rgba(184,247,212,.25),transparent_45%),#111b29]" /></div><div className="absolute bottom-0 left-[36%] h-[105px] w-[25%] rounded-lg border-4 border-white/20 bg-[#0b111a] p-2 shadow-2xl"><div className="h-full rounded bg-white/[0.08]" /></div></div><div className="grid gap-4 sm:grid-cols-3">{[{ icon: Monitor, title: 'Desktop', copy: 'A focused catalog and keyboard shortcuts.' }, { icon: Tablet, title: 'Tablet', copy: 'Comfortable rails and responsive navigation.' }, { icon: Smartphone, title: 'Mobile', copy: 'Touch-ready browsing and installable PWA access.' }].map(({ icon: Icon, title, copy }) => <article key={title} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><Icon className="size-5 text-[#b8f7d4]" aria-hidden="true" /><h3 className="mt-3 font-semibold text-white">{title}</h3><p className="mt-1 text-xs leading-5 text-white/60">{copy}</p></article>)}</div><p className="mt-5 inline-flex items-center gap-2 text-sm text-white/65"><Keyboard className="size-4 text-[#b8f7d4]" aria-hidden="true" />Press <kbd className="rounded border border-white/20 px-1.5 py-0.5 font-mono text-xs text-white">/</kbd> to reach the finder.</p>
+    </div>
+  </LandingSection>
 }

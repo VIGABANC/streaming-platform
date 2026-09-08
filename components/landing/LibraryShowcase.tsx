@@ -1,102 +1,25 @@
 'use client'
 
-import { useLayoutEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useEffect, useState, type ReactNode } from 'react'
+import { LandingSection } from './LandingSection'
+import { store, subscribeToStorageChanges, type ContinueWatchingItem, type FavoriteItem, type WatchlistItem } from '@/lib/store'
+import { poster } from '@/lib/tmdb'
 
-gsap.registerPlugin(ScrollTrigger)
+type LibraryState = { continueWatching: ContinueWatchingItem[]; watchlist: WatchlistItem[]; favorites: FavoriteItem[] }
+const emptyState: LibraryState = { continueWatching: [], watchlist: [], favorites: [] }
+function hrefFor(item: { id: number; media_type: 'movie' | 'tv' }) { return `/${item.media_type}/${item.id}` }
+function readLibrary(): LibraryState { return { continueWatching: store.getContinueWatching(), watchlist: store.getWatchlist(), favorites: store.getFavorites() } }
 
 export function LibraryShowcase() {
-  const root = useRef<HTMLElement>(null)
-
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo('.lib-header',
-        { y: 30, opacity: 0 },
-        { 
-          y: 0, opacity: 1, duration: 1, ease: 'power3.out',
-          scrollTrigger: {
-            trigger: root.current,
-            start: 'top 75%'
-          }
-        }
-      )
-
-      gsap.fromTo('.lib-progress',
-        { width: '0%' },
-        {
-          width: '65%', duration: 1.5, ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '.lib-card',
-            start: 'top 80%'
-          }
-        }
-      )
-      
-      gsap.fromTo('.lib-card',
-        { y: 30, opacity: 0 },
-        {
-          y: 0, opacity: 1, duration: 0.8, stagger: 0.15, ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '.lib-grid',
-            start: 'top 80%'
-          }
-        }
-      )
-
-    }, root)
-    return () => ctx.revert()
-  }, [])
-
-  return (
-    <section ref={root} className="py-24 relative z-20 bg-[#050507]">
-      <div className="mx-auto max-w-[1440px] px-6 lg:px-12 text-center">
-        
-        <div className="lib-header mb-16 max-w-3xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Your night, remembered.
-          </h2>
-          <p className="text-xl text-white/60">
-            Pick up exactly where you left off. Build your watchlist. Save your favorites. VEYRA remembers your journey across every tab.
-          </p>
-        </div>
-
-        <div className="lib-grid grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <div className="lib-card p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
-            <h3 className="text-lg font-bold text-white mb-4">Continue Watching</h3>
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <div className="w-16 h-24 bg-white/10 rounded flex-shrink-0" />
-                <div className="flex-1 py-2">
-                  <div className="w-3/4 h-4 bg-white/20 rounded mb-4" />
-                  <div className="w-full h-1 bg-white/10 rounded overflow-hidden">
-                    <div className="lib-progress h-full bg-primary rounded" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="lib-card p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
-            <h3 className="text-lg font-bold text-white mb-4">Watchlist</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="aspect-[2/3] bg-white/10 rounded" />
-              ))}
-            </div>
-          </div>
-          
-          <div className="lib-card p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
-            <h3 className="text-lg font-bold text-white mb-4">Favorites</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="aspect-video bg-white/10 rounded" />
-              ))}
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-  )
+  const [library, setLibrary] = useState<LibraryState>(emptyState)
+  useEffect(() => { const sync = () => setLibrary(readLibrary()); sync(); return subscribeToStorageChanges('all', sync) }, [])
+  return <LandingSection id="personal-library" eyebrow="Your library" title="Your night, remembered." description="The titles you save and return to stay in your local VEYRA library."><div className="grid gap-4 lg:grid-cols-3">
+    <LibraryPanel title="Continue Watching"><ul className="space-y-3">{library.continueWatching.slice(0, 2).map((item) => <li key={`${item.media_type}-${item.id}`}><Link href={hrefFor(item)} className="flex min-h-20 gap-3 rounded-lg p-2 hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b8f7d4]"><Image src={poster(item.poster_path, 'w185')} alt="" width={40} height={60} sizes="40px" className="h-[60px] w-10 rounded object-cover" /><span className="min-w-0 py-1"><span className="block truncate text-sm font-semibold text-white">{item.title}</span><span className="mt-1 block text-xs text-white/55">{item.media_type === 'tv' && item.season ? `Season ${item.season}${item.episode ? ` · Episode ${item.episode}` : ''}` : 'Ready to resume'}</span>{item.episodeTitle ? <span className="mt-1 block truncate text-[11px] text-[#b8f7d4]">{item.episodeTitle}</span> : null}</span></Link></li>)}</ul>{!library.continueWatching.length ? <Empty copy="Start a title and your saved place will appear here." /> : null}</LibraryPanel>
+    <LibraryPanel title="Watchlist"><PosterShelf items={library.watchlist} /><Empty when={Boolean(library.watchlist.length)} copy="Keep a short list for the stories you want to return to." /></LibraryPanel><LibraryPanel title="Favorites"><PosterShelf items={library.favorites} /><Empty when={Boolean(library.favorites.length)} copy="Mark the titles you want close at hand." /></LibraryPanel>
+  </div><div className="mt-6 flex flex-wrap justify-center gap-4"><Link href="/browse" className="inline-flex min-h-11 items-center rounded-full bg-[#b8f7d4] px-5 text-sm font-bold text-[#050507] hover:bg-[#d2ffe7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8f7d4]">Explore the catalog</Link><Link href="/my-list" className="inline-flex min-h-11 items-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white hover:border-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8f7d4]">Open My List</Link></div></LandingSection>
 }
+function LibraryPanel({ title, children }: { title: string; children: ReactNode }) { return <section className="min-h-[240px] rounded-2xl border border-white/10 bg-[#0b111a] p-5"><h3 className="font-display text-xl font-bold text-white">{title}</h3><div className="mt-4">{children}</div></section> }
+function PosterShelf({ items }: { items: Array<WatchlistItem | FavoriteItem> }) { return items.length ? <ul className="grid grid-cols-4 gap-2">{items.slice(0, 4).map((item) => <li key={`${item.media_type}-${item.id}`}><Link href={hrefFor(item)} aria-label={`Open ${item.title || item.name || 'saved title'}`} className="relative block aspect-[2/3] overflow-hidden rounded-md bg-white/[0.07] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b8f7d4]"><Image src={poster(item.poster_path, 'w185')} alt="" fill sizes="72px" className="object-cover" /></Link></li>)}</ul> : null }
+function Empty({ copy, when = false }: { copy: string; when?: boolean }) { return when ? null : <p className="flex min-h-24 items-center text-sm leading-6 text-white/60">{copy}</p> }

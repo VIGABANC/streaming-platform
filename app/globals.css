@@ -134,7 +134,7 @@ body {
 }
 
 /* ── Touch Target Enforcement (≥44px on mobile) ────────────────────────── */
-.touch-target {
+@utility touch-target {
   min-width: 44px;
   min-height: 44px;
   display: inline-flex;
@@ -263,6 +263,7 @@ body {
   gap: 0.625rem;
   padding: 0 1.75rem;
   height: 3rem;
+  min-height: 3rem;
   transition: background 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
   box-shadow: 0 4px 20px rgba(229, 9, 20, 0.35);
 }

@@ -37,10 +37,13 @@ test.describe('Home Page & Core Layout', () => {
     await expect(page.getByRole('link', { name: 'Airing Today', exact: true })).toHaveAttribute('href', '/tv')
   })
 
-  test('skip link focuses main content', async ({ page }) => {
+  test('skip link is focusable and targets main content', async ({ page }) => {
     await page.goto('/')
     const skipLink = page.locator('a.skip-link')
     await expect(skipLink).toBeAttached()
+    await skipLink.focus()
+    await expect(skipLink).toBeFocused()
+    await expect(skipLink).toHaveAttribute('href', '#main-content')
   })
 
   test('renders the catalog feed at /browse', async ({ page }) => {

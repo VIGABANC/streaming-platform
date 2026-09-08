@@ -65,6 +65,10 @@ export async function requestJson(fetchImpl: FetchLike, url: string, init: Reque
   }
 }
 
+function isJsonModeFailure(error: unknown): boolean {
+  return error instanceof AIProviderError && error.kind === 'invalid_response' && error.status === 400
+}
+
 function chatBody(value: unknown): string {
   const body = record(value)
   const choices = Array.isArray(body.choices) ? body.choices : []
@@ -88,24 +92,32 @@ export function createChatProvider(options: {
     model: options.model,
     supportsJson: true,
     async normalize(input: SanitizedFeedback, context: AIProviderContext): Promise<NormalizedFeedback> {
-      const value = await requestJson(options.fetchImpl ?? fetch, options.endpoint, {
+      const body = (useJsonMode: boolean) => JSON.stringify({
+        model: options.model,
+        messages: [
+          { role: 'system', content: 'You normalize VEYRA feedback into strict JSON. Return one valid JSON object and no markdown.' },
+          { role: 'user', content: buildNormalizationPrompt(input) },
+        ],
+        temperature: 0,
+        max_tokens: 1_200,
+        ...(useJsonMode ? { response_format: { type: 'json_object' } } : {}),
+      })
+      const request = (useJsonMode: boolean) => requestJson(options.fetchImpl ?? fetch, options.endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${options.apiKey}`,
           'Content-Type': 'application/json',
           ...options.headers,
         },
-        body: JSON.stringify({
-          model: options.model,
-          messages: [
-            { role: 'system', content: 'You normalize VEYRA feedback into strict JSON.' },
-            { role: 'user', content: buildNormalizationPrompt(input) },
-          ],
-          temperature: 0,
-          max_tokens: 1_200,
-          response_format: { type: 'json_object' },
-        }),
+        body: body(useJsonMode),
       }, context)
+      let value: unknown
+      try {
+        value = await request(true)
+      } catch (error) {
+        if (!isJsonModeFailure(error)) throw error
+        value = await request(false)
+      }
       return parseNormalizedFeedback(chatBody(value), input)
     },
   }

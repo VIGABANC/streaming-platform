@@ -4,6 +4,7 @@ import {
   getAIConfig,
 } from '@/lib/ai/config'
 import { createGroqProvider } from '@/lib/ai/providers/groq'
+import { deterministicFallback } from '@/lib/feedback/normalize'
 import type { SanitizedFeedback } from '@/lib/feedback/types'
 
 const input: SanitizedFeedback = {
@@ -51,6 +52,30 @@ describe('AI provider configuration', () => {
 
     await expect(provider.normalize(input, { signal: new AbortController().signal }))
       .rejects.toMatchObject({ kind: 'rate_limit', retryAfterMs: 4000 })
+  })
+
+  it('retries without JSON mode when a provider rejects response_format', async () => {
+    let calls = 0
+    const provider = createGroqProvider({
+      apiKey: 'key',
+      model: 'model',
+      fetchImpl: async (_url, init) => {
+        calls += 1
+        const body = JSON.parse(String(init?.body)) as { response_format?: unknown }
+        if (body.response_format) {
+          return { ok: false, status: 400, headers: { get: () => null } } as unknown as Response
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: async () => ({ choices: [{ message: { content: JSON.stringify(deterministicFallback(input)) } }] }),
+        } as unknown as Response
+      },
+    })
+
+    await expect(provider.normalize(input, { signal: new AbortController().signal })).resolves.toMatchObject({ title: expect.any(String) })
+    expect(calls).toBe(2)
   })
 
   it('does not enable optional providers when paid use is disabled', () => {

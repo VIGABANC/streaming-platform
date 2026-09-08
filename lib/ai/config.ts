@@ -12,7 +12,7 @@ import { aiProviderIds, type AIConfig, type AIProvider, type AIProviderId } from
 const defaultOrder: AIProviderId[] = [...aiProviderIds]
 const defaultModels: Record<AIProviderId, string> = {
   groq: 'openai/gpt-oss-20b',
-  gemini: 'gemini-2.0-flash-lite',
+  gemini: 'gemini-3.5-flash-lite',
   cloudflare: '@cf/meta/llama-3.1-8b-instruct',
   mistral: 'mistral-small-latest',
   openrouter: 'openrouter/free',

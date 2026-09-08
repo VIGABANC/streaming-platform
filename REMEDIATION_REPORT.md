@@ -86,6 +86,17 @@ legal gate are documented in `docs/anime-data-sources.md`.
   393×727; detailed local-only timings are in `PAGESPEED_BASELINE.md`.
 - Supplied historical PageSpeed reports — inspected and recorded without
   treating `/audit` SEO results as catalog SEO results.
+- Vercel Preview smoke check — the branch deployment is available at
+  `https://streaming-platform-git-codex-1f0874-zahidossama2-1958s-projects.vercel.app/`.
+  `/anime` and `/anime/1` resolve to the deployed Anime route and its explicit
+  unavailable state when AniList is unreachable; `/robots.txt` and
+  `/sitemap.xml` return successfully. The separate
+  `streaming-platform-beryl.vercel.app` URL served an older/different
+  deployment and returned 404 for the Anime routes, so it is not evidence for
+  this branch.
+- Direct AniList probe from the verification environment returned HTTP 403;
+  the deployed app preserved its documented source-isolated unavailable state
+  instead of crashing or blocking movie/TV discovery.
 
 ## Release gates outside this worktree
 

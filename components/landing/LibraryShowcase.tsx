@@ -1,13 +1,24 @@
 'use client'
 
 import { useLayoutEffect, useRef } from 'react'
+import Image from 'next/image'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { poster, backdrop, titleOf } from '@/lib/tmdb'
+import type { Media } from '@/lib/tmdb'
 
 gsap.registerPlugin(ScrollTrigger)
 
-export function LibraryShowcase() {
+interface LibraryShowcaseProps {
+  items?: Media[]
+}
+
+export function LibraryShowcase({ items = [] }: LibraryShowcaseProps) {
   const root = useRef<HTMLElement>(null)
+
+  const heroItem = items[0]
+  const watchlistItems = items.slice(1, 7)
+  const favoriteItems = items.slice(7, 11)
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -62,34 +73,84 @@ export function LibraryShowcase() {
         </div>
 
         <div className="lib-grid grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Continue Watching */}
           <div className="lib-card p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
             <h3 className="text-lg font-bold text-white mb-4">Continue Watching</h3>
             <div className="space-y-4">
-              <div className="flex gap-4">
-                <div className="w-16 h-24 bg-white/10 rounded flex-shrink-0" />
+              <div className="flex gap-4 items-center">
+                <div className="w-16 h-24 bg-white/10 rounded flex-shrink-0 relative overflow-hidden">
+                  {heroItem?.poster_path && (
+                    <Image
+                      src={poster(heroItem.poster_path, 'w185')}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  )}
+                </div>
                 <div className="flex-1 py-2">
-                  <div className="w-3/4 h-4 bg-white/20 rounded mb-4" />
-                  <div className="w-full h-1 bg-white/10 rounded overflow-hidden">
-                    <div className="lib-progress h-full bg-primary rounded" />
+                  <div className="text-white font-semibold text-sm truncate mb-1">
+                    {heroItem ? titleOf(heroItem) : 'Inception'}
+                  </div>
+                  <div className="text-white/40 text-xs mb-3">42m remaining</div>
+                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="lib-progress h-full bg-primary rounded-full" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
           
+          {/* Watchlist */}
           <div className="lib-card p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
             <h3 className="text-lg font-bold text-white mb-4">Watchlist</h3>
             <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 3, 4, 5, 6].map(i => (
+              {watchlistItems.map((item, i) => (
+                <div key={item.id || i} className="aspect-[2/3] bg-white/10 rounded relative overflow-hidden">
+                  {item.poster_path && (
+                    <Image
+                      src={poster(item.poster_path, 'w185')}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                    />
+                  )}
+                </div>
+              ))}
+              {Array.from({ length: Math.max(0, 6 - watchlistItems.length) }).map((_, i) => (
                 <div key={i} className="aspect-[2/3] bg-white/10 rounded" />
               ))}
             </div>
           </div>
           
+          {/* Favorites */}
           <div className="lib-card p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
             <h3 className="text-lg font-bold text-white mb-4">Favorites</h3>
             <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map(i => (
+              {favoriteItems.map((item, i) => (
+                <div key={item.id || i} className="aspect-video bg-white/10 rounded relative overflow-hidden">
+                  {item.backdrop_path ? (
+                    <Image
+                      src={backdrop(item.backdrop_path, 'w300')}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="140px"
+                    />
+                  ) : item.poster_path ? (
+                    <Image
+                      src={poster(item.poster_path, 'w342')}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="140px"
+                    />
+                  ) : null}
+                </div>
+              ))}
+              {Array.from({ length: Math.max(0, 4 - favoriteItems.length) }).map((_, i) => (
                 <div key={i} className="aspect-video bg-white/10 rounded" />
               ))}
             </div>

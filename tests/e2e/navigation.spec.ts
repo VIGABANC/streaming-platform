@@ -21,7 +21,44 @@ test.describe('Responsive Navigation', () => {
     const footer = page.getByRole('contentinfo')
     await expect(footer.getByRole('link', { name: 'Browse' })).toHaveAttribute('href', '/browse')
     await expect(footer.getByRole('link', { name: 'Favorites' })).toHaveAttribute('href', '/favorites')
+    await expect(footer.getByRole('link', { name: 'Continue watching' })).toHaveAttribute('href', '/history')
+    await expect(footer.getByRole('link', { name: 'Continue watching' })).toHaveCSS('min-height', '44px')
     await expect(footer.getByText('VEYRA does not host or store video media. Playback is provided by third-party providers.')).toBeVisible()
+  })
+
+  test('landing season selector loads selected season episodes from the TV season API', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.setExtraHTTPHeaders({ 'x-veyra-e2e-landing-data': 'seasons' })
+    await page.route('**/api/tv/100/season/2', async (route) => {
+      await route.fulfill({ json: {
+        id: 200,
+        name: 'Season 2',
+        season_number: 2,
+        episodes: [{ id: 201, name: 'Second signal', episode_number: 1, season_number: 2 }],
+      } })
+    })
+    await page.goto('/')
+
+    const seasons = page.getByRole('region', { name: 'Every season. Every episode.' })
+    await expect(seasons.getByRole('button', { name: 'Season 1' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(seasons.getByRole('button', { name: 'Season 1' })).toHaveCSS('min-height', '44px')
+    await seasons.getByRole('button', { name: 'Season 2' }).click()
+    await expect(seasons.getByRole('list', { name: 'Season 2 episodes' })).toContainText('Second signal')
+  })
+
+  test('landing continue-watching links resume persisted movie and TV entries', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('veyra-continue-watching', JSON.stringify([
+        { id: 11, media_type: 'movie', title: 'Saved movie', lastOpenedAt: 2 },
+        { id: 22, media_type: 'tv', title: 'Saved show', season: 3, episode: 4, lastOpenedAt: 1 },
+      ]))
+    })
+    await page.setExtraHTTPHeaders({ 'x-veyra-e2e-landing-data': 'unavailable' })
+    await page.goto('/')
+
+    const library = page.getByRole('region', { name: 'Your night, remembered.' })
+    await expect(library.getByRole('link', { name: 'Saved movie' })).toHaveAttribute('href', '/watch/movie/11')
+    await expect(library.getByRole('link', { name: 'Saved show' })).toHaveAttribute('href', '/watch/tv/22/3/4')
   })
 
   test('mobile bottom navigation displays navigation items on small screens', async ({ page }) => {

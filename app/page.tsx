@@ -32,6 +32,29 @@ const unavailableLandingData: LandingData = {
   },
 }
 
+const seasonFixtureLandingData: LandingData = {
+  lists: unavailableLandingData.lists,
+  detail: {
+    detail: {
+      id: 100,
+      name: 'Fixture Signal',
+      media_type: 'tv',
+      genres: [],
+      production_companies: [],
+      seasons: [
+        { id: 101, name: 'Season 1', season_number: 1, episode_count: 1 },
+        { id: 102, name: 'Season 2', season_number: 2, episode_count: 1 },
+      ],
+    },
+    season: {
+      id: 101,
+      name: 'Season 1',
+      season_number: 1,
+      episodes: [{ id: 111, name: 'First signal', episode_number: 1, season_number: 1 }],
+    },
+  },
+}
+
 async function safe<T>(loader: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await loader()
@@ -81,11 +104,12 @@ async function loadLandingData(providerId?: number): Promise<LandingData> {
 
 export default async function LandingPage({ searchParams }: { searchParams?: SearchParams }) {
   const params = searchParams ? await searchParams : {}
-  const useUnavailableFixture = (await headers()).get('x-veyra-e2e-landing-data') === 'unavailable'
+  const landingFixture = (await headers()).get('x-veyra-e2e-landing-data')
+  const useUnavailableFixture = landingFixture === 'unavailable'
   const requestedProviderId = params.provider ? Number(params.provider) : undefined
   const providers = useUnavailableFixture ? [] : await safe(() => getProviders(), [])
   const provider = providers.find((item) => item.provider_id === requestedProviderId)
-  const landingData = useUnavailableFixture ? unavailableLandingData : await loadLandingData(provider?.provider_id)
+  const landingData = useUnavailableFixture ? unavailableLandingData : landingFixture === 'seasons' ? seasonFixtureLandingData : await loadLandingData(provider?.provider_id)
   const heroItem = landingData.detail?.detail.backdrop_path ? landingData.detail.detail : firstWithBackdrop(landingData.lists.trending) ?? firstWithBackdrop(landingData.lists.popularMovies)
 
   return <div className="min-h-screen overflow-x-hidden bg-[#050507] text-white selection:bg-amber-400/30">

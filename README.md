@@ -1,44 +1,68 @@
+<div align="center">
+
+<img src="./public/icon.svg" alt="VEYRA" height="72" />
+
 # VEYRA — The Night Signal
 
-VEYRA is a high-performance cinematic discovery and streaming frontend built with Next.js 16 (Turbopack), Tailwind CSS, TypeScript, and TMDB API.
+**A cinematic discovery and streaming frontend for movies and television.**
+
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![TMDB](https://img.shields.io/badge/Powered_by-TMDB-01b4e4?style=flat-square)](https://www.themoviedb.org)
+
+[Features](#features) • [Getting Started](#getting-started) • [Project Structure](#project-structure) • [Configuration](#configuration) • [Testing](#testing)
+
+</div>
 
 ---
+
+VEYRA is a high-performance, dark-mode-first streaming discovery interface built with **Next.js 16** and **Turbopack**. It integrates with the [TMDB API](https://www.themoviedb.org) to surface trending, popular, top-rated, and newly released movies and TV shows through a polished, cinematic UI.
 
 ## Features
 
-- **Cinematic Discovery**: Curated rails for Trending, Popular, Top Rated, Now Playing, Airing Today, and On The Air.
-- **Universal Finder (Search)**: Debounced multi-search with URL query persistence, recent search history, category filtering, and `/` hotkey focus.
-- **Dynamic Detail Pages**: Comprehensive movie and TV details including backdrops, trailers, cast, production info, recommendations, and ratings.
-- **Full TV Season & Episode Navigation**: Multi-season dropdown/tabs, specials handling, episode cards with runtime, air date, and overview.
-- **Watchlist, Favorites & Continue Watching**: Reactive client-side media storage synchronized across browser tabs with dedicated management views.
-- **Video Player Frame**: Embedded playback with configurable provider (`NEXT_PUBLIC_EMBED_PROVIDER`), tiered load timeout warnings, and fallback recovery.
-- **PWA & Offline Ready**: Web App Manifest with application shell caching and an offline fallback route.
-- **Accessibility & SEO**: Semantic HTML5, skip navigation links, OpenGraph metadata, `sitemap.xml`, and `robots.txt`.
-
----
+- **Cinematic Discovery** — Curated rails for Trending, Popular, Top Rated, Now Playing, Airing Today, and On The Air content.
+- **Universal Search** — Debounced multi-search with URL query persistence, recent search history, category filtering, and a `/` hotkey focus shortcut.
+- **Dynamic Detail Pages** — Comprehensive movie and TV detail views with backdrops, trailers, cast, production info, recommendations, and ratings.
+- **Full TV Navigation** — Multi-season dropdowns, specials handling, and episode cards with runtime, air date, and overview.
+- **Personal Library** — Watchlist, Favorites, and Continue Watching lists backed by `localStorage` and synchronized reactively across browser tabs.
+- **Embedded Video Player** — Configurable embed provider with tiered load timeout warnings and fallback recovery.
+- **PWA & Offline Support** — Web App Manifest with application shell caching and an offline fallback route.
+- **Accessibility & SEO** — Semantic HTML5, skip navigation links, OpenGraph metadata, `sitemap.xml`, and `robots.txt`.
 
 ## Getting Started
 
-### 1. Environment Setup
+### Prerequisites
 
-Copy the example environment template:
+- [Node.js 20+](https://nodejs.org/)
+- A free [TMDB API key](https://www.themoviedb.org/settings/api)
+
+### 1. Clone & install
+
+```bash
+git clone https://github.com/your-username/streaming-platform.git
+cd streaming-platform
+npm install
+```
+
+### 2. Configure environment
 
 ```bash
 cp .env.example .env.local
 ```
 
-Configure your environment variables in `.env.local`:
+Edit `.env.local`:
 
 ```env
-# TMDB API Key (Required for catalog browsing and search)
-# Get your free key at: https://www.themoviedb.org/settings/api
+# Required — get your free key at https://www.themoviedb.org/settings/api
 TMDB_API_KEY=your_tmdb_api_key_here
 
-# Embed provider base URL (Default: https://v1.vidsrc.wiki)
+# Optional — defaults to https://v1.vidsrc.wiki
 NEXT_PUBLIC_EMBED_PROVIDER=https://v1.vidsrc.wiki
 ```
 
-> **Security Note:** `TMDB_API_KEY` is server-side only and never exposed to client bundles.
+> [!IMPORTANT]
+> `TMDB_API_KEY` is server-side only and must never be prefixed with `NEXT_PUBLIC_`. It is never exposed to client bundles.
 
 ### Telegram feedback and AI enrichment
 
@@ -62,50 +86,91 @@ npm install
 
 ---
 
-### 3. Development Server
-
-Start the local development server:
+### 3. Start the development server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view VEYRA in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
----
+## Project Structure
 
-### 4. Quality Verification & Testing
+```
+streaming-platform/
+├── app/                   # Next.js App Router pages & API routes
+│   ├── api/               # Server-side route handlers (search, TV)
+│   ├── movie/             # Movie detail pages
+│   ├── tv/                # TV detail & season/episode pages
+│   ├── browse/            # Catalog browse views
+│   ├── discover/          # Discovery by genre and filters
+│   ├── search/            # Search results page
+│   ├── my-list/           # Watchlist management
+│   ├── favorites/         # Favorites management
+│   ├── history/           # Watch history
+│   ├── watch/             # Embedded video player
+│   └── profile/           # User settings and profile
+├── components/            # Shared React components
+│   ├── landing/           # Homepage showcase sections
+│   ├── media/             # Media cards, rails, and posters
+│   ├── player/            # Video player UI
+│   ├── layout/            # Navigation and shell
+│   └── ui/                # Primitive UI components (shadcn/ui)
+├── lib/
+│   ├── tmdb.ts            # TMDB API client (server-side)
+│   ├── store.ts           # localStorage-backed user data store
+│   ├── player.ts          # Player state and utilities
+│   └── utils.ts           # Shared utilities
+├── public/                # Static assets and PWA manifest
+└── tests/
+    ├── unit/              # Vitest unit tests
+    ├── integration/       # Vitest integration tests
+    └── e2e/               # Playwright end-to-end tests
+```
 
-Run the test suites:
+## Configuration
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `TMDB_API_KEY` | Yes | — | TMDB API key (server-side only) |
+| `NEXT_PUBLIC_EMBED_PROVIDER` | No | `https://v1.vidsrc.wiki` | Base URL for the video embed provider |
+
+The player constructs embed URLs in the following format:
+
+- Movies: `{EMBED_PROVIDER}/embed/movie/{tmdb_id}/`
+- TV episodes: `{EMBED_PROVIDER}/embed/tv/{tmdb_id}/{season}/{episode}/`
+
+## Testing
 
 ```bash
-# Run unit and integration tests (Vitest)
+# Unit and integration tests (Vitest)
 npm test
 
-# Run end-to-end tests (Playwright)
+# End-to-end tests (Playwright)
 npm run test:e2e
 
-# Run TypeScript compiler check
+# TypeScript type checking
 npm run typecheck
 
-# Run linter
+# Linting
 npm run lint
 ```
 
----
+## Deployment
 
-### 5. Production Build
-
-Build and launch the optimized production server:
+Build the optimized production bundle and start the server:
 
 ```bash
 npm run build
 npm run start
 ```
 
----
+VEYRA is designed to deploy on [Vercel](https://vercel.com) with zero configuration. Set the required environment variables in your Vercel project settings before deploying.
 
-## Attribution & Disclaimers
+> [!NOTE]
+> Vercel Analytics is automatically enabled in production via `@vercel/analytics`.
 
-- **TMDB**: This product uses the TMDB API but is not endorsed or certified by TMDB.
-- **External Video Providers**: Video streams are served via external embed providers. VEYRA does not host, store, or stream media content directly.
+## Attribution
+
+- **TMDB** — This product uses the TMDB API but is not endorsed or certified by TMDB.
+- **External Video Providers** — Video streams are served via third-party embed providers. VEYRA does not host, store, or stream any media content directly.

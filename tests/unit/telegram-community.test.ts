@@ -18,6 +18,15 @@ describe('VEYRA Community Bot', () => {
     await handleCommunityUpdate(update, { feedbackBotUsername: 'veyra_feedback_bot', messenger: { sendMessage: async (_chat, text, options) => { sent.push({ text, options }) } } })
     expect(sent[0].text).toContain('Welcome')
     expect(JSON.stringify(sent[0].options)).toContain('start=bug')
+    expect(JSON.stringify(sent[0].options)).toContain('https://streaming-platform-beryl.vercel.app/search')
+  })
+
+  it('answers report command with a direct private feedback button', async () => {
+    const sent: Array<{ text: string; options?: unknown }> = []
+    const update = parseCommunityUpdate({ message: { message_id: 5, chat: { id: -2, type: 'group' }, text: '/report' } }, 'veyra_bot')
+    await handleCommunityUpdate(update, { feedbackBotUsername: 'veyra_feedback_bot', messenger: { sendMessage: async (_chat, text, options) => { sent.push({ text, options }) } } })
+    expect(sent[0].text).toContain('Open the private Feedback Bot')
+    expect(JSON.stringify(sent[0].options)).toContain('https://t.me/veyra_feedback_bot?start=bug')
   })
 
   it('does not spam the group with extra messages for menu callbacks', async () => {

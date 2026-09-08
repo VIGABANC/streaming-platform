@@ -9,7 +9,10 @@ describe('Telegram UI', () => {
   it('keeps public community actions as buttons and routes reports privately', () => {
     const keyboard = communityKeyboard('veyra_feedback_bot')
     expect(keyboard.inline_keyboard.flat().some((button) => button.url?.includes('start=bug'))).toBe(true)
-    expect(keyboard.inline_keyboard.flat().some((button) => button.callback_data === 'community:search')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://streaming-platform-beryl.vercel.app/search')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://streaming-platform-beryl.vercel.app/movies')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.url === 'https://t.me/veyra_feedback_bot?start=playback')).toBe(true)
+    expect(keyboard.inline_keyboard.flat().some((button) => button.callback_data === 'community:search')).toBe(false)
   })
 
   it('uses compact callback ids for wizard and admin actions', () => {

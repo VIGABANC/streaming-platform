@@ -19,12 +19,19 @@ export function deepLink(username: string, payload: string): string {
   return `https://t.me/${normalized}?start=${encodeURIComponent(payload)}`
 }
 
-export function communityKeyboard(feedbackUsername = ''): TelegramReplyMarkup {
+const DEFAULT_VEYRA_BASE_URL = 'https://streaming-platform-beryl.vercel.app'
+
+function siteUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/$/, '')}${path}`
+}
+
+export function communityKeyboard(feedbackUsername = '', baseUrl = DEFAULT_VEYRA_BASE_URL): TelegramReplyMarkup {
   const feedback = feedbackUsername ? deepLink(feedbackUsername, 'bug') : undefined
   return inlineKeyboard([
-    [{ text: '🎬 Discover', callback_data: 'community:discover' }, { text: '🔎 Search', callback_data: 'community:search' }],
-    [{ text: '🎭 Movies', callback_data: 'community:movies' }, { text: '📺 Series', callback_data: 'community:series' }],
-    [{ text: '🍥 Anime', callback_data: 'community:anime' }, { text: '🆘 Help', callback_data: 'community:help' }],
+    [{ text: '🔎 Search VEYRA', url: siteUrl(baseUrl, '/search') }, { text: '🎬 Discover', url: siteUrl(baseUrl, '/discover') }],
+    [{ text: '🎭 Movies', url: siteUrl(baseUrl, '/movies') }, { text: '📺 Series', url: siteUrl(baseUrl, '/tv') }],
+    [{ text: '🍥 Anime', url: siteUrl(baseUrl, '/discover') }, { text: '🆘 Help', callback_data: 'community:help' }],
+    feedback ? [{ text: '▶️ Playback issue', url: deepLink(feedbackUsername, 'playback') }] : [{ text: '▶️ Playback issue', callback_data: 'community:report:playback' }],
     feedback ? [{ text: '🐛 Report a problem', url: feedback }] : [{ text: '🐛 Report a problem', callback_data: 'community:report:bug' }],
     feedback ? [{ text: '💡 Suggest a feature', url: deepLink(feedbackUsername, 'feature') }] : [{ text: '💡 Suggest a feature', callback_data: 'community:report:feature' }],
   ])

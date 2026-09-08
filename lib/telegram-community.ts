@@ -32,6 +32,7 @@ export function parseCommunityUpdate(update: unknown, username = ''): ParsedComm
 export interface CommunityDependencies {
   messenger: TelegramMessenger
   feedbackBotUsername?: string
+  siteBaseUrl?: string
 }
 
 function feedbackLink(username: string, type: string): TelegramReplyMarkup {
@@ -60,13 +61,18 @@ export async function handleCommunityUpdate(update: ParsedCommunityUpdate, depen
     const answer = answers[action ?? 'help'] ?? answers.help
     await dependencies.messenger.answerCallbackQuery?.(update.callbackId, answer)
     if (!dependencies.messenger.answerCallbackQuery) {
-      await dependencies.messenger.sendMessage(update.chatId, answer, { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername) })
+      await dependencies.messenger.sendMessage(update.chatId, answer, { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername, dependencies.siteBaseUrl) })
     }
     return
   }
   const command = update.text.match(/^\/(start|help|report)\b/i)?.[1]?.toLowerCase()
-  if (command === 'start' || command === 'help' || command === 'report') {
-    await dependencies.messenger.sendMessage(update.chatId, 'Welcome to VEYRA Community 🎬\n\nChoose what you need:', { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername) })
+  if (command === 'report') {
+    const feedbackUsername = dependencies.feedbackBotUsername
+    await dependencies.messenger.sendMessage(update.chatId, feedbackUsername ? 'Open the private Feedback Bot to send your report safely.' : 'Feedback Bot is not configured yet. Please contact a VEYRA admin.', { replyMarkup: feedbackUsername ? feedbackLink(feedbackUsername, 'bug') : undefined })
+    return
+  }
+  if (command === 'start' || command === 'help') {
+    await dependencies.messenger.sendMessage(update.chatId, 'Welcome to VEYRA Community 🎬\n\nWhat do you want to do?', { replyMarkup: communityKeyboard(dependencies.feedbackBotUsername, dependencies.siteBaseUrl) })
     return
   }
   const text = update.text.replace(/@\w+/g, '').trim()
@@ -75,11 +81,12 @@ export async function handleCommunityUpdate(update: ParsedCommunityUpdate, depen
     await dependencies.messenger.sendMessage(update.chatId, feedbackUsername ? 'Open the private Feedback Bot to send your report safely.' : 'Feedback Bot is not configured yet. Please contact a VEYRA admin.', { replyMarkup: feedbackUsername ? feedbackLink(feedbackUsername, 'bug') : undefined })
     return
   }
-  await dependencies.messenger.sendMessage(update.chatId, 'Choose what you need:', { replyMarkup: communityKeyboard(feedbackUsername) })
+  await dependencies.messenger.sendMessage(update.chatId, 'What do you want to do?', { replyMarkup: communityKeyboard(feedbackUsername, dependencies.siteBaseUrl) })
 }
 
 export function createCommunityTelegramDependencies(env: Record<string, string | undefined> = process.env): CommunityDependencies {
-  return { messenger: createTelegramClient(env, fetch, 'TELEGRAM_COMMUNITY_BOT_TOKEN'), feedbackBotUsername: env.TELEGRAM_FEEDBACK_BOT_USERNAME }
+  const productionUrl = env.NEXT_PUBLIC_SITE_URL ?? (env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined)
+  return { messenger: createTelegramClient(env, fetch, 'TELEGRAM_COMMUNITY_BOT_TOKEN'), feedbackBotUsername: env.TELEGRAM_FEEDBACK_BOT_USERNAME, siteBaseUrl: productionUrl }
 }
 
 export function formatCommunityWebhookError(error: unknown): string { return formatTelegramWebhookError(error) }

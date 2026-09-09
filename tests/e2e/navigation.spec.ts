@@ -5,7 +5,7 @@ test.describe('Responsive Navigation', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
 
-    const mobileNav = page.locator('nav[aria-label="Mobile navigation"]')
+    const mobileNav = page.locator('nav[aria-label="Mobile navigation"]:visible')
     await expect(mobileNav).toBeVisible()
     await expect(mobileNav.getByRole('link', { name: 'Home' })).toBeVisible()
     await expect(mobileNav.getByRole('link', { name: 'Movies' })).toBeVisible()
@@ -18,7 +18,7 @@ test.describe('Responsive Navigation', () => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/')
 
-    const mainNav = page.locator('nav[aria-label="Main navigation"]')
+    const mainNav = page.locator('nav[aria-label="Main navigation"]:visible').filter({ has: page.getByRole('link', { name: 'Home', exact: true }) }).first()
     await expect(mainNav).toBeVisible()
     await expect(mainNav.getByRole('link', { name: 'Home' })).toBeVisible()
     await expect(mainNav.getByRole('link', { name: 'Movies' })).toBeVisible()

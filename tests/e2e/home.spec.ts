@@ -5,8 +5,9 @@ test.describe('Home Page & Core Layout', () => {
     await page.goto('/')
 
     // Header and logo
-    await expect(page.locator('header')).toBeVisible()
-    await expect(page.locator('header').getByRole('link', { name: 'VEYRA' })).toBeVisible()
+    const siteHeader = page.locator('header').filter({ has: page.getByRole('link', { name: 'VEYRA — home', exact: true }) }).first()
+    await expect(siteHeader).toBeVisible()
+    await expect(siteHeader.getByRole('link', { name: 'VEYRA — home', exact: true })).toBeVisible()
 
     // TMDB attribution in footer
     await expect(page.locator('footer')).toContainText('TMDB')

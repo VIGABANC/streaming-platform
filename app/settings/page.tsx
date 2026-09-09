@@ -125,6 +125,38 @@ export default function SettingsPage() {
             </select>
           </div>
 
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-white">Server Selection</p>
+            <p className="text-xs text-white/50">Auto ranks configured servers by recent health; manual starts with your preferred server.</p>
+            <select
+              value={settings.playerMode ?? 'auto'}
+              onChange={(e) => updateSetting('playerMode', e.target.value as 'auto' | 'manual')}
+              className="w-full rounded-xl border border-white/15 bg-black/60 p-3 text-xs font-semibold text-white focus:border-primary focus:outline-none"
+            >
+              <option value="auto">AUTO — Recommended</option>
+              <option value="manual">MANUAL — Preferred Server</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-white">Preferred subtitles</p>
+            <p className="text-xs text-white/50">Applied only by providers that document subtitle selection. Other providers remain provider-controlled.</p>
+            <select
+              value={settings.subtitleLanguage}
+              onChange={(e) => updateSetting('subtitleLanguage', e.target.value as UserSettings['subtitleLanguage'])}
+              className="w-full rounded-xl border border-white/15 bg-black/60 p-3 text-xs font-semibold text-white focus:border-primary focus:outline-none"
+            >
+              <option value="auto">Auto — Provider controlled</option>
+              <option value="en">English</option>
+              <option value="ar">Arabic</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="es">Spanish</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+            </select>
+          </div>
+
           {/* Ambient Lighting */}
           <div className="flex items-center justify-between gap-4">
             <div>

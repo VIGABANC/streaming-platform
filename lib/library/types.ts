@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   autoplayNext: true,
   defaultServer: 'vidsrc-wiki',
   streamQuality: 'auto',
+  subtitleLanguage: 'auto',
   ambientLighting: true,
   reducedMotion: false,
 }

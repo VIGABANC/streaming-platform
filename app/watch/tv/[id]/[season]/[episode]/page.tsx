@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ChevronLeft, ChevronRight, Tv, Clock } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { PlayerFrame } from '@/components/player/PlayerFrame'
-import { ContinueWatchingTracker } from '@/components/player/ContinueWatchingTracker'
 import {
   getTVDetail,
   getSeason,
@@ -14,7 +14,7 @@ import {
   type SeasonDetail,
   type Episode,
 } from '@/lib/tmdb'
-import { getTVEmbedUrl } from '@/lib/player'
+import { isStrictPositiveInteger } from '@/lib/player'
 
 interface TVWatchProps {
   params: Promise<{
@@ -42,8 +42,11 @@ export async function generateMetadata({ params }: TVWatchProps): Promise<Metada
 
 export default async function WatchTVPage({ params }: TVWatchProps) {
   const { id, season, episode } = await params
-  const seasonNum = parseInt(season, 10) || 1
-  const episodeNum = parseInt(episode, 10) || 1
+  if (!isStrictPositiveInteger(id) || !isStrictPositiveInteger(season) || !isStrictPositiveInteger(episode)) {
+    notFound()
+  }
+  const seasonNum = Number(season)
+  const episodeNum = Number(episode)
 
   let show: TVDetail | null = null
   let seasonData: SeasonDetail | null = null
@@ -65,7 +68,6 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
   )
 
   const episodeName = currentEpisode?.name || `Episode ${episodeNum}`
-  const embedUrl = getTVEmbedUrl(id, seasonNum, episodeNum)
   const backdropUrl = show?.backdrop_path ? backdrop(show.backdrop_path, 'w1280') : undefined
 
   // Calculate Next / Previous Episode navigation
@@ -91,22 +93,6 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
 
   return (
     <Shell>
-      {show && (
-        <ContinueWatchingTracker
-          item={{
-            id: show.id,
-            media_type: 'tv',
-            title,
-            poster_path: show.poster_path,
-            backdrop_path: show.backdrop_path,
-            season: seasonNum,
-            episode: episodeNum,
-            episodeTitle: episodeName,
-            lastOpenedAt: Date.now(),
-          }}
-        />
-      )}
-
       <div className="mx-auto max-w-[1440px] px-4 pt-6 sm:px-6 lg:px-8">
         {/* Top bar */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -132,7 +118,6 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             mediaId={id}
             season={seasonNum}
             episode={episodeNum}
-            src={embedUrl}
             title={`${title} S${seasonNum} E${episodeNum} playback`}
             episodeLabel={`Season ${seasonNum}, Episode ${episodeNum} — ${episodeName}`}
             artwork={backdropUrl}

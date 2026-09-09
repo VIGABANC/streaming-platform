@@ -1,127 +1,70 @@
 'use client'
 
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import gsap from 'gsap'
-import { Search } from 'lucide-react'
+import { Menu, Search, X } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
+
+const links = [
+  { href: '/', label: 'Home' }, { href: '/browse', label: 'Discover' }, { href: '/movies', label: 'Movies' },
+  { href: '/tv', label: 'TV Shows' }, { href: '/search', label: 'Search' }, { href: '/my-list', label: 'Watchlist' },
+]
 
 export function LandingNav() {
   const root = useRef<HTMLElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
+  const toggle = useRef<HTMLButtonElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useLayoutEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && menuOpen) {
+        setMenuOpen(false)
+        toggle.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [menuOpen])
 
   useLayoutEffect(() => {
     const context = gsap.context(() => {
-      gsap.fromTo('.nav-item', 
-        { y: -20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, stagger: 0.1, ease: 'power2.out', delay: 0.5 }
-      )
+      if (!menu.current) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        gsap.set(menu.current, { autoAlpha: menuOpen ? 1 : 0, y: menuOpen ? 0 : -12 })
+        return
+      }
+      gsap.to(menu.current, { autoAlpha: menuOpen ? 1 : 0, y: menuOpen ? 0 : -12, duration: 0.2, ease: 'power2.out', overwrite: true })
     }, root)
     return () => context.revert()
-  }, [])
+  }, [menuOpen])
 
-  return (
-    <header 
-      ref={root} 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b ${
-        scrolled 
-          ? 'bg-[#050507]/90 backdrop-blur-xl border-white/10 shadow-xl' 
-          : 'bg-transparent border-transparent'
-      }`}
-    >
-      <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 lg:px-12">
-        <div className="nav-item">
-          <Logo />
-        </div>
-        
-        <nav className="hidden md:flex items-center gap-8">
-          <Link href="/browse" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">Discover</Link>
-          <Link href="/movies" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">Movies</Link>
-          <Link href="/tv" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">TV Shows</Link>
-          <Link href="/#streaming-providers" className="nav-item text-sm font-medium text-white/80 hover:text-white transition-colors">Streaming</Link>
-        </nav>
+  const closeMenu = () => setMenuOpen(false)
+  const linkClass = 'rounded px-2 py-2 text-sm font-medium text-white/80 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white'
 
-        <div className="hidden md:flex items-center gap-6">
-          <Link href="/search" className="nav-item text-white/80 hover:text-white transition-colors" aria-label="Search">
-            <Search size={20} />
-          </Link>
-          <Link href="/browse" className="nav-item px-6 py-2.5 rounded-full bg-white text-black text-sm font-bold hover:bg-white/90 transition-all">
-            Explore VEYRA
-          </Link>
-        </div>
-
-        {/* Mobile toggle */}
-        <button 
-          className="md:hidden text-white nav-item touch-target" 
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Menu"
-          aria-expanded={menuOpen}
-          aria-controls="mobile-menu"
-        >
-          <div className="space-y-1.5">
-            <span className={`block w-6 h-0.5 bg-white transition-transform ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-            <span className={`block w-6 h-0.5 bg-white transition-opacity ${menuOpen ? 'opacity-0' : ''}`} />
-            <span className={`block w-6 h-0.5 bg-white transition-transform ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
-          </div>
-        </button>
-      </div>
-
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div 
-          id="mobile-menu"
-          className="absolute top-full left-0 right-0 bg-[#050507] border-b border-white/10 p-6 md:hidden"
-          role="navigation"
-          aria-label="Main navigation"
-        >
-          <nav className="flex flex-col gap-6">
-            <Link 
-              href="/browse" 
-              className="text-xl font-medium text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded"
-              onClick={() => setMenuOpen(false)}
-            >
-              Discover
-            </Link>
-            <Link 
-              href="/movies" 
-              className="text-xl font-medium text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded"
-              onClick={() => setMenuOpen(false)}
-            >
-              Movies
-            </Link>
-            <Link 
-              href="/tv" 
-              className="text-xl font-medium text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded"
-              onClick={() => setMenuOpen(false)}
-            >
-              TV Shows
-            </Link>
-            <Link 
-              href="/search" 
-              className="text-xl font-medium text-white flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white rounded"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Search size={20} /> Search
-            </Link>
-            <Link 
-              href="/browse" 
-              className="mt-4 text-center px-6 py-3 rounded-full bg-white text-black font-bold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-              onClick={() => setMenuOpen(false)}
-            >
-              Explore VEYRA
-            </Link>
-          </nav>
-        </div>
-      )}
-    </header>
-  )
+  return <header ref={root} className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ${scrolled ? 'border-white/10 bg-[#050507]/90 shadow-xl backdrop-blur-xl' : 'border-transparent bg-transparent'}`}>
+    <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-5 sm:px-6 lg:px-12">
+      <Logo />
+      <nav aria-label="Main navigation" className="hidden items-center gap-4 md:flex">
+        {links.map((link) => <Link key={link.href} href={link.href} className={linkClass}>{link.label}</Link>)}
+        <Link href="/browse" className="ml-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-black transition hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Explore VEYRA</Link>
+      </nav>
+      <button ref={toggle} type="button" className="touch-target rounded text-white md:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={menuOpen} aria-controls="landing-mobile-menu">{menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
+    </div>
+    <div ref={menu} id="landing-mobile-menu" className={`pointer-events-none absolute inset-x-0 top-full border-b border-white/10 bg-[#050507]/95 px-5 py-5 backdrop-blur-xl md:hidden ${menuOpen ? 'opacity-100' : 'opacity-0'}`} aria-hidden={!menuOpen}>
+      <nav aria-label="Main navigation" className={`flex flex-col gap-1 ${menuOpen ? 'pointer-events-auto' : ''}`}>
+        {links.map((link) => <Link key={link.href} tabIndex={menuOpen ? 0 : -1} href={link.href} className="rounded px-3 py-3 text-lg font-medium text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" onClick={closeMenu}>{link.label === 'Search' ? <><Search className="mr-2 inline size-4" aria-hidden="true" />{link.label}</> : link.label}</Link>)}
+        <Link tabIndex={menuOpen ? 0 : -1} href="/browse" className="mt-3 rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" onClick={closeMenu}>Explore VEYRA</Link>
+      </nav>
+    </div>
+  </header>
 }

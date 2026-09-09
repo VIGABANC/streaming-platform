@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/movies',
     '/tv',
     '/discover',
+    '/world-cinema',
     '/new',
     '/top10',
     '/providers',

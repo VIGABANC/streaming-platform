@@ -10,7 +10,7 @@ const base: LibrarySnapshot = {
   history: [],
   continueWatching: [],
   profile: { name: 'Local', avatar: 'signal-red', bio: '', joinedAt: 1 },
-  settings: { autoplayNext: true, defaultServer: 'vidsrc-wiki', streamQuality: 'auto', ambientLighting: true, reducedMotion: false },
+  settings: { autoplayNext: true, defaultServer: 'vidsrc-wiki', streamQuality: 'auto', subtitleLanguage: 'auto', ambientLighting: true, reducedMotion: false },
 }
 
 describe('mergeLibrarySnapshots', () => {

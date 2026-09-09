@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { ArrowLeft, Clock, Calendar, Star } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { PlayerFrame } from '@/components/player/PlayerFrame'
-import { ContinueWatchingTracker } from '@/components/player/ContinueWatchingTracker'
 import { MediaDetailActions } from '@/components/media/MediaDetailActions'
 import { MediaRail } from '@/components/media/MediaRail'
 import {
@@ -16,7 +15,6 @@ import {
   type Media,
   type MediaType,
 } from '@/lib/tmdb'
-import { getMovieEmbedUrl } from '@/lib/player'
 import { formatRating } from '@/lib/utils'
 
 interface WatchMoviePageProps {
@@ -51,7 +49,6 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
 
   const title = movie ? titleOf(movie) : 'Movie'
   const year = movie ? yearOf(movie) : ''
-  const embedUrl = getMovieEmbedUrl(id)
   const backdropUrl = movie?.backdrop_path ? backdrop(movie.backdrop_path, 'w1280') : undefined
 
   const similarTitles: (Media & { media_type: MediaType })[] = (
@@ -63,19 +60,6 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
 
   return (
     <Shell>
-      {movie && (
-        <ContinueWatchingTracker
-          item={{
-            id: movie.id,
-            media_type: 'movie',
-            title,
-            poster_path: movie.poster_path,
-            backdrop_path: movie.backdrop_path,
-            lastOpenedAt: Date.now(),
-          }}
-        />
-      )}
-
       <div className="mx-auto max-w-[1440px] px-4 pt-6 sm:px-6 lg:px-8">
         {/* Back Button */}
         <div className="mb-4 flex items-center justify-between">
@@ -94,7 +78,6 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
           <PlayerFrame
             mediaType="movie"
             mediaId={id}
-            src={embedUrl}
             title={`${title} playback`}
             artwork={backdropUrl}
             backHref={`/movie/${id}`}

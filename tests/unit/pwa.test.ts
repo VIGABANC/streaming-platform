@@ -14,4 +14,11 @@ describe('PWA assets and service worker policy', () => {
     expect(serviceWorker).toContain("url.pathname.startsWith('/settings')")
     expect(serviceWorker).toContain("type === 'SKIP_WAITING'")
   })
+
+  it('versions the app shell cache explicitly for stale-client recovery', () => {
+    const serviceWorker = readFileSync('public/sw.js', 'utf8')
+    expect(serviceWorker).toContain('SERVICE_WORKER_VERSION')
+    expect(serviceWorker).toContain('BUILD_ID')
+    expect(serviceWorker).toContain('veyra-shell-v${SERVICE_WORKER_VERSION}-${BUILD_ID}')
+  })
 })

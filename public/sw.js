@@ -1,7 +1,12 @@
 // VEYRA Service Worker — App Shell & Offline Support
 // Strictly caches navigation shell & static UI assets. Does NOT cache third-party video streams.
 
-const CACHE_NAME = 'veyra-shell-v2'
+// Bump SERVICE_WORKER_VERSION or BUILD_ID whenever the shell contract changes.
+// Old caches are removed during activate so stale app-shell state cannot trap
+// the player behind an obsolete client bundle.
+const SERVICE_WORKER_VERSION = '2'
+const BUILD_ID = '2026-09-09'
+const CACHE_NAME = `veyra-shell-v${SERVICE_WORKER_VERSION}-${BUILD_ID}`
 const STATIC_ASSETS = [
   '/',
   '/offline',

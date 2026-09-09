@@ -5,25 +5,28 @@ import { usePathname } from 'next/navigation'
 import { Home, Film, Tv, Compass, Bookmark } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Home', icon: Home },
+  { label: 'Home', icon: Home },
   { href: '/movies', label: 'Movies', icon: Film },
   { href: '/tv', label: 'TV', icon: Tv },
   { href: '/discover', label: 'Discover', icon: Compass },
   { href: '/my-list', label: 'My List', icon: Bookmark },
 ] as const
 
-export function MobileNav() {
+export function MobileNav({ variant = 'app' }: { variant?: 'app' | 'landing' }) {
   const pathname = usePathname()
+  const homeHref = variant === 'landing' ? '/' : '/browse'
+  const discoverHref = variant === 'landing' ? '/browse' : '/discover'
+  const navItems = NAV_ITEMS.map((item) => item.label === 'Home' ? { ...item, href: homeHref } : item.label === 'Discover' ? { ...item, href: discoverHref } : item)
 
   const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href)
+    href === homeHref ? pathname === homeHref : pathname.startsWith(href)
 
   return (
     <nav
       aria-label="Mobile navigation"
       className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-stretch justify-around border-t border-white/8 bg-[#050507]/95 backdrop-blur-xl md:hidden safe-area-inset-bottom"
     >
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {navItems.map(({ href, label, icon: Icon }) => {
         const active = isActive(href)
         return (
           <Link

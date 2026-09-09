@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { checkRateLimit, requestIdentity } from '@/lib/http/rate-limit'
 import { TMDBError, searchMulti } from '@/lib/tmdb'
+import { parseSearchIntent } from '@/lib/search-intent'
+import { rankSearchResults } from '@/lib/search-ranking'
 
 const SEARCH_LIMIT = { limit: 30, windowMs: 60_000 }
 
@@ -47,8 +49,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await searchMulti(query)
-    return NextResponse.json(data, {
+    const intent = parseSearchIntent(query)
+    const searchQuery = intent.query || query
+    const data = await searchMulti(searchQuery)
+    return NextResponse.json({ ...data, results: rankSearchResults(data.results ?? [], intent), intent }, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         'X-RateLimit-Remaining': String(limit.remaining),

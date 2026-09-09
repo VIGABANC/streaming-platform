@@ -4,6 +4,8 @@ export type AttemptPhase =
   | 'connecting'
   | 'timeout-warning'
   | 'frame-loaded'
+  | 'ready'
+  | 'playing'
   | 'failed'
   | 'switching'
   | 'exhausted'
@@ -41,12 +43,20 @@ export function beginAttempt(state: PlayerAttemptState, providerId: string): Pla
   }
 }
 
+export function beginSelection(state: PlayerAttemptState): PlayerAttemptState {
+  return { ...state, phase: 'selecting' }
+}
+
 export function transitionAttempt(
   state: PlayerAttemptState,
   attemptId: number,
-  phase: Extract<AttemptPhase, 'timeout-warning' | 'frame-loaded' | 'failed'>,
+  phase: Extract<AttemptPhase, 'timeout-warning' | 'frame-loaded' | 'ready' | 'playing' | 'failed'>,
 ): PlayerAttemptState {
   return state.attemptId === attemptId ? { ...state, phase } : state
+}
+
+export function invalidateAttempt(state: PlayerAttemptState): PlayerAttemptState {
+  return { ...state, attemptId: state.attemptId + 1, phase: 'switching' }
 }
 
 export function switchAttempt(state: PlayerAttemptState, providerId: string): PlayerAttemptState {

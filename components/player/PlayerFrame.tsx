@@ -211,6 +211,8 @@ export function PlayerFrame({
     if (!isCurrentAttempt(attemptStateRef.current, attemptId, providerId)) return
     clearTimers()
     attemptStateRef.current = transitionAttempt(attemptStateRef.current, attemptId, 'frame-loaded')
+    // An iframe load proves only that the document loaded. Opaque providers do
+    // not expose a verified ready/playing signal to VEYRA.
     setState('frame-loaded')
     reportPlayerEvent('player_frame_loaded', { providerId, mediaType, startupMs: Date.now() - startedAtRef.current, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
     if (process.env.NODE_ENV === 'development') {
@@ -443,11 +445,11 @@ export function PlayerFrame({
         )}
 
         {/* Loading overlay */}
-        {(state === 'loading' || state === 'timeout-warning' || state === 'frame-loaded') && (
+        {(state === 'loading' || state === 'timeout-warning') && (
           <div
             aria-live="polite"
             aria-label="Loading playback"
-            className={`absolute inset-0 z-10 grid place-items-center bg-[#050507] ${state === 'frame-loaded' ? 'pointer-events-none bg-transparent' : ''}`}
+            className="absolute inset-0 z-10 grid place-items-center bg-[#050507]"
           >
             {artwork && (
               <img
@@ -458,14 +460,12 @@ export function PlayerFrame({
               />
             )}
             <div className="relative z-10 text-center px-6">
-              {state !== 'frame-loaded' && <div
+              {<div
                 aria-hidden="true"
                 className="mx-auto mb-4 size-10 animate-spin rounded-full border-2 border-white/10 border-t-[#E50914] motion-reduce:animate-none"
               />}
               <p className="text-sm font-semibold text-white font-display">
-                {state === 'frame-loaded'
-                  ? 'Player loaded — playback is controlled by the provider.'
-                  : state === 'timeout-warning'
+                {state === 'timeout-warning'
                   ? 'Connecting to stream…'
                   : `Connecting to ${activeProviderObj.name}…`}
               </p>

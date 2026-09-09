@@ -35,6 +35,7 @@ export interface StreamProvider {
   qualityControl: 'provider-ui' | 'api' | 'none'
   observabilityTier: 'A' | 'B' | 'C'
   trustEligible: boolean
+  trustedMessageOrigin?: string
   capabilities: {
     autoplay: boolean
     subtitlePreference: boolean
@@ -147,6 +148,36 @@ export const PROVIDERS: StreamProvider[] = [
     tvUrl: (id, season, episode) => `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`,
   },
 ]
+
+/** Exact origins used by the registry. Security configuration must not drift from this list. */
+export const PLAYER_FRAME_ORIGINS = PROVIDERS.map((provider) => provider.origin)
+
+export type DocumentedProviderEvent =
+  | { type: 'FRAME_LOADED' }
+  | { type: 'PLAYER_READY' }
+  | { type: 'PLAYBACK_STARTED' }
+  | { type: 'PROGRESS'; currentTime: number; duration: number }
+  | { type: 'PLAYBACK_ERROR'; code?: string }
+  | { type: 'PLAYBACK_COMPLETE' }
+
+/**
+ * Opaque providers currently expose no documented event protocol. Keep this
+ * parser strict so a future adapter cannot accidentally trust arbitrary
+ * postMessage data or an untrusted origin.
+ */
+export function parseDocumentedProviderEvent(
+  event: { origin: string; data: unknown },
+  providerId: string,
+): DocumentedProviderEvent | null {
+  const provider = PROVIDERS.find((candidate) => candidate.id === providerId)
+  if (!provider?.trustedMessageOrigin || event.origin !== provider.trustedMessageOrigin) return null
+  if (!event.data || typeof event.data !== 'object') return null
+  const data = event.data as Record<string, unknown>
+  if (data.type === 'FRAME_LOADED' || data.type === 'PLAYER_READY' || data.type === 'PLAYBACK_STARTED' || data.type === 'PLAYBACK_COMPLETE') return { type: data.type }
+  if (data.type === 'PROGRESS' && typeof data.currentTime === 'number' && typeof data.duration === 'number' && data.currentTime >= 0 && data.duration >= 0) return { type: 'PROGRESS', currentTime: data.currentTime, duration: data.duration }
+  if (data.type === 'PLAYBACK_ERROR' && (data.code === undefined || typeof data.code === 'string')) return { type: 'PLAYBACK_ERROR', code: data.code as string | undefined }
+  return null
+}
 
 /** Default provider in the allowlisted provider registry. */
 export const DEFAULT_PROVIDER = PROVIDERS[0].id
@@ -302,12 +333,15 @@ export function rankProviders(options: {
     .filter((provider) => isProviderAvailable(options.health?.[provider.id] ?? emptyProviderHealth(provider.id), now))
     .map((provider, index) => {
       const health = options.health?.[provider.id] ?? emptyProviderHealth(provider.id)
+      // The prior prevents one lucky attempt from outranking a well-sampled provider.
       const reliability = health.successEWMA ?? (health.successes + 2) / (health.attempts + 4)
       const latency = health.startupLatencyEWMA ?? 10_000
       const latencyScore = 1 - Math.min(latency, 10_000) / 10_000
       const preference = provider.id === options.preferredProviderId ? 0.05 : 0
       const exploration = health.attempts === 0 ? 0.05 : 0
-      return { provider, score: reliability * 0.55 + latencyScore * 0.25 + preference + exploration - index * 0.0001 }
+      const recentFailurePenalty = health.lastFailureAt && now - health.lastFailureAt < 5 * 60_000 ? 0.08 : 0
+      const timeoutPenalty = (health.timeouts ?? 0) > 0 ? Math.min(0.1, (health.timeouts ?? 0) / Math.max(10, health.attempts) * 0.1) : 0
+      return { provider, score: reliability * 0.55 + latencyScore * 0.25 + preference + exploration - recentFailurePenalty - timeoutPenalty - index * 0.0001 }
     })
     .sort((a, b) => b.score - a.score)
     .map(({ provider }) => provider)

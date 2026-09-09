@@ -11,6 +11,7 @@ import {
   isProviderEligible,
   isProviderAvailable,
   type PlayerErrorCode,
+  parseDocumentedProviderEvent,
 } from '@/lib/player'
 import {
   beginAttempt,
@@ -175,6 +176,27 @@ describe('Player Architecture & URL Builders', () => {
       expect(reloaded.phase).toBe('idle')
       expect(reloaded.attemptedProviderIds).toEqual([])
       expect(reloaded.attemptId).toBeGreaterThan(exhausted.attemptId)
+    })
+
+    it('does not accept provider events without an explicitly trusted origin', () => {
+      expect(parseDocumentedProviderEvent({ origin: 'https://v1.vidsrc.wiki', data: { type: 'PLAYBACK_STARTED' } }, 'vidsrc-wiki')).toBeNull()
+      expect(parseDocumentedProviderEvent({ origin: 'https://evil.example', data: { type: 'PLAYBACK_STARTED' } }, 'vidsrc-wiki')).toBeNull()
+    })
+
+    it('does not mistake a malformed progress event for playback evidence', () => {
+      expect(parseDocumentedProviderEvent({ origin: 'https://v1.vidsrc.wiki', data: { type: 'PROGRESS', currentTime: '10', duration: 100 } }, 'vidsrc-wiki')).toBeNull()
+    })
+
+    it('applies recent failure and timeout penalties when ranking close providers', () => {
+      const now = 1_000_000
+      const ranked = rankProviders({
+        now,
+        health: {
+          'vidsrc-wiki': { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500, lastFailureAt: now - 1_000, timeouts: 4 },
+          'vidsrc-xyz': { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500 },
+        },
+      })
+      expect(ranked[0].id).toBe('vidsrc-xyz')
     })
   })
 

@@ -98,6 +98,20 @@ external.
 
 ## Current worktree verification
 
+Fresh verification in the isolated `codex/veyra-player-optimization` worktree:
+
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm test -- --run`: 25 files, 125 tests passed.
+- `npm run build`: passed on Next.js 16.3.3.
+- `npm audit --omit=dev`: 0 vulnerabilities.
+- `npm run test:e2e`: 90 tests passed across Chromium and Mobile Chrome.
+- Live provider playback confirmation: not claimed; no Vercel account/runtime inspection was available in this run (`VERCEL_ACCOUNT_INSPECTION_BLOCKED_BY_AUTH`).
+
+The deterministic suite verifies the VEYRA shell, state transitions, ranking,
+offline/reconnect behavior, malformed routes, keyboard focus, mobile layout,
+and reduced motion. It cannot prove playback inside a cross-origin provider.
+
 ## Final verdict
 
 **P0 VERIFIED — P1/P2 PENDING**

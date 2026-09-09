@@ -22,7 +22,7 @@
 | P2 | Deterministic language intent parsing | VERIFIED | `lib/search-intent.ts`, unit/E2E tests |
 | P2 | Deterministic relevance ranking and corpus | VERIFIED FOUNDATION | `lib/search-ranking.ts` and evaluation corpus |
 | P2 | World Cinema legitimate metadata rails | VERIFIED LIMITED | `/world-cinema` provides language-grouped TMDB discovery rails with explicit metadata provenance; provider availability remains separate and unverified |
-| P2 | Missing-availability persistence flow | VERIFIED LIMITED | Search empty state offers validated local fallback plus an authenticated Supabase/RLS API path; read-only REST verification against the configured Supabase project returned 404 for the new table, so migration deployment remains pending |
+| P2 | Missing-availability persistence flow | VERIFIED LIMITED | Search empty state offers validated local fallback plus an authenticated Supabase/RLS API path; the checked-in migrations were applied successfully to the linked project and the CLI reported the remote database up to date. A signed-in application-path submission remains the final runtime confirmation |
 | P3 | Licensed direct playback | FUTURE ONLY | No authorized direct source exists; no HLS/DASH extraction implemented |
 | Security | Dependency audit | VERIFIED | `npm audit --omit=dev`: zero vulnerabilities |
 | Security | Repository security review | VERIFIED LIMITED | Local review complete; dedicated external scanners/plugins unavailable |

@@ -1,13 +1,48 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 test.describe('Player reliability shell', () => {
+  const providerDocument = '<!doctype html><html><body>mock provider</body></html>'
+
+  async function mockStableProviders(page: Page) {
+    await page.route('https://v1.vidsrc.wiki/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: providerDocument,
+    }))
+    await page.route('https://vidsrc.xyz/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: providerDocument,
+    }))
+  }
+
   test('manual server switching replaces the iframe immediately', async ({ page }) => {
+    await mockStableProviders(page)
     await page.goto('/browse')
     await page.evaluate(() => localStorage.clear())
     await page.goto('/watch/movie/1007757')
     const frame = page.locator('iframe[title*="playback"]')
-    await page.getByRole('button', { name: /Server 2/ }).click()
+    const secondServer = page.getByRole('button', { name: /Server 2/ })
+    await secondServer.click()
+    await expect(secondServer).toHaveAttribute('aria-pressed', 'true')
+    await expect(secondServer).toBeFocused()
     await expect(frame).toHaveAttribute('src', /vidsrc\.xyz/, { timeout: 1_000 })
+  })
+
+  test('automatically fails over from a failed provider to the next provider', async ({ page }) => {
+    await page.route('https://v1.vidsrc.wiki/**', async () => {
+      await new Promise(() => {})
+    })
+    await page.route('https://vidsrc.xyz/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: providerDocument,
+    }))
+    await page.goto('/watch/movie/1007757')
+
+    const secondServer = page.getByRole('button', { name: /Server 2/ })
+    await expect(secondServer).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
+    await expect(page.locator('iframe[title*="playback"]')).toHaveAttribute('src', /vidsrc\.xyz/)
   })
 
   test('rejects malformed TV route segments', async ({ page }) => {

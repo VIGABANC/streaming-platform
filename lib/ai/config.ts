@@ -23,6 +23,8 @@ const defaultModels: Record<AIProviderId, string> = {
   deterministic: 'deterministic',
 }
 
+const retiredGeminiModels = new Set(['gemini-2.0-flash-lite', 'gemini-2.0-flash-lite-001'])
+
 type Environment = Record<string, string | undefined>
 
 function bool(env: Environment, key: string, fallback: boolean): boolean {
@@ -45,6 +47,7 @@ export function getAIConfig(env: Environment = process.env): AIConfig {
     const key = `${provider.toUpperCase()}_MODEL`
     if (env[key]) models[provider] = env[key]!
   }
+  if (retiredGeminiModels.has(models.gemini)) models.gemini = defaultModels.gemini
   const allowPaidAi = bool(env, 'ALLOW_PAID_AI', false)
   const zeroCostOnly = bool(env, 'AI_ZERO_COST_ONLY', true)
   if ((zeroCostOnly || !allowPaidAi) && env.OPENROUTER_MODEL && !freeOpenRouterModel(models.openrouter)) {

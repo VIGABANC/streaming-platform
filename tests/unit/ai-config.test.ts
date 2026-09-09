@@ -106,19 +106,27 @@ describe('AI provider configuration', () => {
       .rejects.toMatchObject({ kind: 'invalid_response' })
   })
 
-  it('uses the current Gemini responseFormat JSON schema contract', async () => {
+  it('uses the current Gemini Interactions API JSON schema contract', async () => {
+    let requestUrl = ''
+    let requestHeaders: Record<string, string> = {}
     let requestBody: Record<string, unknown> = {}
     const provider = createGeminiProvider({
       apiKey: 'key',
       model: 'gemini-3.5-flash-lite',
-      fetchImpl: async (_url, init) => {
+      fetchImpl: async (url, init) => {
+        requestUrl = String(url)
+        requestHeaders = init?.headers as Record<string, string>
         requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
         return {
           ok: true,
           status: 200,
           headers: { get: () => null },
           json: async () => ({
-            candidates: [{ content: { parts: [{ text: JSON.stringify(deterministicFallback(input)) }] } }],
+            status: 'completed',
+            steps: [{
+              type: 'model_output',
+              content: [{ type: 'text', text: JSON.stringify(deterministicFallback(input)) }],
+            }],
           }),
         } as unknown as Response
       },
@@ -129,16 +137,17 @@ describe('AI provider configuration', () => {
       environment: input.environment,
     })
 
+    expect(requestUrl).toBe('https://generativelanguage.googleapis.com/v1beta/interactions')
+    expect(requestHeaders['x-goog-api-key']).toBe('key')
     expect(requestBody).toMatchObject({
-      generationConfig: {
-        responseFormat: {
-          text: {
-            mimeType: 'application/json',
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-            },
-          },
+      model: 'gemini-3.5-flash-lite',
+      input: expect.any(String),
+      response_format: {
+        type: 'text',
+        mime_type: 'application/json',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
         },
       },
     })

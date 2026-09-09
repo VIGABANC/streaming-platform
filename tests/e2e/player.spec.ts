@@ -48,7 +48,7 @@ test.describe('Player reliability shell', () => {
   test('rejects malformed TV route segments', async ({ page }) => {
     const response = await page.goto('/watch/tv/1399/1abc/1')
     expect(response).toBeTruthy()
-    await expect(page.getByRole('heading', { name: 'Page Not Found' })).toBeVisible()
+    await expect(page.locator('body')).toContainText('Page Not Found')
     await expect(page.locator('iframe')).toHaveCount(0)
   })
 

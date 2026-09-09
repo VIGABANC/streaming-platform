@@ -3,6 +3,7 @@ import {
   createConfiguredProviders,
   getAIConfig,
 } from '@/lib/ai/config'
+import { createGeminiProvider } from '@/lib/ai/providers/gemini'
 import { createGroqProvider } from '@/lib/ai/providers/groq'
 import { deterministicFallback } from '@/lib/feedback/normalize'
 import type { SanitizedFeedback } from '@/lib/feedback/types'
@@ -52,6 +53,95 @@ describe('AI provider configuration', () => {
 
     await expect(provider.normalize(input, { signal: new AbortController().signal }))
       .rejects.toMatchObject({ kind: 'rate_limit', retryAfterMs: 4000 })
+  })
+
+  it('uses Groq strict JSON Schema mode for gpt-oss-20b', async () => {
+    let requestBody: Record<string, unknown> = {}
+    const provider = createGroqProvider({
+      apiKey: 'key',
+      model: 'openai/gpt-oss-20b',
+      fetchImpl: async (_url, init) => {
+        requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: async () => ({ choices: [{ message: { content: JSON.stringify(deterministicFallback(input)) } }] }),
+        } as unknown as Response
+      },
+    })
+
+    await expect(provider.normalize(input, { signal: new AbortController().signal })).resolves.toMatchObject({
+      route: input.route,
+      environment: input.environment,
+    })
+
+    expect(requestBody.response_format).toMatchObject({
+      type: 'json_schema',
+      json_schema: {
+        name: 'veyra_feedback_enrichment',
+        strict: true,
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          required: expect.arrayContaining(['title', 'summary', 'developer_prompt', 'confidence']),
+        },
+      },
+    })
+  })
+
+  it('classifies a schema-invalid HTTP 200 response as invalid_response', async () => {
+    const provider = createGroqProvider({
+      apiKey: 'key',
+      model: 'openai/gpt-oss-20b',
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({ choices: [{ message: { content: JSON.stringify({ title: 'Only a title' }) } }] }),
+      } as unknown as Response),
+    })
+
+    await expect(provider.normalize(input, { signal: new AbortController().signal }))
+      .rejects.toMatchObject({ kind: 'invalid_response' })
+  })
+
+  it('uses the current Gemini responseFormat JSON schema contract', async () => {
+    let requestBody: Record<string, unknown> = {}
+    const provider = createGeminiProvider({
+      apiKey: 'key',
+      model: 'gemini-3.5-flash-lite',
+      fetchImpl: async (_url, init) => {
+        requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: JSON.stringify(deterministicFallback(input)) }] } }],
+          }),
+        } as unknown as Response
+      },
+    })
+
+    await expect(provider.normalize(input, { signal: new AbortController().signal })).resolves.toMatchObject({
+      route: input.route,
+      environment: input.environment,
+    })
+
+    expect(requestBody).toMatchObject({
+      generationConfig: {
+        responseFormat: {
+          text: {
+            mimeType: 'application/json',
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+            },
+          },
+        },
+      },
+    })
   })
 
   it('retries without JSON mode when a provider rejects response_format', async () => {

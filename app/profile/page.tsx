@@ -106,7 +106,7 @@ export default function ProfilePage() {
         } else {
           showToast({
             title: 'Failed to import backup file',
-            description: 'Invalid JSON structure',
+            description: 'The backup is incomplete or has invalid data.',
             type: 'error',
           })
         }

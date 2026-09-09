@@ -11,7 +11,7 @@ VEYRA is a high-performance cinematic discovery and streaming frontend built wit
 - **Dynamic Detail Pages**: Comprehensive movie and TV details including backdrops, trailers, cast, production info, recommendations, and ratings.
 - **Full TV Season & Episode Navigation**: Multi-season dropdown/tabs, specials handling, episode cards with runtime, air date, and overview.
 - **Watchlist, Favorites & Continue Watching**: Reactive client-side media storage synchronized across browser tabs with dedicated management views.
-- **Video Player Frame**: Embedded playback with configurable provider (`NEXT_PUBLIC_EMBED_PROVIDER`), tiered load timeout warnings, and fallback recovery.
+- **Video Player Frame**: Embedded playback through the configured provider registry, bounded load timeout warnings, and fallback recovery.
 - **PWA & Offline Ready**: Web App Manifest with application shell caching and an offline fallback route.
 - **Accessibility & SEO**: Semantic HTML5, skip navigation links, OpenGraph metadata, `sitemap.xml`, and `robots.txt`.
 
@@ -35,7 +35,6 @@ Configure your environment variables in `.env.local`:
 TMDB_API_KEY=your_tmdb_api_key_here
 
 # Embed provider base URL (Default: https://v1.vidsrc.wiki)
-NEXT_PUBLIC_EMBED_PROVIDER=https://v1.vidsrc.wiki
 ```
 
 > **Security Note:** `TMDB_API_KEY` is server-side only and never exposed to client bundles.
@@ -49,6 +48,18 @@ Feedback is inserted into Supabase before any AI call. The router then tries con
 Set `AI_ZERO_COST_ONLY=true` and `ALLOW_PAID_AI=false` to prevent known billable model use. Free-provider availability and quotas can change; the 24/7 guarantee applies to report acceptance and durable storage, not vendor uptime or quota.
 
 See `.env.example` for all supported provider, Telegram, GitHub, Supabase, model, timeout, failover, and circuit-breaker settings.
+
+### Applying Supabase migrations
+
+After authenticating the Supabase CLI, apply the checked-in migrations with:
+
+```powershell
+$env:SUPABASE_ACCESS_TOKEN = 'your-token'
+.\scripts\deploy-supabase.ps1 -ProjectRef 'your-project-ref'
+```
+
+The script validates the project reference, links the project, and runs
+`supabase db push`. It never prints or commits Supabase secrets.
 
 ---
 

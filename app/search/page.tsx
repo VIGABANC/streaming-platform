@@ -8,6 +8,8 @@ import { MediaGrid } from '@/components/media/MediaGrid'
 import { SkeletonGrid } from '@/components/feedback/Skeletons'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import type { Media, MediaType } from '@/lib/tmdb'
+import type { SearchIntent } from '@/lib/search-intent'
+import { MissingAvailabilityReport } from '@/components/search/MissingAvailabilityReport'
 
 type SearchState = 'idle' | 'loading' | 'success' | 'empty' | 'error' | 'missing-config'
 type SearchFilter = 'all' | 'movie' | 'tv'
@@ -24,6 +26,7 @@ function SearchContent() {
   const [filter, setFilter] = useState<SearchFilter>('all')
   const [state, setState] = useState<SearchState>(initialQuery ? 'loading' : 'idle')
   const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [intent, setIntent] = useState<SearchIntent | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Load recent searches
@@ -100,6 +103,7 @@ function SearchContent() {
 
     if (!query) {
       setItems([])
+      setIntent(null)
       setState('idle')
       return
     }
@@ -128,6 +132,7 @@ function SearchContent() {
           }))
 
         setItems(validResults)
+        setIntent(data.intent ?? null)
         setState(validResults.length > 0 ? 'success' : 'empty')
 
         if (validResults.length > 0) {
@@ -200,6 +205,17 @@ function SearchContent() {
         </label>
       </div>
 
+      {intent && (intent.language || intent.year || intent.mediaType || intent.audioPreference || intent.subtitlePreference) && (
+        <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
+          Interpreted as:
+          {intent.language ? ` ${intent.language}` : ''}
+          {intent.year ? ` · ${intent.year}` : ''}
+          {intent.mediaType ? ` · ${intent.mediaType === 'tv' ? 'series/anime' : 'movie'}` : ''}
+          {intent.audioPreference ? ' · dubbed' : ''}
+          {intent.subtitlePreference ? ' · subtitled' : ''}
+        </p>
+      )}
+
       {/* Filter Tabs (when searching or has results) */}
       {state === 'success' && items.length > 0 && (
         <div className="mt-6 flex items-center justify-between border-b border-white/10 pb-4">
@@ -269,10 +285,13 @@ function SearchContent() {
         )}
 
         {state === 'empty' && (
-          <EmptyState
-            title={`No titles found for "${q}"`}
-            description="Try checking for typos or searching for a broader title keyword."
-          />
+          <>
+            <EmptyState
+              title={`No titles found for "${q}"`}
+              description="Try checking for typos or searching for a broader title keyword."
+            />
+            <MissingAvailabilityReport query={q} intent={intent} />
+          </>
         )}
 
         {state === 'missing-config' && (

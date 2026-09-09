@@ -86,7 +86,7 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
     await expect(banner.getByRole('navigation', { name: 'Main navigation' })).not.toBeVisible()
 
     // 5-item mobile bottom navigation
-    const mobileNav = page.locator('nav[aria-label="Mobile navigation"]')
+    const mobileNav = page.locator('nav[aria-label="Mobile navigation"]').first()
     await expect(mobileNav).toBeVisible()
     const mobileLinks = mobileNav.getByRole('link')
     await expect(mobileLinks).toHaveCount(5)
@@ -211,7 +211,7 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
     await page.goto('/')
 
     // Focus skip link
-    const skipLink = page.locator('a.skip-link')
+    const skipLink = page.locator('a.skip-link').first()
     await skipLink.focus()
     await expect(skipLink).toBeFocused()
 

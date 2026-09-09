@@ -1,6 +1,18 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Search Flow', () => {
+  test('shows normalized language and year intent returned by search', async ({ page }) => {
+    await page.route('**/api/search?*', async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ results: [], intent: { query: 'thriller', language: 'Malayalam', year: 2025 } }),
+      })
+    })
+    await page.goto('/search')
+    await page.getByRole('textbox', { name: 'Search movies and series' }).fill('malayalam thriller 2025')
+    await expect(page.getByText('Interpreted as: Malayalam · 2025')).toBeVisible()
+  })
+
   test('navigates to search and allows input typing with URL persistence', async ({ page }) => {
     await page.goto('/search')
 

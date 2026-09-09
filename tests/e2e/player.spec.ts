@@ -1,6 +1,20 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Player reliability shell', () => {
+  test('fails over when the first provider request is aborted', async ({ page }) => {
+    let aborted = false
+    await page.route('https://v1.vidsrc.wiki/**', async (route) => {
+      if (!aborted) {
+        aborted = true
+        await route.abort('failed')
+        return
+      }
+      await route.continue()
+    })
+    await page.goto('/watch/movie/1007757')
+    await expect(page.locator('iframe[title*="playback"]')).toHaveAttribute('src', /vidsrc\.xyz/, { timeout: 3_000 })
+  })
+
   test('manual server switching replaces the iframe immediately', async ({ page }) => {
     await page.goto('/browse')
     await page.evaluate(() => localStorage.clear())

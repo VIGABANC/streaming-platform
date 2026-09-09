@@ -23,8 +23,15 @@ import {
   setOffline,
   transitionAttempt,
 } from '@/lib/player-attempt'
+import { ExternalEmbedEngine } from '@/lib/player-engine'
 
 describe('Player Architecture & URL Builders', () => {
+  it('uses an explicit opaque external engine until an authorized direct source exists', () => {
+    expect(ExternalEmbedEngine.kind).toBe('external-embed')
+    expect(ExternalEmbedEngine.ownsMediaControls).toBe(false)
+    expect(ExternalEmbedEngine.canVerifyPlayback).toBe(false)
+    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidsrc-wiki' })).toContain('/movie/603')
+  })
   describe('getMovieEmbedUrl', () => {
     it('generates correct embed url for movie IDs', () => {
       const url = getMovieEmbedUrl(603)

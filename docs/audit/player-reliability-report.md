@@ -105,12 +105,18 @@ Fresh verification in the isolated `codex/veyra-player-optimization` worktree:
 - `npm test -- --run`: 25 files, 125 tests passed.
 - `npm run build`: passed on Next.js 16.3.3.
 - `npm audit --omit=dev`: 0 vulnerabilities.
-- `npm run test:e2e`: 90 tests passed across Chromium and Mobile Chrome.
+- `npm run test:e2e`: 92 tests passed across Chromium and Mobile Chrome, including browser-observed first-provider failover.
 - Live provider playback confirmation: not claimed; no Vercel account/runtime inspection was available in this run (`VERCEL_ACCOUNT_INSPECTION_BLOCKED_BY_AUTH`).
 
 The deterministic suite verifies the VEYRA shell, state transitions, ranking,
 offline/reconnect behavior, malformed routes, keyboard focus, mobile layout,
 and reduced motion. It cannot prove playback inside a cross-origin provider.
+
+Real browser smoke of the public movie route loaded the external provider frame,
+showed the provider's own play/seek/volume/quality/PiP controls and an
+`Unable to play media` state, then switched the VEYRA shell from Server 1 to
+Server 2. This confirms the ownership boundary and does not establish visible
+playback success.
 
 ## Final verdict
 

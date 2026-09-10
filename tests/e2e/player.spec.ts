@@ -1,0 +1,120 @@
+import { test, expect, type Page } from '@playwright/test'
+
+test.describe('Player reliability shell', () => {
+  const providerDocument = '<!doctype html><html><body>mock provider</body></html>'
+
+  async function mockStableProviders(page: Page) {
+    await page.route('https://v1.vidsrc.wiki/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: providerDocument,
+    }))
+    await page.route('https://vidsrc.xyz/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: providerDocument,
+    }))
+  }
+
+  test('manual server switching replaces the iframe immediately', async ({ page }) => {
+    await mockStableProviders(page)
+    await page.goto('/browse')
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/watch/movie/1007757')
+    const frame = page.locator('iframe[title*="playback"]')
+    const secondServer = page.getByRole('button', { name: /Server 2/ })
+    await secondServer.click()
+    await expect(secondServer).toHaveAttribute('aria-pressed', 'true')
+    await expect(secondServer).toBeFocused()
+    await expect(frame).toHaveAttribute('src', /vidsrc\.xyz/, { timeout: 1_000 })
+  })
+
+  test('automatically fails over from a failed provider to the next provider', async ({ page }) => {
+    await page.route('https://v1.vidsrc.wiki/**', async () => {
+      await new Promise(() => {})
+    })
+    await page.route('https://vidsrc.xyz/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: providerDocument,
+    }))
+    await page.goto('/watch/movie/1007757')
+
+    const secondServer = page.getByRole('button', { name: /Server 2/ })
+    await expect(secondServer).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
+    await expect(page.locator('iframe[title*="playback"]')).toHaveAttribute('src', /vidsrc\.xyz/)
+  })
+
+  test('rejects malformed TV route segments', async ({ page }) => {
+    const response = await page.goto('/watch/tv/1399/1abc/1')
+    expect(response).toBeTruthy()
+    await expect(page.locator('body')).toContainText('Page Not Found')
+    await expect(page.locator('iframe')).toHaveCount(0)
+  })
+
+  test('exposes a bounded, semantic server control surface', async ({ page }) => {
+    await page.goto('/watch/movie/1007757')
+    await expect(page.getByRole('group', { name: 'Playback servers' })).toBeVisible()
+    const servers = page.getByRole('button', { name: /Server [1-4]/ })
+    await expect(servers).toHaveCount(4)
+    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(1)
+    await expect(page.locator('iframe[title*="playback"]')).toHaveAttribute('sandbox', /allow-scripts/)
+    await expect(page.locator('iframe[title*="playback"]')).not.toHaveAttribute('sandbox', /allow-top-navigation/)
+  })
+
+  test('keeps the player usable with reduced motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/watch/movie/1007757')
+    const frame = page.locator('iframe[title*="playback"]')
+    await expect(frame).toHaveClass(/opacity-100/)
+  })
+
+  test('does not overflow the viewport on mobile-sized layouts', async ({ page }) => {
+    await page.goto('/watch/movie/1007757')
+    const metrics = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      frameWidth: document.querySelector('iframe')?.getBoundingClientRect().width ?? 0,
+    }))
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewport + 1)
+    expect(metrics.frameWidth).toBeGreaterThan(0)
+  })
+
+  test('allows keyboard activation of server controls without focus theft', async ({ page }) => {
+    await page.goto('/watch/movie/1007757')
+    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(1)
+    const secondServer = page.getByRole('button', { name: /Server 2/ })
+    await secondServer.focus()
+    await expect(secondServer).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(secondServer).toHaveAttribute('aria-pressed', 'true')
+    await expect(secondServer).toBeFocused()
+  })
+
+  test('stops and restarts attempts across deterministic offline/reconnect events', async ({ page }) => {
+    await page.addInitScript(() => {
+      let online = true
+      Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => online })
+      Object.defineProperty(window, '__setVeyraOnline', {
+        configurable: true,
+        value: (next: boolean) => { online = next },
+      })
+    })
+    await page.goto('/watch/movie/1007757')
+    const group = page.getByRole('group', { name: 'Playback servers' })
+    await expect(group).toBeVisible()
+
+    await page.evaluate(() => {
+      ;(window as Window & { __setVeyraOnline?: (next: boolean) => void }).__setVeyraOnline?.(false)
+      window.dispatchEvent(new Event('offline'))
+    })
+    await expect(page.getByRole('heading', { name: "You're offline" })).toBeVisible()
+
+    await page.evaluate(() => {
+      ;(window as Window & { __setVeyraOnline?: (next: boolean) => void }).__setVeyraOnline?.(true)
+      window.dispatchEvent(new Event('online'))
+    })
+    await expect(group).toBeVisible()
+  })
+
+})

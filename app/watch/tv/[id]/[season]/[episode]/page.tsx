@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ChevronLeft, ChevronRight, Tv, Clock } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
@@ -42,6 +43,7 @@ export async function generateMetadata({ params }: TVWatchProps): Promise<Metada
 
 export default async function WatchTVPage({ params }: TVWatchProps) {
   const { id, season, episode } = await params
+  if (!/^\d+$/.test(season) || !/^\d+$/.test(episode)) notFound()
   const seasonNum = parseInt(season, 10) || 1
   const episodeNum = parseInt(episode, 10) || 1
 

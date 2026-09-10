@@ -5,7 +5,10 @@ test.describe('Home Page & Core Layout', () => {
     await page.goto('/')
 
     // Header and logo
-    const siteHeader = page.locator('header').filter({ has: page.getByRole('link', { name: 'VEYRA — home', exact: true }) }).first()
+    const siteHeader = page.locator('header:visible').filter({
+      has: page.getByRole('link', { name: 'VEYRA — home', exact: true }),
+    })
+    await expect(siteHeader).toHaveCount(1)
     await expect(siteHeader).toBeVisible()
     await expect(siteHeader.getByRole('link', { name: 'VEYRA — home', exact: true })).toBeVisible()
 

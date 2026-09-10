@@ -33,6 +33,7 @@ export default defineConfig({
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
     timeout: 60000,
     env: {
+      PORT: String(process.env.PLAYWRIGHT_PORT || 3100),
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'playwright-anon-key',
       TMDB_API_KEY: process.env.TMDB_API_KEY || 'playwright-tmdb-key',

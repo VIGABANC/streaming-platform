@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || `http://localhost:${process.env.PLAYWRIGHT_PORT || '3100'}`,
     trace: 'on-first-retry',
     // Keep cached service-worker shell state from leaking between isolated E2E contexts.
     // PWA registration and update behavior are covered by dedicated unit checks.
@@ -29,10 +29,11 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run start',
-    port: 3000,
-    reuseExistingServer: !process.env.CI,
+    port: Number(process.env.PLAYWRIGHT_PORT || 3100),
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
     timeout: 60000,
     env: {
+      PORT: String(process.env.PLAYWRIGHT_PORT || 3100),
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'playwright-anon-key',
       TMDB_API_KEY: process.env.TMDB_API_KEY || 'playwright-tmdb-key',

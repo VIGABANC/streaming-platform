@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Play, Star, Heart, Bookmark } from 'lucide-react'
 import { store } from '@/lib/store'
-import { poster } from '@/lib/tmdb'
+import { poster, type MediaType } from '@/lib/tmdb'
 
 function getRelativeTime(timestamp: number) {
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
@@ -28,7 +28,7 @@ interface Activity {
   id: string
   type: ActivityType
   mediaId: number
-  mediaType: 'movie' | 'tv'
+  mediaType: MediaType
   title: string
   posterPath?: string | null
   timestamp: number
@@ -128,7 +128,7 @@ export function ActivityFeed() {
 
           {/* Poster */}
           <Link 
-            href={`/${activity.mediaType === 'tv' ? 'tv' : 'movie'}/${activity.mediaId}`}
+            href={`/${activity.mediaType === 'tv' ? 'tv' : activity.mediaType === 'anime' ? 'anime' : 'movie'}/${activity.mediaId}`}
             className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-md bg-[#0A0D14] sm:w-16"
           >
             <Image
@@ -150,7 +150,7 @@ export function ActivityFeed() {
               </span>
               
               <Link
-                href={`/${activity.mediaType === 'tv' ? 'tv' : 'movie'}/${activity.mediaId}`}
+                href={`/${activity.mediaType === 'tv' ? 'tv' : activity.mediaType === 'anime' ? 'anime' : 'movie'}/${activity.mediaId}`}
                 className="font-medium text-white truncate hover:text-primary transition-colors text-sm sm:text-base"
               >
                 {activity.title}

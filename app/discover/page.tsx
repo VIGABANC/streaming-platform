@@ -11,10 +11,10 @@ import { discover, type MediaType } from '@/lib/tmdb'
 
 export const metadata: Metadata = {
   title: 'Discover — VEYRA',
-  description: 'Filter and discover movies and TV shows tailored to your taste on VEYRA.',
+  description: 'Filter and discover movies, series, and anime tailored to your taste on VEYRA.',
   openGraph: {
     title: 'Discover — VEYRA',
-    description: 'Filter and discover movies and TV shows tailored to your taste on VEYRA.',
+    description: 'Filter and discover movies, series, and anime tailored to your taste on VEYRA.',
   },
 }
 

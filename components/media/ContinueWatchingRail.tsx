@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Play, Clock, X } from 'lucide-react'
 import { store, type ContinueWatchingItem } from '@/lib/store'
-import { poster } from '@/lib/tmdb'
+import { poster, type MediaType } from '@/lib/tmdb'
 import { formatDate } from '@/lib/utils'
 
 export function ContinueWatchingRail() {
@@ -29,7 +29,7 @@ export function ContinueWatchingRail() {
 
   if (!hydrated || items.length === 0) return null
 
-  const remove = (id: number, mediaType: 'movie' | 'tv') => {
+  const remove = (id: number, mediaType: MediaType) => {
     store.removeFromContinueWatching(id, mediaType)
     loadItems()
   }
@@ -46,7 +46,9 @@ export function ContinueWatchingRail() {
           const href =
             item.media_type === 'tv' && item.season && item.episode
               ? `/watch/tv/${item.id}/${item.season}/${item.episode}`
-              : `/watch/movie/${item.id}`
+              : item.media_type === 'anime'
+                ? `/anime/${item.id}`
+                : `/watch/movie/${item.id}`
 
           const imgSrc = poster(item.backdrop_path ?? item.poster_path, 'w780')
 

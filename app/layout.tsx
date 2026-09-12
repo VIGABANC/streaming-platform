@@ -14,12 +14,12 @@ const SITE_URL = getPublicSiteUrl()
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'VEYRA — Discover Movies & TV After Dark',
+    default: 'VEYRA — Discover Movies, Series & Anime After Dark',
     template: '%s — VEYRA',
   },
   description:
-    'VEYRA is your cinematic discovery layer for finding movies and television worth watching. The Night Signal brings trending, popular, and acclaimed content into one elegant experience.',
-  keywords: ['movies', 'TV shows', 'streaming', 'discovery', 'cinema', 'VEYRA', 'The Night Signal', 'movie discovery', 'TV discovery'],
+    'VEYRA is your cinematic discovery layer for finding movies, series, and anime worth watching. The Night Signal brings trending, popular, and acclaimed content into one elegant experience.',
+  keywords: ['movies', 'TV shows', 'anime', 'streaming', 'discovery', 'cinema', 'VEYRA', 'The Night Signal', 'movie discovery', 'TV discovery', 'anime discovery'],
   authors: [{ name: 'VEYRA' }],
   creator: 'VEYRA',
   alternates: { canonical: './' },
@@ -28,12 +28,12 @@ export const metadata: Metadata = {
     locale: 'en_US',
     siteName: 'VEYRA',
     title: 'VEYRA — The Night Signal',
-    description: 'Find the story worth staying up for. Cinematic movie and TV discovery with trending, popular, and acclaimed content.',
+    description: 'Find the story worth staying up for. Cinematic movie, series, and anime discovery with trending, popular, and acclaimed content.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'VEYRA — The Night Signal',
-    description: 'Find the story worth staying up for. Cinematic movie and TV discovery.',
+    description: 'Find the story worth staying up for. Cinematic movie, series, and anime discovery.',
   },
   robots: {
     index: true,

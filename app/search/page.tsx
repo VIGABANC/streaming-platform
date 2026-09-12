@@ -7,10 +7,10 @@ import { Shell } from '@/components/layout/Shell'
 import { MediaGrid } from '@/components/media/MediaGrid'
 import { SkeletonGrid } from '@/components/feedback/Skeletons'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import type { Media, MediaType } from '@/lib/tmdb'
+import { genres, getGenreNames, type Media, type MediaType } from '@/lib/tmdb'
 
-type SearchState = 'idle' | 'loading' | 'success' | 'empty' | 'error' | 'missing-config'
-type SearchFilter = 'all' | 'movie' | 'tv'
+type SearchState = 'idle' | 'loading' | 'success' | 'empty' | 'partial-empty' | 'error' | 'missing-config'
+type SearchFilter = 'all' | 'movie' | 'tv' | 'anime'
 
 const RECENT_SEARCHES_KEY = 'veyra-recent-searches'
 const MAX_RECENT_SEARCHES = 8
@@ -21,7 +21,13 @@ function SearchContent() {
 
   const [q, setQ] = useState(initialQuery)
   const [items, setItems] = useState<(Media & { media_type: MediaType })[]>([])
+  const [partial, setPartial] = useState(false)
   const [filter, setFilter] = useState<SearchFilter>('all')
+  const [year, setYear] = useState(searchParams.get('year') || '')
+  const [language, setLanguage] = useState(searchParams.get('language') || '')
+  const [country, setCountry] = useState(searchParams.get('country') || '')
+  const [genre, setGenre] = useState(searchParams.get('genre') || '')
+  const [status, setStatus] = useState(searchParams.get('status') || '')
   const [state, setState] = useState<SearchState>(initialQuery ? 'loading' : 'idle')
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -100,6 +106,7 @@ function SearchContent() {
 
     if (!query) {
       setItems([])
+      setPartial(false)
       setState('idle')
       return
     }
@@ -115,20 +122,23 @@ function SearchContent() {
 
         if (!res.ok) {
           setItems([])
+          setPartial(false)
           setState(res.status === 503 ? 'missing-config' : 'error')
           return
         }
 
-        // Filter out person media_types and cast to movie | tv
+        setPartial(Boolean(data.partial))
+
+        // Filter out person media types while preserving normalized Anime items.
         const validResults: (Media & { media_type: MediaType })[] = (data.results ?? [])
-          .filter((item: Media) => item.media_type === 'movie' || item.media_type === 'tv')
+          .filter((item: Media) => item.media_type === 'movie' || item.media_type === 'tv' || item.media_type === 'anime')
           .map((item: Media) => ({
             ...item,
             media_type: item.media_type as MediaType,
           }))
 
         setItems(validResults)
-        setState(validResults.length > 0 ? 'success' : 'empty')
+        setState(validResults.length > 0 ? 'success' : data.partial ? 'partial-empty' : 'empty')
 
         if (validResults.length > 0) {
           saveRecentSearch(query)
@@ -149,9 +159,27 @@ function SearchContent() {
 
   // Filtered items by category tab
   const filteredItems = items.filter((item) => {
-    if (filter === 'all') return true
-    return item.media_type === filter
+    if (filter !== 'all' && item.media_type !== filter) return false
+    if (year && !((item.release_date || item.first_air_date || '').startsWith(year))) return false
+    if (language && item.original_language !== language) return false
+    if (country && !(item as Media & { origin_country?: string[] }).origin_country?.includes(country)) return false
+    if (genre) {
+      const itemGenres = item.media_type === 'anime'
+        ? ((item as Media & { genres?: string[] }).genres ?? [])
+        : getGenreNames(item.genre_ids ?? [], item.media_type === 'tv' ? 'tv' : 'movie')
+      if (!itemGenres.some((value) => value.toLocaleLowerCase() === genre.toLocaleLowerCase())) return false
+    }
+    if (status && ((item as Media & { status?: string }).status ?? '') !== status) return false
+    return true
   })
+
+  const updateFilter = (key: string, value: string, setter: (value: string) => void) => {
+    setter(value)
+    const params = new URLSearchParams(window.location.search)
+    if (value) params.set(key, value)
+    else params.delete(key)
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+  }
 
   return (
     <div className="px-5 pt-10 lg:px-8 max-w-[1440px] mx-auto">
@@ -166,6 +194,28 @@ function SearchContent() {
         </p>
       </div>
 
+      {state === 'success' && items.length > 0 && (
+        <div className="mt-5 grid max-w-5xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" aria-label="Search filters">
+          <select aria-label="Filter by year" value={year} onChange={(event) => updateFilter('year', event.target.value, setYear)} className="rounded-xl border border-white/10 bg-surface px-3 py-2.5 text-xs text-white outline-none focus:border-primary">
+            <option value="">Any year</option>
+            {Array.from({ length: 40 }, (_, index) => String(new Date().getFullYear() - index)).map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <select aria-label="Filter by language" value={language} onChange={(event) => updateFilter('language', event.target.value, setLanguage)} className="rounded-xl border border-white/10 bg-surface px-3 py-2.5 text-xs text-white outline-none focus:border-primary">
+            <option value="">Any language</option><option value="en">English</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="fr">French</option><option value="es">Spanish</option>
+          </select>
+          <select aria-label="Filter by country" value={country} onChange={(event) => updateFilter('country', event.target.value, setCountry)} className="rounded-xl border border-white/10 bg-surface px-3 py-2.5 text-xs text-white outline-none focus:border-primary">
+            <option value="">Any country</option><option value="US">United States</option><option value="JP">Japan</option><option value="KR">South Korea</option><option value="GB">United Kingdom</option><option value="FR">France</option>
+          </select>
+          <select aria-label="Filter by genre" value={genre} onChange={(event) => updateFilter('genre', event.target.value, setGenre)} className="rounded-xl border border-white/10 bg-surface px-3 py-2.5 text-xs text-white outline-none focus:border-primary">
+            <option value="">Any genre</option>
+            {[...new Set([...genres.movie, ...genres.tv].map((item) => item.name))].sort().map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <select aria-label="Filter anime status" value={status} onChange={(event) => updateFilter('status', event.target.value, setStatus)} className="rounded-xl border border-white/10 bg-surface px-3 py-2.5 text-xs text-white outline-none focus:border-primary">
+            <option value="">Any anime status</option><option value="FINISHED">Completed</option><option value="RELEASING">Airing now</option><option value="NOT_YET_RELEASED">Upcoming</option><option value="HIATUS">On hiatus</option>
+          </select>
+        </div>
+      )}
+
       {/* Search Input Bar */}
       <div className="mt-8 max-w-3xl">
         <label className="relative flex items-center rounded-2xl border border-white/10 bg-surface px-4 py-1.5 shadow-xl transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
@@ -176,7 +226,7 @@ function SearchContent() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Type a movie title, series name, or franchise... (Press '/' to focus)"
-            aria-label="Search movies and series"
+            aria-label="Search movies, series, and anime"
             className="h-12 flex-1 bg-transparent px-3 text-sm text-white placeholder:text-muted-foreground/70 outline-none"
             autoFocus
           />
@@ -237,6 +287,17 @@ function SearchContent() {
             >
               Series ({items.filter((i) => i.media_type === 'tv').length})
             </button>
+            <button
+              type="button"
+              onClick={() => setFilter('anime')}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                filter === 'anime'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-surface text-muted-foreground hover:text-white'
+              }`}
+            >
+              Anime ({items.filter((i) => i.media_type === 'anime').length})
+            </button>
           </div>
           <span className="text-xs text-muted-foreground hidden sm:inline">
             Results for &ldquo;{q}&rdquo;
@@ -250,10 +311,17 @@ function SearchContent() {
 
         {state === 'success' && (
           filteredItems.length > 0 ? (
-            <MediaGrid items={filteredItems} />
+            <div className="space-y-5">
+              {partial && (
+                <div role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-xs text-amber-100">
+                  Some catalog sources are temporarily unavailable. Showing the results we could verify.
+                </div>
+              )}
+              <MediaGrid items={filteredItems} />
+            </div>
           ) : (
             <EmptyState
-              title={`No ${filter === 'movie' ? 'movies' : 'series'} found`}
+              title={`No ${filter === 'movie' ? 'movies' : filter === 'tv' ? 'series' : 'anime'} found`}
               description={`We found matches in other categories for "${q}".`}
               action={
                 <button
@@ -272,6 +340,15 @@ function SearchContent() {
           <EmptyState
             title={`No titles found for "${q}"`}
             description="Try checking for typos or searching for a broader title keyword."
+          />
+        )}
+
+        {state === 'partial-empty' && (
+          <EmptyState
+            variant="error"
+            title="Search incomplete"
+            description="No verified matches were returned and one catalog source was unavailable. Try again shortly."
+            action={<button type="button" onClick={() => window.location.reload()} className="rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground">Retry search</button>}
           />
         )}
 

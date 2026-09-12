@@ -7,6 +7,11 @@ const nextConfig = {
         hostname: 'image.tmdb.org',
         pathname: '/t/p/**',
       },
+      {
+        protocol: 'https',
+        hostname: 's4.anilist.co',
+        pathname: '/file/anilistcdn/**',
+      },
     ],
   },
   async redirects() {
@@ -18,7 +23,7 @@ const nextConfig = {
       "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://vitals.vercel-insights.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' https://image.tmdb.org data: blob:",
+      "img-src 'self' https://image.tmdb.org https://s4.anilist.co data: blob:",
       "media-src 'self' blob:",
       "connect-src 'self' https://api.themoviedb.org https://va.vercel-scripts.com https://vitals.vercel-insights.com",
       "frame-src 'self' https://v1.vidsrc.wiki https://vidsrc.xyz https://www.2embed.cc https://player.autoembed.cc https://www.youtube.com https://youtube.com",

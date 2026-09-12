@@ -4,7 +4,7 @@ test.describe('Search Flow', () => {
   test('navigates to search and allows input typing with URL persistence', async ({ page }) => {
     await page.goto('/search')
 
-    const input = page.getByRole('textbox', { name: 'Search movies and series' })
+    const input = page.getByRole('textbox', { name: 'Search movies, series, and anime' })
     await expect(input).toBeVisible()
 
     await input.fill('Spider')
@@ -16,7 +16,7 @@ test.describe('Search Flow', () => {
 
   test('clearing input resets search query and URL', async ({ page }) => {
     await page.goto('/search?q=Avatar')
-    const input = page.getByRole('textbox', { name: 'Search movies and series' })
+    const input = page.getByRole('textbox', { name: 'Search movies, series, and anime' })
     await expect(input).toHaveValue('Avatar')
 
     const clearBtn = page.getByRole('button', { name: 'Clear search' })
@@ -27,4 +27,3 @@ test.describe('Search Flow', () => {
     await expect(page).toHaveURL(/\/search$/)
   })
 })
-

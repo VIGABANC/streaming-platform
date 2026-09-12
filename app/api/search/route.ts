@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { checkRateLimit, requestIdentity } from '@/lib/http/rate-limit'
-import { TMDBError, searchMulti } from '@/lib/tmdb'
+import { AniListError } from '@/lib/anilist'
+import { searchCatalog } from '@/lib/catalog-search'
+import { TMDBError } from '@/lib/tmdb'
 
 const SEARCH_LIMIT = { limit: 30, windowMs: 60_000 }
 
@@ -9,6 +11,12 @@ function requestId(): string {
 }
 
 function failureCode(error: unknown): { code: string; status: number } {
+  if (error instanceof AniListError) {
+    if (error.code === 'ANILIST_RATE_LIMITED') return { code: 'SEARCH_UPSTREAM_RATE_LIMITED', status: 503 }
+    if (error.code === 'ANILIST_NETWORK_ERROR') return { code: 'SEARCH_NETWORK_FAILED', status: 502 }
+    if (error.code === 'ANILIST_NOT_FOUND') return { code: 'SEARCH_NOT_FOUND', status: 404 }
+    return { code: 'SEARCH_UPSTREAM_FAILED', status: 502 }
+  }
   if (!(error instanceof TMDBError)) return { code: 'SEARCH_UPSTREAM_FAILED', status: 502 }
   switch (error.code) {
     case 'TMDB_API_KEY_MISSING': return { code: 'TMDB_NOT_CONFIGURED', status: 503 }
@@ -47,7 +55,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await searchMulti(query)
+    const data = await searchCatalog(query)
     return NextResponse.json(data, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',

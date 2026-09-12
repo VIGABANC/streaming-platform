@@ -109,7 +109,7 @@ export function MediaDetailActions({ item, mediaType, watchHref, trailerKey }: M
         className="inline-flex h-12 items-center gap-2.5 rounded-full bg-primary px-7 font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:scale-[1.02] focus-visible:outline-primary"
       >
         <Play size={18} fill="currentColor" aria-hidden="true" />
-        <span>Play {mediaType === 'movie' ? 'Movie' : 'Series'}</span>
+        <span>{mediaType === 'anime' ? 'View Episodes' : `Play ${mediaType === 'movie' ? 'Movie' : 'Series'}`}</span>
       </Link>
 
       {/* Watchlist Button */}

@@ -28,4 +28,11 @@ describe('catalog result boundary', () => {
 
     expect(result).toMatchObject({ status: 'failure', error: { code: 'CONFIGURATION' } })
   })
+
+  it('maps typed AniList failures to stable catalog codes', async () => {
+    const { AniListError } = await import('@/lib/anilist')
+    const result = await loadCatalog(() => Promise.reject(new AniListError('ANILIST_RATE_LIMITED')))
+
+    expect(result).toMatchObject({ status: 'failure', error: { code: 'RATE_LIMITED' } })
+  })
 })

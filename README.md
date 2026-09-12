@@ -4,7 +4,7 @@
 
 # VEYRA — The Night Signal
 
-**A cinematic discovery and streaming frontend for movies and television.**
+**A cinematic discovery and streaming frontend for movies, series, and anime.**
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -17,12 +17,13 @@
 
 ---
 
-VEYRA is a high-performance, dark-mode-first streaming discovery interface built with **Next.js 16** and **Turbopack**. It integrates with the [TMDB API](https://www.themoviedb.org) to surface trending, popular, top-rated, and newly released movies and TV shows through a polished, cinematic UI.
+VEYRA is a high-performance, dark-mode-first streaming discovery interface built with **Next.js 16** and **Turbopack**. It integrates with the [TMDB API](https://www.themoviedb.org) for movies and TV, and [AniList](https://anilist.gitbook.io/anilist-apiv2-docs) for anime metadata, to surface trending, popular, top-rated, and newly released content through a polished, cinematic UI.
 
 ## Features
 
 - **Cinematic Discovery** — Curated rails for Trending, Popular, Top Rated, Now Playing, Airing Today, and On The Air content.
 - **Universal Search** — Debounced multi-search with URL query persistence, recent search history, category filtering, and a `/` hotkey focus shortcut.
+- **First-class Anime** — Anime browsing, status/genre/format filters, normalized metadata, relations, recommendations, and episode enrichment.
 - **Dynamic Detail Pages** — Comprehensive movie and TV detail views with backdrops, trailers, cast, production info, recommendations, and ratings.
 - **Full TV Navigation** — Multi-season dropdowns, specials handling, and episode cards with runtime, air date, and overview.
 - **Personal Library** — Watchlist, Favorites, and Continue Watching lists backed by `localStorage` and synchronized reactively across browser tabs.

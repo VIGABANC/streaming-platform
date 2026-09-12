@@ -1,4 +1,5 @@
 import { TMDBError } from './tmdb'
+import { AniListError } from './anilist'
 
 export type CatalogFailureCode =
   | 'CONFIGURATION'
@@ -31,6 +32,13 @@ const PUBLIC_MESSAGES: Record<CatalogFailureCode, string> = {
 }
 
 function failureCode(error: unknown): CatalogFailureCode {
+  if (error instanceof AniListError) {
+    if (error.code === 'ANILIST_RATE_LIMITED') return 'RATE_LIMITED'
+    if (error.code === 'ANILIST_NETWORK_ERROR') return 'NETWORK'
+    if (error.code === 'ANILIST_INVALID_RESPONSE') return 'INVALID_RESPONSE'
+    if (error.code === 'ANILIST_NOT_FOUND') return 'NOT_FOUND'
+    return 'UNKNOWN'
+  }
   if (!(error instanceof TMDBError)) return 'UNKNOWN'
 
   switch (error.code) {

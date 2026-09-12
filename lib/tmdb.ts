@@ -4,8 +4,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { cache } from 'react'
+import { fetchWithTimeout, ProviderTimeoutError } from './provider-http'
 
-export type MediaType = 'movie' | 'tv'
+export type MediaType = 'movie' | 'tv' | 'anime'
 
 // ── Base media (used in lists / search results) ──────────────────────────────
 
@@ -23,6 +24,7 @@ export interface Media {
   genre_ids?: number[]
   runtime?: number
   original_language?: string
+  origin_country?: string[]
   popularity?: number
   vote_count?: number
 }
@@ -238,10 +240,13 @@ async function tmdb<T>(path: string, revalidate = 300): Promise<T> {
   const sep = path.includes('?') ? '&' : '?'
   let res: Response
   try {
-    res = await fetch(`${API}${path}${sep}api_key=${key}`, {
+    res = await fetchWithTimeout(fetch, `${API}${path}${sep}api_key=${key}`, {
       next: { revalidate },
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof ProviderTimeoutError) {
+      throw new TMDBError('TMDB_NETWORK_ERROR', 'TMDB request timed out')
+    }
     throw new TMDBError('TMDB_NETWORK_ERROR', 'Failed to reach TMDB')
   }
 

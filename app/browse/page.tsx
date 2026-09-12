@@ -98,7 +98,7 @@ async function HomeFeed() {
 
 export const metadata = {
   title: 'Discover — VEYRA',
-  description: 'Browse trending, popular, and top-rated movies and TV shows.',
+  description: 'Browse trending, popular, and top-rated movies, series, and anime.',
 }
 
 export default function BrowsePage() {

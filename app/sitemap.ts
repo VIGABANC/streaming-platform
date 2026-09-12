@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/browse',
     '/movies',
     '/tv',
+    '/anime',
     '/discover',
     '/new',
     '/top10',

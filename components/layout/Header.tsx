@@ -13,7 +13,6 @@ import {
   Settings,
   ChevronDown,
   Flame,
-  ClipboardCheck,
 } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
 import { warmPlayerConnection } from '@/lib/player'
@@ -28,11 +27,14 @@ interface NavLinkItem {
 const NAV_LINKS: NavLinkItem[] = [
   { href: '/browse', label: 'Home' },
   { href: '/movies', label: 'Movies' },
-  { href: '/tv', label: 'TV Shows' },
+  { href: '/tv', label: 'Series' },
+  { href: '/anime', label: 'Anime' },
   { href: '/new', label: 'New', badge: 'Fresh' },
   { href: '/top10', label: 'Top 10', icon: Flame },
   { href: '/discover', label: 'Discover' },
-  { href: '/audit', label: 'Audit', icon: ClipboardCheck },
+  { href: '/my-list', label: 'Watchlist' },
+  { href: '/favorites', label: 'Favorites' },
+  { href: '/history', label: 'History' },
 ]
 
 export function Header() {
@@ -123,7 +125,8 @@ export function Header() {
             <Link
               key={href}
               href={href}
-              className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              aria-current={isActive(href) ? 'page' : undefined}
+              className={`relative flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
                 isActive(href)
                   ? 'text-white bg-white/8 font-semibold'
                   : 'text-muted-foreground hover:text-white hover:bg-white/5'

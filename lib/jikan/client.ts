@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import type { JikanAnimeResponse, JikanEnrichment } from './types'
+import type { JikanTopAnimeResponse } from './types'
 
 const JIKAN_API = 'https://api.jikan.moe/v4'
 export const JIKAN_REVALIDATE_SECONDS = 86400
@@ -67,4 +68,18 @@ export const getJikanEnrichment = cache(async (
   } catch {
     return null
   }
+})
+
+export const getTopAnime = cache(async () => {
+  try {
+    const response = await fetchWithTimeout(`${JIKAN_API}/top/anime?limit=20`)
+    if (!response.ok) return []
+    const payload = await response.json() as JikanTopAnimeResponse
+    return (payload.data ?? []).flatMap((item) => {
+      const id = positiveInteger(item.mal_id as number | string)
+      const title = typeof item.title === 'string' ? item.title : ''
+      if (id === null || !title) return []
+      return [{ id, title, image: typeof item.images?.jpg?.image_url === 'string' ? item.images.jpg.image_url : null, synopsis: typeof item.synopsis === 'string' ? item.synopsis : '', score: nullableNumber(item.score) }]
+    })
+  } catch { return [] }
 })

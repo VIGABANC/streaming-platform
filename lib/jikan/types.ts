@@ -11,3 +11,7 @@ export interface JikanAnimeResponse {
     popularity?: unknown
   }
 }
+
+export interface JikanTopAnimeResponse {
+  data?: Array<{ mal_id?: unknown; title?: unknown; images?: { jpg?: { image_url?: unknown } }; synopsis?: unknown; score?: unknown }>
+}

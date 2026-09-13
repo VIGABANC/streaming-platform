@@ -40,6 +40,7 @@ export function resetRateLimitStore(): void {
 }
 
 export function requestIdentity(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-  return forwarded || request.headers.get('x-real-ip') || 'anonymous'
+  // Vercel sets this after terminating the client connection. Do not trust
+  // client-controlled forwarding headers as a rate-limit key.
+  return request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() || 'anonymous'
 }

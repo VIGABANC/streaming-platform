@@ -98,6 +98,42 @@ external.
 
 ## Current worktree verification
 
+### Goal 3 local verification — 2026-09-13
+
+Run from local commit `3741fd1` on `main`. This clean checkout differs from
+referenced commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` and is 22 commits
+ahead / 39 behind `origin/main`.
+
+| Check | Result |
+|---|---|
+| Typecheck, lint, build | PASS |
+| Unit tests | PASS — 25 files, 122 tests |
+| Dependency audit | PASS — 0 production vulnerabilities |
+| Chromium E2E | PASS — 94 tests across Chromium and Mobile Chrome, including anime route coverage |
+| Live smoke | FAIL / BLOCKED — both tests lacked the expected deployed player iframe/server controls within timeout |
+| GitHub Actions for `1c9918d` | FAIL — `verify` exited 1; unauthenticated GitHub view exposed no step log |
+| Vercel route HTTP smoke | HTTP 200 for movie, TV S1E1, and anime; deployment commit identity and browser verification UNVERIFIED |
+
+The local E2E suite covers movie, TV, anime, unavailable/failure states,
+manual switching, offline/reconnect, mobile layout, keyboard accessibility,
+and truthful frame-load messaging. The checkout has no `test:live` npm script;
+the live suite was run with `npx playwright test --config=playwright.live.config.ts`.
+Opaque provider playback, quality, subtitle, and audio capabilities remain
+unverified. Provider availability, cross-origin controls, licensing, and
+network restrictions are external limitations.
+
+### Referenced GitHub commit reproduction
+
+The exact commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` was installed in a
+separate worktree and verified locally. Dependency installation, lint,
+typecheck, 33 unit-test files with 146 tests, production build, and audit all
+passed. Its E2E run reproduced the GitHub failure with 46 tests total and 12
+failures. The failures were concentrated in missing Anime navigation and player
+assertions that require visible server/theater controls while the commit's
+trust gate correctly renders providers as unavailable/unverified. This is
+evidence that the referenced Actions failure is a test/implementation mismatch,
+separate from external provider playback availability.
+
 ## Final verdict
 
 **P0 VERIFIED — P1/P2 PENDING**

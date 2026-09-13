@@ -26,3 +26,11 @@ The cited VidSrc SBS documentation describes subtitle, autoplay, accent, and
 timestamp query parameters, but `vidsrc.sbs` is not one of VEYRA's configured
 provider origins. Those claims are therefore not transferred to `vidsrc-wiki`,
 `vidsrc-xyz`, or any other configured domain without domain-specific evidence.
+
+## Goal 3 verification status — 2026-09-13
+
+Local Chromium E2E passed, while live smoke failed because the deployed browser
+responses did not expose the expected player iframe/server controls in time.
+All four providers therefore remain unavailable for verified playback claims.
+An iframe response or frame load does not establish playback, quality,
+subtitles, or audio.

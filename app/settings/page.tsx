@@ -91,7 +91,7 @@ export default function SettingsPage() {
             App Settings
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-white/60">
-            Configure player behaviors, default embed providers, and local storage data.
+            Configure player presentation, default provider preference, and local storage data.
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-semibold text-white">Default Video Server</p>
                 <p className="text-xs text-white/50">
-                  Select which stream provider to initialize first in the player.
+                  Select which configured provider to try first. Provider controls and playback verification remain provider-owned.
                 </p>
               </div>
             </div>

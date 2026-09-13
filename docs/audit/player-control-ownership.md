@@ -2,7 +2,7 @@
 
 | Capability | Current owner | VEYRA behavior |
 |---|---|---|
-| Provider selection/failover | VEYRA | ranked, bounded, manual switch |
+| Provider selection/failover | VEYRA | ranked and bounded for eligible providers; current unverified providers are disabled |
 | Loading/error/retry status | VEYRA | truthful shell status |
 | Theater/cinema presentation | VEYRA | shell presentation toggle |
 | Shell fullscreen | VEYRA/browser | fullscreen targets the VEYRA container |

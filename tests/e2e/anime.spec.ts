@@ -25,4 +25,10 @@ test.describe('Anime discovery', () => {
     const animeTab = page.getByRole('button', { name: /Anime \(/ })
     await expect(animeTab).toBeVisible()
   })
+
+  test('keeps anime playback truthful when no verified episode provider exists', async ({ page }) => {
+    await page.goto('/watch/anime/1/1')
+    await expect(page.getByRole('heading', { name: 'Playback unavailable for this media type' })).toBeVisible()
+    await expect(page.locator('iframe')).toHaveCount(0)
+  })
 })

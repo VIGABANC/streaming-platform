@@ -15,7 +15,7 @@ import {
   type SeasonDetail,
   type Episode,
 } from '@/lib/tmdb'
-import { getTVEmbedUrl } from '@/lib/player'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
 
 interface TVWatchProps {
   params: Promise<{
@@ -43,9 +43,10 @@ export async function generateMetadata({ params }: TVWatchProps): Promise<Metada
 
 export default async function WatchTVPage({ params }: TVWatchProps) {
   const { id, season, episode } = await params
-  if (!/^\d+$/.test(season) || !/^\d+$/.test(episode)) notFound()
-  const seasonNum = parseInt(season, 10) || 1
-  const episodeNum = parseInt(episode, 10) || 1
+  const idNum = parsePositiveIntSegment(id, { min: 1, max: Number.MAX_SAFE_INTEGER })
+  const seasonNum = parsePositiveIntSegment(season, { min: 1, max: 10_000 })
+  const episodeNum = parsePositiveIntSegment(episode, { min: 1, max: 100_000 })
+  if (idNum == null || seasonNum == null || episodeNum == null) notFound()
 
   let show: TVDetail | null = null
   let seasonData: SeasonDetail | null = null
@@ -67,7 +68,6 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
   )
 
   const episodeName = currentEpisode?.name || `Episode ${episodeNum}`
-  const embedUrl = getTVEmbedUrl(id, seasonNum, episodeNum)
   const backdropUrl = show?.backdrop_path ? backdrop(show.backdrop_path, 'w1280') : undefined
 
   // Calculate Next / Previous Episode navigation
@@ -104,6 +104,8 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             season: seasonNum,
             episode: episodeNum,
             episodeTitle: episodeName,
+            playbackMode: 'external-embed',
+            verificationState: 'not-started',
             lastOpenedAt: Date.now(),
           }}
         />
@@ -134,7 +136,6 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             mediaId={id}
             season={seasonNum}
             episode={episodeNum}
-            src={embedUrl}
             title={`${title} S${seasonNum} E${episodeNum} playback`}
             episodeLabel={`Season ${seasonNum}, Episode ${episodeNum} — ${episodeName}`}
             artwork={backdropUrl}

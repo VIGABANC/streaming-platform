@@ -9,4 +9,9 @@ describe('route segment validation', () => {
   it('accepts a canonical in-range integer', () => {
     expect(parsePositiveIntSegment('12', { min: 1, max: 100 })).toBe(12)
   })
+
+  it('rejects zero and non-canonical leading-zero route IDs', () => {
+    expect(parsePositiveIntSegment('0', { min: 1, max: Number.MAX_SAFE_INTEGER })).toBeNull()
+    expect(parsePositiveIntSegment('01', { min: 1, max: Number.MAX_SAFE_INTEGER })).toBeNull()
+  })
 })

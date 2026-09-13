@@ -1,14 +1,16 @@
-import { getMovieEmbedUrl, getTVEmbedUrl, type ProviderUrlOptions } from '@/lib/player'
+import { type PlaybackRequest, type PlaybackSource, type PlaybackMediaType, type ProviderUrlOptions } from '@/lib/player'
+import { getPlaybackSource } from '@/lib/playback-resolver'
 
 export type PlaybackEngineKind = 'external-embed' | 'native-media'
 
 export interface PlaybackEngineContext {
-  mediaType: 'movie' | 'tv'
+  mediaType: PlaybackMediaType
   mediaId: string | number
   season?: string | number
   episode?: string | number
   providerId: string
   options?: ProviderUrlOptions
+  source?: PlaybackSource
 }
 
 export interface PlaybackEngine {
@@ -24,8 +26,15 @@ export const ExternalEmbedEngine: PlaybackEngine = {
   ownsMediaControls: false,
   canVerifyPlayback: false,
   getSource(context) {
-    if (context.mediaType === 'movie') return getMovieEmbedUrl(context.mediaId, context.providerId, context.options)
-    return getTVEmbedUrl(context.mediaId, context.season ?? 1, context.episode ?? 1, context.providerId, context.options)
+    if (context.source?.mode === 'external-embed') return context.source.url
+    const request: PlaybackRequest = {
+      mediaType: context.mediaType,
+      mediaId: context.mediaId,
+      season: context.season,
+      episode: context.episode,
+      preferredProviderId: context.providerId,
+    }
+    return getPlaybackSource(request, context.providerId)?.url ?? null
   },
 }
 
@@ -38,4 +47,15 @@ export interface NativeMediaEngine extends PlaybackEngine {
   readonly kind: 'native-media'
   readonly ownsMediaControls: true
   readonly canVerifyPlayback: true
+}
+
+export const NativeMediaEngine: NativeMediaEngine = {
+  kind: 'native-media',
+  ownsMediaControls: true,
+  canVerifyPlayback: true,
+  getSource(context) {
+    return context.source?.mode === 'native-media' && context.source.authorizationStatus === 'authorized'
+      ? context.source.url
+      : null
+  },
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { canonicalMediaId, normalizeTitles, type CatalogMediaItem } from '@/lib/catalog-model'
+import { CONTENT_TAXONOMY, type Anime, type Episode, type Movie, type Person, type Season, type Series } from '@/lib/media-model'
 
 describe('normalized catalog model', () => {
   it('keeps source identity in canonical ids', () => {
@@ -42,5 +43,21 @@ describe('normalized catalog model', () => {
 
     expect(item.media_type).toBe('anime')
     expect(item.canonicalId).toBe('anilist:anime:1')
+  })
+
+  it('exposes the complete product taxonomy and normalized domain contracts', () => {
+    expect(CONTENT_TAXONOMY.map((entry) => entry.id)).toEqual([
+      'movie', 'series', 'anime', 'anime-movie', 'anime-series', 'ongoing',
+      'completed', 'upcoming', 'specials', 'season', 'episode',
+    ])
+
+    const episode: Episode = { id: 1, number: 1, title: 'Pilot' }
+    const season: Season = { id: 1, number: 1, title: 'Season 1', episodes: [episode] }
+    const movie: Movie = { id: 1, canonicalId: 'tmdb:movie:1', kind: 'movie', titles: { preferred: 'Film', alternatives: [] }, genres: [], source: 'tmdb', sourceId: '1', attribution: 'TMDB' }
+    const series: Series = { ...movie, kind: 'series', seasons: [season] }
+    const anime: Anime = { ...movie, kind: 'anime', format: 'series', studios: [], seasons: [season] }
+    const person: Person = { id: 1, name: 'Creator' }
+
+    expect([movie.kind, series.kind, anime.kind, person.name, season.episodes[0].number]).toEqual(['movie', 'series', 'anime', 'Creator', 1])
   })
 })

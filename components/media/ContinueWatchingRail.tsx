@@ -46,8 +46,8 @@ export function ContinueWatchingRail() {
           const href =
             item.media_type === 'tv' && item.season && item.episode
               ? `/watch/tv/${item.id}/${item.season}/${item.episode}`
-              : item.media_type === 'anime'
-                ? `/anime/${item.id}`
+            : item.media_type === 'anime'
+                ? item.episode ? `/watch/anime/${item.id}/${item.episode}` : `/anime/${item.id}`
                 : `/watch/movie/${item.id}`
 
           const imgSrc = poster(item.backdrop_path ?? item.poster_path, 'w780')
@@ -82,6 +82,11 @@ export function ContinueWatchingRail() {
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       S{item.season} · E{item.episode}
                       {item.episodeTitle && ` · ${item.episodeTitle}`}
+                    </p>
+                  )}
+                  {item.media_type === 'anime' && item.episode && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Episode {item.episode}{item.episodeTitle && ` · ${item.episodeTitle}`}
                     </p>
                   )}
                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">

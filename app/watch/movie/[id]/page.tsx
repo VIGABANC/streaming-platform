@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Calendar, Star } from 'lucide-react'
+import { notFound } from 'next/navigation'
 import { Shell } from '@/components/layout/Shell'
 import { PlayerFrame } from '@/components/player/PlayerFrame'
 import { ContinueWatchingTracker } from '@/components/player/ContinueWatchingTracker'
@@ -16,7 +17,7 @@ import {
   type Media,
   type MediaType,
 } from '@/lib/tmdb'
-import { getMovieEmbedUrl } from '@/lib/player'
+import { parsePositiveIntSegment } from '@/lib/http/validation'
 import { formatRating } from '@/lib/utils'
 
 interface WatchMoviePageProps {
@@ -41,6 +42,7 @@ export async function generateMetadata({ params }: WatchMoviePageProps): Promise
 
 export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
   const { id } = await params
+  if (parsePositiveIntSegment(id, { min: 1, max: Number.MAX_SAFE_INTEGER }) == null) notFound()
   let movie: MovieDetail | null = null
 
   try {
@@ -51,7 +53,6 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
 
   const title = movie ? titleOf(movie) : 'Movie'
   const year = movie ? yearOf(movie) : ''
-  const embedUrl = getMovieEmbedUrl(id)
   const backdropUrl = movie?.backdrop_path ? backdrop(movie.backdrop_path, 'w1280') : undefined
 
   const similarTitles: (Media & { media_type: MediaType })[] = (
@@ -71,6 +72,8 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
             title,
             poster_path: movie.poster_path,
             backdrop_path: movie.backdrop_path,
+            playbackMode: 'external-embed',
+            verificationState: 'not-started',
             lastOpenedAt: Date.now(),
           }}
         />
@@ -94,7 +97,6 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
           <PlayerFrame
             mediaType="movie"
             mediaId={id}
-            src={embedUrl}
             title={`${title} playback`}
             artwork={backdropUrl}
             backHref={`/movie/${id}`}

@@ -19,6 +19,7 @@ export function reportClientError(source: 'error' | 'unhandledrejection'): void 
 }
 
 export type PlayerEventName =
+  | 'player_source_resolution'
   | 'player_attempt'
   | 'player_frame_loaded'
   | 'player_timeout'
@@ -27,10 +28,30 @@ export type PlayerEventName =
   | 'player_manual_switch'
   | 'player_provider_success'
   | 'player_all_providers_exhausted'
+  | 'player_source_exhausted'
+  | 'player_retry'
+  | 'player_native_playback_started'
+  | 'player_playback_ended'
+
+export const PLAYER_EVENT_NAMES: readonly PlayerEventName[] = [
+  'player_source_resolution',
+  'player_attempt',
+  'player_frame_loaded',
+  'player_timeout',
+  'player_error',
+  'player_auto_failover',
+  'player_manual_switch',
+  'player_provider_success',
+  'player_all_providers_exhausted',
+  'player_source_exhausted',
+  'player_retry',
+  'player_native_playback_started',
+  'player_playback_ended',
+]
 
 export function reportPlayerEvent(
   event: PlayerEventName,
-  data: { providerId: string; mediaType: 'movie' | 'tv'; startupMs?: number; attemptIndex?: number; errorCategory?: string; networkHint?: string },
+  data: { providerId: string; mediaType: 'movie' | 'tv' | 'anime'; startupMs?: number; attemptIndex?: number; errorCategory?: string; networkHint?: string; resolutionStatus?: string },
 ): void {
   if (typeof window === 'undefined') return
   void track(`veyra_${event}`, { ...data, path: pathWithoutQuery() })

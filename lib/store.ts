@@ -38,6 +38,11 @@ export interface ContinueWatchingItem {
   season?: number
   episode?: number
   episodeTitle?: string
+  providerId?: string | null
+  playbackMode?: 'external-embed' | 'native-media'
+  positionSeconds?: number
+  durationSeconds?: number
+  verificationState?: 'not-started' | 'frame-load-only' | 'native-playback-verified'
   lastOpenedAt: number
 }
 
@@ -59,6 +64,9 @@ export interface HistoryItem {
   season?: number
   episode?: number
   episodeTitle?: string
+  providerId?: string | null
+  playbackMode?: 'external-embed' | 'native-media'
+  verificationState?: 'not-started' | 'frame-load-only' | 'native-playback-verified'
   watchedAt: number
 }
 
@@ -328,6 +336,9 @@ class LocalStorageMediaStore implements UserMediaStore {
       season: item.season,
       episode: item.episode,
       episodeTitle: item.episodeTitle,
+      providerId: item.providerId,
+      playbackMode: item.playbackMode,
+      verificationState: item.verificationState,
     })
   }
 

@@ -58,8 +58,6 @@ Edit `.env.local`:
 # Required — get your free key at https://www.themoviedb.org/settings/api
 TMDB_API_KEY=your_tmdb_api_key_here
 
-# Optional — defaults to https://v1.vidsrc.wiki
-NEXT_PUBLIC_EMBED_PROVIDER=https://v1.vidsrc.wiki
 ```
 
 > [!IMPORTANT]
@@ -134,12 +132,13 @@ streaming-platform/
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `TMDB_API_KEY` | Yes | — | TMDB API key (server-side only) |
-| `NEXT_PUBLIC_EMBED_PROVIDER` | No | `https://v1.vidsrc.wiki` | Base URL for the video embed provider |
+| `ANILIST_API_URL` | No | `https://graphql.anilist.co` | Server-side anime metadata endpoint |
+| `JIKAN_API_URL` | No | `https://api.jikan.moe/v4` | Optional server-side episode enrichment endpoint |
 
-The player constructs embed URLs in the following format:
-
-- Movies: `{EMBED_PROVIDER}/embed/movie/{tmdb_id}/`
-- TV episodes: `{EMBED_PROVIDER}/embed/tv/{tmdb_id}/{season}/{episode}/`
+Playback sources are constructed only by the typed provider registry and
+resolver. Pages cannot override an iframe URL at runtime. Current external
+providers are opaque third-party embeds: the provider owns the controls and
+VEYRA reports only frame-document load, not verified playback or quality.
 
 ## Testing
 

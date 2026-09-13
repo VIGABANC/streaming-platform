@@ -1,146 +1,80 @@
 # VEYRA player reliability report
 
-## Before
+**Updated:** 2026-09-13
+**Status:** Architecture partially verified; browser and external deployment verification pending
 
-The player used a fixed first provider, treated iframe `load` as playback
-readiness, retried through a modulo-based provider cycle, and scheduled warning
-and hard timeout timers in an effect that cleaned up when the warning state
-changed. Watch routes also constructed embed URLs independently of the player.
+## Current architecture
 
-## Root causes addressed
+VEYRA separates opaque `ExternalEmbedEngine` behavior from the gated
+`NativeMediaEngine` contract. The external providers in the registry are
+cross-origin and unverified. They now carry explicit
+`PlaybackProviderVerification` records with `enabled: false`, so they are not
+eligible for playback resolution. Anime remains unavailable because no
+verified Anime playback source exists.
 
-- Strict positive-integer validation now rejects malformed TV route segments.
-- Provider ranking uses bounded Bayesian-style reliability, latency, preference,
-  and exploration signals, while excluding attempted or cooling-down providers.
-- Provider labels no longer make unverified quality claims.
-- Provider origins and URL builders live in the typed provider registry; the
-  arbitrary production `NEXT_PUBLIC_EMBED_PROVIDER` override is no longer used
-  for iframe construction.
-- The timeout effect keeps its hard deadline when the warning state renders and
-  automatically moves to the next unattempted provider.
-- Watch routes no longer pass a competing pre-built iframe URL.
+The player shell still owns loading/error/retry presentation, provider health
+state, attempt identity guards, offline/reconnect handling, theater mode,
+lights-off overlay, and VEYRA-container fullscreen. An opaque iframe can only
+produce `frame loaded; not independently verified`; it cannot produce a
+verified playback, quality, audio, caption, or bitrate claim.
 
-## Verification
+## Fresh verification
 
-- `npm test -- --run`: 22 files, 105 tests passing.
-- `npm run typecheck`: passing.
-- `npm run lint`: passing.
-- `npm run build`: passing.
-- `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
-- `tests/e2e/player.spec.ts`: 2 passing checks for immediate manual switching
-  and malformed TV route rejection.
-- The complete E2E suite: 78 tests passing across Chromium and Mobile Chrome.
-- The focused player E2E suite: 2 tests passing after the attempt-state
-  integration.
-- The isolated live smoke suite (`playwright.live.config.ts`): 2 tests passed
-  against the deployed movie and TV routes; it remains excluded from normal CI
-  because provider uptime is external.
+| Check | Result | Evidence |
+|---|---|---|
+| Typecheck | PASS | `npm run typecheck` exit 0 |
+| Lint | PASS | `npm run lint` exit 0 |
+| Unit tests | PASS | 30 files / 142 tests before current changes; targeted current suite 4 files / 38 tests passed |
+| Production build | PASS | `npm run build` exit 0; expected `TMDB_API_KEY_MISSING` fallback warning in no-secret environment |
+| Security audit | PASS | `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities |
+| Full E2E | BLOCKED | 44 tests failed before browser launch because Chromium executable is missing |
+| Mobile player E2E | BLOCKED | Chromium executable missing; Next also reported `uv_interface_addresses` environment error |
+| Live provider smoke | BLOCKED | 2 tests failed before browser launch because Chromium executable is missing |
+| Deployed watch pages | NOT VERIFIED | Vercel connector returned `403 Forbidden` for movie, TV, and Anime watch routes |
 
-## Quality and external limitations
+## Verified code-level guarantees
 
-The configured providers are opaque cross-origin embeds. VEYRA can truthfully
-report frame-document load and timeout/error signals, but cannot claim that a
-video is playing or expose a resolution selector without a documented provider
-ready/quality API. Live provider availability and playback visibility require a
-headed-browser smoke run and are intentionally not inferred from HTTP status or
-iframe load alone.
+- Provider verification requires authorization evidence, origin checks, an
+  allowed embedding context, an enabled flag, and a fresh verification date.
+- All existing third-party embed providers are `unverified` and disabled.
+- The resolver returns no movie/TV embed source while those providers remain
+  unverified; Anime remains unavailable.
+- Native MP4/HLS/DASH sources are accepted only when explicitly authorized,
+  allowlisted, HTTPS, and format-valid. No native source is currently enabled.
+- IDs, seasons, and episodes are strictly validated before source construction.
+- URL validation rejects non-HTTPS, credential-bearing, and mismatched-origin
+  playback URLs.
+- Attempt callbacks are guarded by provider ID and monotonically increasing
+  attempt ID.
+- Player observability now includes source-resolution status separately from
+  frame-loaded and native-playback-started events.
+- Anime continue-watching state stores media type, episode, explicit
+  `providerId: null`, external-embed mode, and not-started verification state;
+  it does not invent an unavailable provider.
+- Mobile mode controls are rendered without desktop-only hiding. Lights-off
+  adds a viewport overlay, theater mode is a fixed container mode, and
+  fullscreen state is reflected in accessible labels.
 
-## Provider matrix (live production route)
+## Known gaps before finalization
 
-Smoke inspection of `/watch/movie/1007757` on the deployed route recorded the
-following source-level results. These are external-provider observations, not
-claims that VEYRA can guarantee availability.
-
-| Provider | Movie frame | Visible result | VEYRA conclusion |
-|---|---|---|---|
-| Server 1 / `v1.vidsrc.wiki` | Loaded | Provider player rendered; playback not independently confirmed | PLAYBACK NOT VERIFIABLE |
-| Server 2 / `vidsrc.xyz` | Loaded | Provider frame rendered during inspection | PLAYBACK NOT VERIFIABLE |
-| Server 3 / `www.2embed.cc` | Attempted | Remained in the VEYRA connecting state during the sample | SLOW / TIMEOUT SAMPLE |
-| Server 4 / `player.autoembed.cc` | Loaded | Browser reported that the provider host IP could not be resolved | NETWORK ERROR |
-
-The inspection also captured a cross-origin browser security error from the
-third-party page; VEYRA does not attempt to bypass that boundary.
-
-## Observability
-
-Privacy-safe client events now distinguish attempt, frame load, timeout, frame
-error, automatic failover, manual switch, provider success, and exhaustion.
-They include only provider ID, media type, bounded timing, attempt index,
-error category, network hint, and pathname; iframe URLs and user data are not
-sent.
-
-## Browser evidence
-
-The local production build was opened at `/watch/movie/1007757`. Server 1
-rendered an external player frame, and selecting Server 2 changed the iframe
-source immediately; the automated Playwright measurement completed within one
-second. The frame later exposed provider controls and an “Unable to play media”
-state, confirming that iframe load is not equivalent to verified playback.
-
-The deployed Vercel route was re-deployed from this verified worktree and now
-serves neutral `Server 1`–`Server 4` labels, the truthful frame-load message,
-and the current player controls. Deployment ID:
-`dpl_U7LcvBknU1eg32SPxqxqpez12b9q` (production alias
-`https://streaming-platform-beryl.vercel.app`).
-
-The deployed TV route `/watch/tv/1399/1/1` rendered the episode metadata,
-episode list, and next-episode navigation. Its external frame was treated with
-the same playback-verification limitation as the movie route.
-
-## Remaining external limitations
-
-The live suite records provider frame/origin outcomes, but opaque providers do
-not expose enough documented signals to claim visible playback programmatically.
-Provider availability, licensing, and browser/network restrictions remain
-external to VEYRA. The production deployment itself is complete and verified;
-the live smoke suite remains separate from normal CI because provider uptime is
-external.
-
-## Current worktree verification
-
-Fresh verification in the isolated `codex/veyra-player-optimization` worktree:
-
-- `npm run typecheck`: passed.
-- `npm run lint`: passed.
-- `npm test -- --run`: 25 files, 125 tests passed.
-- `npm run build`: passed on Next.js 16.3.3.
-- `npm audit --omit=dev`: 0 vulnerabilities.
-- `npm run test:e2e`: 92 tests passed across Chromium and Mobile Chrome, including browser-observed first-provider failover.
-- Live provider playback confirmation: not claimed; no Vercel account/runtime inspection was available in this run (`VERCEL_ACCOUNT_INSPECTION_BLOCKED_BY_AUTH`).
-
-The deterministic suite verifies the VEYRA shell, state transitions, ranking,
-offline/reconnect behavior, malformed routes, keyboard focus, mobile layout,
-and reduced motion. It cannot prove playback inside a cross-origin provider.
-
-Real browser smoke of the public movie route loaded the external provider frame,
-showed the provider's own play/seek/volume/quality/PiP controls and an
-`Unable to play media` state, then switched the VEYRA shell from Server 1 to
-Server 2. This confirms the ownership boundary and does not establish visible
-playback success.
+1. Chromium must be installed successfully in CI and the full E2E matrix must
+   run. Local browser execution is not currently possible in this environment.
+2. The separate live smoke suite must run against a reachable deployment. It
+   may verify frame loading only, never opaque-provider playback.
+3. The deployed pages must be re-inspected after an authenticated Vercel
+   deployment; the current connector cannot inspect the existing deployment.
+4. The native engine remains a gated contract. Subtitles, audio tracks,
+   quality choices, PiP, and native playback controls must not be shown until
+   an authorized direct source is actually configured.
+5. Historical verification claims from earlier runs are intentionally removed;
+   only fresh command output in this report is authoritative.
 
 ## Final verdict
 
-**P0 VERIFIED — P1/P2 PENDING**
+**NOT READY FOR FINAL PUSH/DEPLOY.**
 
-P0 player state, bounded failover foundations, trust/ranking controls, security
-boundaries, accessibility shell behavior, deterministic E2E coverage, and live
-route smoke evidence are verified. P1/P2 remain pending where provider-owned
-playback capabilities, persisted missing-availability workflow, and broader
-legitimate World Cinema metadata enrichment are not yet implemented or
-independently verifiable.
-
-The current worktree adds explicit attempt/provider identity guards, typed
-opaque-provider capabilities, hard trust eligibility, TTL timestamps, bounded
-half-open circuit trials, scoped Reload player recovery, and accessibility E2E
-coverage. The deterministic unit suite contains 111 passing tests.
-
-The full Playwright matrix covers 87 tests across Chromium and Mobile Chrome;
-the player subset passes on both projects. A prior full run exposed one flaky
-landing selector that matched two identical mobile navigation nodes; the test
-now scopes to the first rendered navigation and the isolated rerun passes.
-
-The isolated live smoke suite was rerun against
-`https://streaming-platform-beryl.vercel.app`: both approved checks passed for
-movie `1007757` and TV `1399 / S1 / E1`. These results establish route and
-provider-frame observations only; the configured cross-origin providers remain
-opaque, so the suite does not claim visible playback confirmation.
+The security and resolver changes are code-verified, but the completion
+criteria require successful browser verification and a reachable deployment.
+After Chromium CI and live smoke pass, run the final typecheck, lint, unit
+tests, E2E, build, and security audit again. Only then create the final commit,
+push GitHub, and trigger or confirm Vercel deployment.

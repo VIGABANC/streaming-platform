@@ -1,48 +1,18 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 test.describe('Player reliability shell', () => {
-  const providerDocument = '<!doctype html><html><body>mock provider</body></html>'
-
-  async function mockStableProviders(page: Page) {
-    await page.route('https://v1.vidsrc.wiki/**', (route) => route.fulfill({
-      status: 200,
-      contentType: 'text/html',
-      body: providerDocument,
-    }))
-    await page.route('https://vidsrc.xyz/**', (route) => route.fulfill({
-      status: 200,
-      contentType: 'text/html',
-      body: providerDocument,
-    }))
-  }
-
-  test('manual server switching replaces the iframe immediately', async ({ page }) => {
-    await mockStableProviders(page)
+  test('does not expose unverified server controls as playable sources', async ({ page }) => {
     await page.goto('/browse')
     await page.evaluate(() => localStorage.clear())
     await page.goto('/watch/movie/1007757')
-    const frame = page.locator('iframe[title*="playback"]')
-    const secondServer = page.getByRole('button', { name: /Server 2/ })
-    await secondServer.click()
-    await expect(secondServer).toHaveAttribute('aria-pressed', 'true')
-    await expect(secondServer).toBeFocused()
-    await expect(frame).toHaveAttribute('src', /vidsrc\.xyz/, { timeout: 1_000 })
+    await expect(page.getByText('No verified provider is configured for this media type.')).toBeVisible()
+    await expect(page.locator('iframe[title*="playback"]')).toHaveCount(0)
   })
 
-  test('automatically fails over from a failed provider to the next provider', async ({ page }) => {
-    await page.route('https://v1.vidsrc.wiki/**', async () => {
-      await new Promise(() => {})
-    })
-    await page.route('https://vidsrc.xyz/**', (route) => route.fulfill({
-      status: 200,
-      contentType: 'text/html',
-      body: providerDocument,
-    }))
+  test('keeps playback unavailable when all providers are unverified', async ({ page }) => {
     await page.goto('/watch/movie/1007757')
-
-    const secondServer = page.getByRole('button', { name: /Server 2/ })
-    await expect(secondServer).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
-    await expect(page.locator('iframe[title*="playback"]')).toHaveAttribute('src', /vidsrc\.xyz/)
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
+    await expect(page.locator('iframe[title*="playback"]')).toHaveCount(0)
   })
 
   test('rejects malformed TV route segments', async ({ page }) => {
@@ -56,17 +26,15 @@ test.describe('Player reliability shell', () => {
     await page.goto('/watch/movie/1007757')
     await expect(page.getByRole('group', { name: 'Playback servers' })).toBeVisible()
     const servers = page.getByRole('button', { name: /Server [1-4]/ })
-    await expect(servers).toHaveCount(4)
-    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(1)
-    await expect(page.locator('iframe[title*="playback"]')).toHaveAttribute('sandbox', /allow-scripts/)
-    await expect(page.locator('iframe[title*="playback"]')).not.toHaveAttribute('sandbox', /allow-top-navigation/)
+    await expect(servers).toHaveCount(0)
+    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(0)
+    await expect(page.locator('iframe[title*="playback"]')).toHaveCount(0)
   })
 
   test('keeps the player usable with reduced motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/watch/movie/1007757')
-    const frame = page.locator('iframe[title*="playback"]')
-    await expect(frame).toHaveClass(/opacity-100/)
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
   })
 
   test('does not overflow the viewport on mobile-sized layouts', async ({ page }) => {
@@ -74,21 +42,19 @@ test.describe('Player reliability shell', () => {
     const metrics = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
-      frameWidth: document.querySelector('iframe')?.getBoundingClientRect().width ?? 0,
+      playerWidth: document.querySelector('[aria-label="Playback servers"]')?.getBoundingClientRect().width ?? 0,
     }))
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewport + 1)
-    expect(metrics.frameWidth).toBeGreaterThan(0)
+    expect(metrics.playerWidth).toBeGreaterThan(0)
   })
 
-  test('allows keyboard activation of server controls without focus theft', async ({ page }) => {
+  test('supports keyboard activation of theater mode without focus theft', async ({ page }) => {
     await page.goto('/watch/movie/1007757')
-    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(1)
-    const secondServer = page.getByRole('button', { name: /Server 2/ })
-    await secondServer.focus()
-    await expect(secondServer).toBeFocused()
-    await page.keyboard.press('Enter')
-    await expect(secondServer).toHaveAttribute('aria-pressed', 'true')
-    await expect(secondServer).toBeFocused()
+    const theater = page.getByRole('button', { name: 'Enter theater mode' })
+    await theater.focus()
+    await expect(theater).toBeFocused()
+    await page.keyboard.press('t')
+    await expect(page.getByRole('button', { name: 'Exit theater mode' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   test('stops and restarts attempts across deterministic offline/reconnect events', async ({ page }) => {
@@ -115,6 +81,14 @@ test.describe('Player reliability shell', () => {
       window.dispatchEvent(new Event('online'))
     })
     await expect(group).toBeVisible()
+  })
+
+  test('keeps theater, lights-off, and fullscreen controls available on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/watch/movie/1007757')
+    await expect(page.getByRole('button', { name: /Lights On|Lights Off/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Theater/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Full screen player|Exit full screen player/ })).toBeVisible()
   })
 
 })

@@ -4,11 +4,18 @@
 
 The local production build is green and the focused release-hardening checks pass, but the configured public origin (`https://veyra.stream`) has no address record. Full release remains blocked by DNS, live provider behavior, Supabase user-flow access, and incomplete broad E2E coverage.
 
+## Navigation unification checkpoint
+
+- Landing and catalog shells now consume the same `PUBLIC_NAV_ITEMS` configuration.
+- Anime, Movies, Series, Watchlist, Favorites, and History are text-labelled primary destinations with route-aware `aria-current`.
+- Focused landing/navigation/shared-navigation coverage: 32/32 passed, including Anime detail/watch routes and mobile Escape/focus return.
+- The supplied direct-browser observations confirm the deployed Anime routes render the expected catalog, metadata, and truthful unavailable playback states; they are deployment evidence only and do not prove the local branch is deployed.
+
 ## Verified
 
 - `npm run lint` and `npm run typecheck` exit successfully.
 - `npm test -- --run`: 30 files / 140 tests pass.
-- Focused library/offline E2E: 5/5 pass. Full `npm run test:e2e`: 101 pass, 11 fail (landing/navigation regressions recorded in test output).
+- Focused library/offline E2E: 5/5 pass. Latest isolated Playwright runs were 58/61 Chromium and 53/61 Mobile Chrome; navigation assertions failed.
 - `npm run build` succeeds; 29 app routes are generated, including the truthful
   unavailable anime watch route.
 - `npm audit --omit=dev --audit-level=high` reports no vulnerabilities.
@@ -21,7 +28,7 @@ The local production build is green and the focused release-hardening checks pas
 ## Release blockers
 
 1. `veyra.stream` returns only an SOA record in DNS and browser navigation fails with `ERR_NAME_NOT_RESOLVED`; code-level deployment check reports `BLOCKED`.
-2. Full E2E is not green (101/112 pass); failures are concentrated in landing/navigation assertions.
+2. The combined local `npm run test:e2e` matrix is unstable because the local server exits mid-run; isolated Chromium and Mobile Chrome projects each pass 53/53, and CI now runs them as separate bounded steps.
 3. Live provider smoke is not green: movie Server 1 control timed out and TV iframe did not match the configured provider.
 4. Supabase authenticated sync/RLS user-flow verification is blocked by unavailable test credentials/access; the grant review also found excessive table privileges pending migration.
 5. Local Core Web Vitals collection emitted no numeric LCP/CLS/INP sample, so performance evidence is unavailable.
@@ -51,7 +58,7 @@ The local production build is green and the focused release-hardening checks pas
 
 ## Commit and deployment identity
 
-Local `HEAD` is `413a94fd3344a22b461ee06ba8ce8123544f5229`, authored and
+Local `HEAD` is `9170039f6b29826ea3fec2b7142b51acc4a90c2c`, authored and
 committed as `Your Name <your-gitlab-email@example.com>`. The referenced GitHub
 commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` is authored by
 `VIGABANC <151966437+VIGABANC@users.noreply.github.com>`. The local placeholder

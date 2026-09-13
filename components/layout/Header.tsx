@@ -12,30 +12,10 @@ import {
   History,
   Settings,
   ChevronDown,
-  Flame,
 } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
 import { warmPlayerConnection } from '@/lib/player'
-
-interface NavLinkItem {
-  href: string
-  label: string
-  badge?: string
-  icon?: React.ComponentType<{ size?: number; className?: string }>
-}
-
-const NAV_LINKS: NavLinkItem[] = [
-  { href: '/browse', label: 'Home' },
-  { href: '/movies', label: 'Movies' },
-  { href: '/tv', label: 'Series' },
-  { href: '/anime', label: 'Anime' },
-  { href: '/new', label: 'New', badge: 'Fresh' },
-  { href: '/top10', label: 'Top 10', icon: Flame },
-  { href: '/discover', label: 'Discover' },
-  { href: '/my-list', label: 'Watchlist' },
-  { href: '/favorites', label: 'Favorites' },
-  { href: '/history', label: 'History' },
-]
+import { PUBLIC_NAV_ITEMS, isNavItemActive } from '@/components/navigation/public-nav'
 
 export function Header() {
   const pathname = usePathname()
@@ -127,8 +107,7 @@ export function Header() {
     [query, router],
   )
 
-  const isActive = (href: string) =>
-    href === '/browse' ? pathname === '/browse' : pathname.startsWith(href)
+  const isActive = (href: string) => isNavItemActive(pathname, href)
 
   return (
     <header
@@ -143,7 +122,7 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav aria-label="Main navigation" className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto md:flex ml-4">
-          {NAV_LINKS.map(({ href, label, badge, icon: Icon }) => (
+          {PUBLIC_NAV_ITEMS.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
@@ -154,13 +133,7 @@ export function Header() {
                   : 'text-muted-foreground hover:text-white hover:bg-white/5'
               }`}
             >
-              {Icon && <Icon size={14} className="text-amber-400" />}
               <span>{label}</span>
-              {badge && (
-                <span className="rounded bg-primary/20 border border-primary/40 px-1 py-0.2 text-[9px] font-extrabold uppercase tracking-tight text-primary">
-                  {badge}
-                </span>
-              )}
             </Link>
           ))}
         </nav>

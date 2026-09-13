@@ -67,8 +67,8 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
     await expect(mainNav.getByRole('link', { name: 'Home' })).toBeVisible()
     await expect(mainNav.getByRole('link', { name: 'Discover' })).toBeVisible()
     await expect(mainNav.getByRole('link', { name: 'Movies' })).toBeVisible()
-    await expect(mainNav.getByRole('link', { name: 'TV Shows' })).toBeVisible()
-    await expect(mainNav.getByRole('link', { name: 'Search' })).toBeVisible()
+    await expect(mainNav.getByRole('link', { name: 'Series' })).toBeVisible()
+    await expect(mainNav.getByRole('link', { name: 'Anime' })).toBeVisible()
     await expect(mainNav.getByRole('link', { name: 'Watchlist' })).toBeVisible()
     await expect(mainNav.getByRole('link', { name: 'Explore VEYRA' })).toHaveAttribute('href', '/browse')
 
@@ -77,7 +77,7 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
     await expect(page.locator('nav[aria-label="Mobile navigation"]')).not.toBeVisible()
   })
 
-  test('mobile navigation at 390px renders 5 items and mobile drawer', async ({ page }) => {
+  test('mobile navigation at 390px renders 6 items and mobile drawer', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
 
@@ -89,7 +89,7 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
     const mobileNav = page.locator('nav[aria-label="Mobile navigation"]').first()
     await expect(mobileNav).toBeVisible()
     const mobileLinks = mobileNav.getByRole('link')
-    await expect(mobileLinks).toHaveCount(5)
+    await expect(mobileLinks).toHaveCount(6)
     await expect(mobileNav.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     await expect(mobileNav.getByRole('link', { name: 'Movies' })).toHaveAttribute('href', '/movies')
     await expect(mobileNav.getByRole('link', { name: 'TV' })).toHaveAttribute('href', '/tv')

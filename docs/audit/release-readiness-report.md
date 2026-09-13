@@ -60,7 +60,7 @@ The local production build and complete E2E suite are green. This release uses t
 
 ## Commit and deployment identity
 
-Local `HEAD` is `771f4e951d3f315cdbe789792fb3d7f1301499e3` plus the final release verification changes, authored and
+Local `HEAD` is `30acd70` (`release: finalize VEYRA on Vercel domain`), authored and
 committed as `Your Name <your-gitlab-email@example.com>`. The referenced GitHub
 commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` is authored by
 `VIGABANC <151966437+VIGABANC@users.noreply.github.com>`. The local placeholder

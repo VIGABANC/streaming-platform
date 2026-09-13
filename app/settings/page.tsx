@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import {
   Settings as SettingsIcon,
   Sliders,
@@ -18,6 +18,25 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const resetDialog = useRef<HTMLDialogElement>(null)
+  const resetTrigger = useRef<HTMLButtonElement>(null)
+  useLayoutEffect(() => {
+    if (!showResetConfirm) return
+    const dialog = resetDialog.current
+    const trigger = resetTrigger.current
+    if (dialog && !dialog.open) dialog.showModal()
+    requestAnimationFrame(() => dialog?.querySelector<HTMLButtonElement>('[data-cancel]')?.focus())
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !dialog) return
+      const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button'))
+      const first = buttons[0]
+      const last = buttons[buttons.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    dialog?.addEventListener('keydown', trap)
+    return () => { dialog?.removeEventListener('keydown', trap); dialog?.close(); trigger?.focus() }
+  }, [showResetConfirm])
 
   useEffect(() => {
     setMounted(true)
@@ -114,6 +133,7 @@ export default function SettingsPage() {
             </div>
             <select
               value={settings.defaultServer}
+              aria-label="Default Video Server"
               onChange={(e) => updateSetting('defaultServer', e.target.value)}
               className="w-full rounded-xl border border-white/15 bg-black/60 p-3 text-xs font-semibold text-white focus:border-primary focus:outline-none"
             >
@@ -130,6 +150,7 @@ export default function SettingsPage() {
             <p className="text-xs text-white/50">Auto ranks configured servers by recent health; manual starts with your preferred server.</p>
             <select
               value={settings.playerMode ?? 'auto'}
+              aria-label="Server Selection"
               onChange={(e) => updateSetting('playerMode', e.target.value as 'auto' | 'manual')}
               className="w-full rounded-xl border border-white/15 bg-black/60 p-3 text-xs font-semibold text-white focus:border-primary focus:outline-none"
             >
@@ -143,6 +164,7 @@ export default function SettingsPage() {
             <p className="text-xs text-white/50">Applied only by providers that document subtitle selection. Other providers remain provider-controlled.</p>
             <select
               value={settings.subtitleLanguage}
+              aria-label="Preferred subtitles"
               onChange={(e) => updateSetting('subtitleLanguage', e.target.value as UserSettings['subtitleLanguage'])}
               className="w-full rounded-xl border border-white/15 bg-black/60 p-3 text-xs font-semibold text-white focus:border-primary focus:outline-none"
             >
@@ -168,6 +190,7 @@ export default function SettingsPage() {
             <button
               type="button"
               role="switch"
+              aria-label="Ambient Cinema Lighting"
               aria-checked={settings.ambientLighting}
               onClick={() => updateSetting('ambientLighting', !settings.ambientLighting)}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
@@ -230,6 +253,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setShowResetConfirm(true)}
+              ref={resetTrigger}
               className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 px-4 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500 hover:text-white transition-colors self-start sm:self-auto"
             >
               <AlertTriangle size={13} />
@@ -238,11 +262,20 @@ export default function SettingsPage() {
           </div>
 
           {showResetConfirm && (
-            <div className="rounded-xl border border-rose-500/50 bg-rose-950/40 p-4 space-y-3">
-              <p className="text-xs font-bold text-rose-300">
-                Are you completely sure? This cannot be undone unless you have a JSON backup.
+            <dialog ref={resetDialog} aria-label="Reset current library?" aria-labelledby="reset-title" onCancel={() => setShowResetConfirm(false)} className="m-auto max-w-md rounded-xl border border-rose-500/50 bg-[#180a10] p-6 text-white backdrop:bg-black/75 space-y-3">
+              <h2 id="reset-title" className="font-bold">Reset current library?</h2>
+              <p className="text-sm text-rose-200">
+                This clears the current library on this device and syncs its removals when signed in. Other accounts and the saved anonymous library are separate. Export a backup first to keep a copy.
               </p>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirm(false)}
+                  data-cancel
+                  className="rounded-full border border-white/20 px-3 py-1.5 text-xs text-white/70 hover:text-white"
+                >
+                  Cancel
+                </button>
                 <button
                   type="button"
                   onClick={handleResetAll}
@@ -250,15 +283,8 @@ export default function SettingsPage() {
                 >
                   Yes, wipe everything
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowResetConfirm(false)}
-                  className="rounded-full border border-white/20 px-3 py-1.5 text-xs text-white/70 hover:text-white"
-                >
-                  Cancel
-                </button>
               </div>
-            </div>
+            </dialog>
           )}
         </section>
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
   User,
@@ -18,6 +18,7 @@ import {
   Play,
 } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
+import { AccountStatus } from '@/components/library/AccountStatus'
 import { MediaCard } from '@/components/media/MediaCard'
 import {
   store,
@@ -41,6 +42,17 @@ export default function ProfilePage() {
   const [nameInput, setNameInput] = useState('')
   const [bioInput, setBioInput] = useState('')
   const [mounted, setMounted] = useState(false)
+  const editTrigger = useRef<HTMLButtonElement>(null)
+  const nameField = useRef<HTMLInputElement>(null)
+  useLayoutEffect(() => {
+    if (!isEditing) return
+    requestAnimationFrame(() => nameField.current?.focus())
+    return () => {
+      // Resolve the replacement trigger after React remounts it.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      requestAnimationFrame(() => editTrigger.current?.focus())
+    }
+  }, [isEditing])
 
   const reload = () => {
     const prof = store.getProfile()
@@ -133,6 +145,7 @@ export default function ProfilePage() {
   return (
     <Shell>
       <div className="mx-auto max-w-[1440px] px-5 py-8 lg:px-12 space-y-10">
+        <AccountStatus />
         {/* Profile Card Header */}
         <section
           className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#121620] via-[#0A0D14] to-[#050507] p-6 lg:p-10 shadow-2xl"
@@ -156,8 +169,10 @@ export default function ProfilePage() {
                 </div>
 
                 {isEditing ? (
-                  <form onSubmit={handleSaveProfile} className="mt-2 space-y-2">
+                  <form onSubmit={handleSaveProfile} onKeyDown={event => { if (event.key === 'Escape') setIsEditing(false) }} className="mt-2 space-y-2">
                     <input
+                      ref={nameField}
+                      aria-label="Display name"
                       type="text"
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
@@ -166,6 +181,7 @@ export default function ProfilePage() {
                       maxLength={30}
                     />
                     <textarea
+                      aria-label="Personal bio"
                       value={bioInput}
                       onChange={(e) => setBioInput(e.target.value)}
                       className="block w-full rounded-lg border border-white/20 bg-black/60 p-2 text-xs text-white/80 focus:outline-none"
@@ -209,6 +225,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
+                  ref={editTrigger}
                   className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white/80 hover:border-white/30 hover:bg-white/10 transition-colors"
                 >
                   <Edit2 size={13} />

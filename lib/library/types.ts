@@ -58,28 +58,35 @@ function timestampOf(item: { addedAt?: number; favoritedAt?: number; ratedAt?: n
   return Math.max(item.addedAt ?? 0, item.favoritedAt ?? 0, item.ratedAt ?? 0, item.watchedAt ?? 0, item.lastOpenedAt ?? 0)
 }
 
-function mergeCollection<T extends { id: number; media_type: string; season?: number; episode?: number; addedAt?: number; favoritedAt?: number; ratedAt?: number; watchedAt?: number; lastOpenedAt?: number }>(local: T[], remote: T[]): T[] {
+function mergeCollection<T extends { id: number; media_type: string; season?: number; episode?: number; addedAt?: number; favoritedAt?: number; ratedAt?: number; watchedAt?: number; lastOpenedAt?: number }>(local: T[], remote: T[], baseline?: T[]): T[] {
   const merged = new Map<string, T>()
   for (const item of [...local, ...remote]) {
     const key = itemKey(item)
     const existing = merged.get(key)
     if (!existing || timestampOf(item) >= timestampOf(existing)) merged.set(key, { ...item })
   }
+  // A removal wins over an unchanged copy. An actual concurrent edit survives.
+  for (const old of baseline ?? []) {
+    const key = itemKey(old)
+    const l = local.find(item => itemKey(item) === key)
+    const r = remote.find(item => itemKey(item) === key)
+    if ((!l && (!r || JSON.stringify(r) === JSON.stringify(old))) || (!r && (!l || JSON.stringify(l) === JSON.stringify(old)))) merged.delete(key)
+  }
   return [...merged.values()].sort((a, b) => timestampOf(b) - timestampOf(a))
 }
 
-export function mergeLibrarySnapshots(local: LibrarySnapshot, remote: LibrarySnapshot): LibrarySnapshot {
+export function mergeLibrarySnapshots(local: LibrarySnapshot, remote: LibrarySnapshot, baseline?: LibrarySnapshot): LibrarySnapshot {
   const newerProfile = remote.exportedAt >= local.exportedAt ? remote.profile : local.profile
   const newerSettings = remote.exportedAt >= local.exportedAt ? remote.settings : local.settings
 
   return {
     version: 1,
     exportedAt: remote.exportedAt >= local.exportedAt ? remote.exportedAt : local.exportedAt,
-    watchlist: mergeCollection(local.watchlist, remote.watchlist),
-    favorites: mergeCollection(local.favorites, remote.favorites),
-    ratings: mergeCollection(local.ratings, remote.ratings),
-    history: mergeCollection(local.history, remote.history),
-    continueWatching: mergeCollection(local.continueWatching, remote.continueWatching),
+    watchlist: mergeCollection(local.watchlist, remote.watchlist, baseline?.watchlist),
+    favorites: mergeCollection(local.favorites, remote.favorites, baseline?.favorites),
+    ratings: mergeCollection(local.ratings, remote.ratings, baseline?.ratings),
+    history: mergeCollection(local.history, remote.history, baseline?.history),
+    continueWatching: mergeCollection(local.continueWatching, remote.continueWatching, baseline?.continueWatching),
     profile: { ...newerProfile },
     settings: { ...newerSettings },
   }

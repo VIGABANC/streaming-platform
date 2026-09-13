@@ -2,7 +2,7 @@
 
 ## Recommendation: NO-GO
 
-The local production build and complete E2E suite are green, but the configured public origin (`https://veyra.stream`) has no address record. Full release remains blocked by DNS, live provider behavior, Supabase user-flow access, and performance evidence.
+The local production build and complete E2E suite are green. This release uses the Vercel production URL `https://streaming-platform-beryl.vercel.app`; a custom domain is not required.
 
 ## Navigation unification checkpoint
 
@@ -25,11 +25,12 @@ The local production build and complete E2E suite are green, but the configured 
 - Library snapshots have user-scoped Supabase RLS migrations and local-to-cloud merge code; signed-out and anonymous merge-preservation tests pass.
 - Read-only Supabase inspection confirms RLS enabled on all four application tables. No test-user credentials are configured, so authenticated sync and cross-account isolation remain unverified. Data API grants currently include TRUNCATE/TRIGGER for `anon`/`authenticated`; a narrowing migration is prepared locally but unapplied.
 - Authenticated Vercel CLI inspection confirms the project link (`prj_3zhloui14fDSHLAYBCNtPDAG9Kpw`) and a READY production deployment (`dpl_7vfYeeF7FHdqLJsMWKTwKwq4L7Nc`) created at 2026-09-13 14:43:50Z; its commit SHA is not exposed by the CLI response.
+- Vercel production route checks: `/`, `/browse`, `/movies`, `/tv`, `/anime`, `/search`, `/my-list`, `/favorites`, `/history`, `/settings`, `/anime/21`, and `/watch/anime/21/1` all returned HTTP 200 with titles; `robots.txt` and `sitemap.xml` returned HTTP 200.
 
 ## Release blockers
 
-1. `veyra.stream` returns only an SOA record in DNS and browser navigation fails with `ERR_NAME_NOT_RESOLVED`; code-level deployment check reports `BLOCKED`.
-2. Full local `npm run test:e2e` now passes 122/122; intermittent Next stream-closed messages were non-fatal.
+1. Custom domain: `NOT APPLICABLE — no custom domain is required for this release`; production is served through the Vercel `.vercel.app` domain.
+2. Full local `npm run test:e2e` passes 122/122; intermittent Next stream-closed messages were non-fatal.
 3. Live provider smoke is not green: movie Server 1 control timed out and TV iframe did not match the configured provider.
 4. Supabase authenticated sync/RLS user-flow verification is blocked by unavailable test credentials/access; the grant review also found excessive table privileges pending migration.
 5. Local Core Web Vitals collection emitted no numeric LCP/CLS/INP sample, so performance evidence is unavailable.
@@ -44,7 +45,7 @@ The local production build and complete E2E suite are green, but the configured 
 
 ## Required deployment configuration
 
-- Publish an A/AAAA or CNAME record for the chosen production hostname and set `NEXT_PUBLIC_SITE_URL` to that exact HTTPS origin.
+- `NEXT_PUBLIC_SITE_URL` should use `https://streaming-platform-beryl.vercel.app` for this release. Custom-domain DNS is not applicable.
 - Configure server-only `TMDB_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, GitHub credentials, and only the selected AI provider credentials. Do not expose them as `NEXT_PUBLIC_*` values.
 - Configure `NEXT_PUBLIC_SUPABASE_URL` and the project publishable browser key, apply all checked-in Supabase migrations, and verify RLS as anonymous, user A, and user B.
 - Register Telegram using the configured secret-token header; reject deployment if the secret/admin chat allowlist is absent.
@@ -59,7 +60,7 @@ The local production build and complete E2E suite are green, but the configured 
 
 ## Commit and deployment identity
 
-Local `HEAD` is pending the final verification commit after `65fc4647789b7e429fcfe94e47338eecd2e15c2b`, authored and
+Local `HEAD` is `771f4e951d3f315cdbe789792fb3d7f1301499e3` plus the final release verification changes, authored and
 committed as `Your Name <your-gitlab-email@example.com>`. The referenced GitHub
 commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` is authored by
 `VIGABANC <151966437+VIGABANC@users.noreply.github.com>`. The local placeholder

@@ -2,7 +2,7 @@
 
 ## Recommendation: NO-GO
 
-The local production build is green and the focused release-hardening checks pass, but the configured public origin (`https://veyra.stream`) has no address record. Full release remains blocked by DNS, live provider behavior, Supabase user-flow access, and incomplete broad E2E coverage.
+The local production build and complete E2E suite are green, but the configured public origin (`https://veyra.stream`) has no address record. Full release remains blocked by DNS, live provider behavior, Supabase user-flow access, and performance evidence.
 
 ## Navigation unification checkpoint
 
@@ -15,7 +15,8 @@ The local production build is green and the focused release-hardening checks pas
 
 - `npm run lint` and `npm run typecheck` exit successfully.
 - `npm test -- --run`: 30 files / 140 tests pass.
-- Focused library/offline E2E: 5/5 pass. Latest isolated Playwright runs were 58/61 Chromium and 53/61 Mobile Chrome; navigation assertions failed.
+- Focused library/offline E2E: 5/5 pass. Shared landing/navigation coverage: 32/32 pass.
+- Full `npm run test:e2e`: 122/122 pass across Chromium and Mobile Chrome; no retries or skips.
 - `npm run build` succeeds; 29 app routes are generated, including the truthful
   unavailable anime watch route.
 - `npm audit --omit=dev --audit-level=high` reports no vulnerabilities.
@@ -28,7 +29,7 @@ The local production build is green and the focused release-hardening checks pas
 ## Release blockers
 
 1. `veyra.stream` returns only an SOA record in DNS and browser navigation fails with `ERR_NAME_NOT_RESOLVED`; code-level deployment check reports `BLOCKED`.
-2. The combined local `npm run test:e2e` matrix is unstable because the local server exits mid-run; isolated Chromium and Mobile Chrome projects each pass 53/53, and CI now runs them as separate bounded steps.
+2. Full local `npm run test:e2e` now passes 122/122; intermittent Next stream-closed messages were non-fatal.
 3. Live provider smoke is not green: movie Server 1 control timed out and TV iframe did not match the configured provider.
 4. Supabase authenticated sync/RLS user-flow verification is blocked by unavailable test credentials/access; the grant review also found excessive table privileges pending migration.
 5. Local Core Web Vitals collection emitted no numeric LCP/CLS/INP sample, so performance evidence is unavailable.
@@ -58,7 +59,7 @@ The local production build is green and the focused release-hardening checks pas
 
 ## Commit and deployment identity
 
-Local `HEAD` is `9170039f6b29826ea3fec2b7142b51acc4a90c2c`, authored and
+Local `HEAD` is pending the final verification commit after `65fc4647789b7e429fcfe94e47338eecd2e15c2b`, authored and
 committed as `Your Name <your-gitlab-email@example.com>`. The referenced GitHub
 commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` is authored by
 `VIGABANC <151966437+VIGABANC@users.noreply.github.com>`. The local placeholder

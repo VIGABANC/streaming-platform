@@ -38,7 +38,7 @@ export function Header() {
       if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
         event.preventDefault()
         const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
-        items[next]?.focus()
+        requestAnimationFrame(() => items[next]?.focus())
       }
       if (event.key === 'Escape' || event.key === 'Tab') { setProfileOpen(false); trigger?.focus() }
     }
@@ -211,9 +211,15 @@ export function Header() {
               ref={profileButtonRef}
               aria-expanded={profileOpen}
               aria-haspopup="menu"
-              onClick={() => {
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  setProfileOpen(true)
+                }
+              }}
+              onClick={(event) => {
                 setProfileOpen((v) => {
-                  const next = !v
+                  const next = event.detail === 0 ? true : !v
                   if (next) setTimeout(() => profileRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0)
                   return next
                 })

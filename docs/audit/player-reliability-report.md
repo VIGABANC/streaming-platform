@@ -31,7 +31,7 @@ changed. Watch routes also constructed embed URLs independently of the player.
   and malformed TV route rejection.
 - Isolated Chromium E2E: PASS — 61/61.
 - Isolated Mobile Chrome E2E: PASS — 61/61.
-- GitHub Actions Verify run `34899768471`: PASS on the last pushed head `37d1e9eb05a7810e7726770858fdcd53c2c83976`; a fresh exact-head run is required after the current harness change is committed.
+- GitHub Actions Verify run `34905876802`: PASS on exact head `5b51b2c839e040c2a3a19eaee73214ee28ade642`; install, lint, typecheck, unit, build, desktop E2E, Mobile E2E, audit, and cleanup all passed.
 - Authenticated in-app browser observation reached the Ready Vercel Preview application shell and player routes, but Preview remains UNVERIFIED because direct HTTP/headless access reaches Vercel Deployment Protection and no authenticated mobile viewport was available.
 - The focused player E2E suite: 2 tests passing after the attempt-state
   integration.
@@ -103,15 +103,16 @@ The live suite records provider frame/origin outcomes, but opaque providers do
 not expose enough documented signals to claim visible playback programmatically.
 Provider availability, licensing, and browser/network restrictions remain
 external to VEYRA. The production alias returned HTTP 200 for the checked
-routes, but the current deployment could not be associated with local commit
-`771f4e9` through the available Vercel inspection data. The live smoke suite
-remains separate from normal CI because provider uptime is external.
+routes, but the current production deployment could not be associated with
+local commit `5b51b2c` through the available Vercel inspection data. The live
+smoke suite remains separate from normal CI because deployment and provider
+availability are conditional.
 
 ## Current worktree verification
 
 ### Goal 3 release verification — 2026-09-14
 
-Run from local commit `37d1e9e` on
+Run from local commit `5b51b2c` on
 `fix/release-readiness-blockers`. This checkout differs from referenced commit
 `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576`; its branch is not `main`.
 
@@ -123,8 +124,8 @@ Run from local commit `37d1e9e` on
 | Chromium E2E | PASS — 61/61 |
 | Mobile Chrome E2E | PASS — 61/61 |
 | Live smoke against current Preview | `BLOCKED_BY_ENVIRONMENT` — Vercel Deployment Protection prevented movie Server 1 and TV episode assertions from reaching the player shell; default `npm run test:live` skips without opt-in |
-| GitHub Actions for `37d1e9e` | PASS on the last pushed head — run `34899768471`; a fresh exact-head run is required after the current harness change |
-| Vercel Preview | UNVERIFIED — Ready deployment `8Tm9dAXEVvXVNPz99sruAAvRMT9y`; authenticated in-app shell observation exists, but direct headless access is Deployment Protection and mobile Preview viewport access was unavailable |
+| GitHub Actions for `5b51b2c` | PASS — run `34905876802` on the exact head; install, lint, typecheck, unit, build, desktop E2E, Mobile E2E, audit, and cleanup passed |
+| Vercel Preview | UNVERIFIED — GitHub Vercel status Ready for deployment target `AQZe7g93K8KE28wZcvm3xE6q5aGx`; authenticated in-app shell observation exists, but direct headless access is Deployment Protection and mobile Preview viewport access was unavailable |
 | Vercel production | PENDING — must be verified after merge against the new main SHA |
 
 An authenticated in-app browser observed the application shell, catalog,
@@ -164,13 +165,13 @@ separate from external provider playback availability.
 
 ## Final verdict
 
-**CODE_VERIFIED • LOCAL_E2E_VERIFIED • CI_VERIFIED (LAST PUSHED HEAD) • PREVIEW_VERIFIED (UNVERIFIED)**
+**CODE_VERIFIED • LOCAL_E2E_VERIFIED • CI_VERIFIED • PREVIEW_VERIFIED (UNVERIFIED)**
 
 Player state, bounded failover foundations, trust/ranking controls, security
 boundaries, accessibility shell behavior, and deterministic E2E coverage are verified.
-The authenticated Preview shell observation is recorded, but `CI_VERIFIED` for the
-current tree and `PREVIEW_VERIFIED` remain pending/unverified until the new exact-head
-CI run and an accessible Preview browser matrix complete. `PRODUCTION_SHELL_VERIFIED` remains
+The authenticated Preview shell observation is recorded, and the exact-head CI run
+is green. `PREVIEW_VERIFIED` remains unverified until an accessible Preview browser
+matrix completes. `PRODUCTION_SHELL_VERIFIED` remains
 pending until the merge produces a new production deployment. Provider-owned
 playback capabilities, quality, subtitles, audio, and completion remain
 unverified.

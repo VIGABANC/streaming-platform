@@ -1,12 +1,12 @@
 # VEYRA Release-Readiness Report — 2026-09-14
 
-## Recommendation: HOLD — fresh exact-head CI and Preview browser verification remain pending
+## Recommendation: HOLD — Preview browser verification and production verification remain pending
 
 | Release status | Result |
 |---|---|
 | `CODE_VERIFIED` | PASS — local deterministic checks are green |
 | `LOCAL_E2E_VERIFIED` | PASS — 122/122, Chromium 61/61 and Mobile Chrome 61/61 |
-| `CI_VERIFIED` | PENDING — run `34899768471` passed the last pushed head; a fresh exact-head run is required after the current harness change is committed |
+| `CI_VERIFIED` | PASS — Verify VEYRA run `34905876802` on exact head `5b51b2c839e040c2a3a19eaee73214ee28ade642` |
 | `PREVIEW_VERIFIED` | UNVERIFIED — Preview is Ready in GitHub/Vercel status, but direct HTTP/headless browser access is blocked by Deployment Protection; authenticated in-app shell observations do not certify the required Preview browser matrix |
 | `PRODUCTION_SHELL_VERIFIED` | PENDING — production has not been checked after the eventual merge |
 | `LIVE_PROVIDER_PLAYBACK_UNVERIFIED` | PASS — explicit smoke remains externally unavailable/unverified |
@@ -31,8 +31,8 @@ The local production build and complete E2E suite are green. This release uses t
 - `npm run build` succeeds; 29 app routes are generated, including the truthful
   unavailable anime watch route.
 - `npm audit --omit=dev --audit-level=high` reports no vulnerabilities.
-- The last pushed-head Verify run `34899768471` passed on `37d1e9eb05a7810e7726770858fdcd53c2c83976`; a fresh run is required for the current uncommitted `playwright.config.ts` change.
-- Vercel Preview deployment `8Tm9dAXEVvXVNPz99sruAAvRMT9y` is Ready at `https://streaming-platform-git-fix-r-0ab09b-zahidossama2-1958s-projects.vercel.app`. An authenticated in-app browser session observed the Preview application shell and player routes, but this does not certify the required Preview browser matrix.
+- GitHub Actions Verify run `34905876802` passed on exact head `5b51b2c839e040c2a3a19eaee73214ee28ade642`: install, Chromium, lint, typecheck, unit, build, desktop E2E, Mobile E2E, artifact upload, audit, and cleanup all passed.
+- GitHub's Vercel status is Ready for the Preview deployment target `https://vercel.com/zahidossama2-1958s-projects/streaming-platform/AQZe7g93K8KE28wZcvm3xE6q5aGx`, at `https://streaming-platform-git-fix-r-0ab09b-zahidossama2-1958s-projects.vercel.app`. An authenticated in-app browser session observed the Preview application shell and player routes, but this does not certify the required Preview browser matrix.
 - The authenticated session observed `/`, `/browse`, `/movies`, `/tv`, `/anime`, `/new`, `/top10`, `/discover`, `/search`, `/my-list`, `/favorites`, `/history`, `/profile`, `/settings`, movie detail/watch, TV detail/watch, and anime watch. `/anime/1` returned VEYRA's existing 404 detail boundary; anime catalog links go directly to the truthful unavailable watch route. Direct unauthenticated HTTP/headless browser requests reached Vercel's `Login – Vercel` Deployment Protection page, and the available browser environment did not provide an authenticated mobile viewport.
 - JSON-LD serialization escapes script-context characters; route tests cover malformed watch routes; API routes validate payloads and expose bounded cache/rate-limit responses.
 - PWA registration, versioned shell cache, update messaging, offline route, and valid 192/512 icons exist.
@@ -74,16 +74,16 @@ The local production build and complete E2E suite are green. This release uses t
 
 ## Commit and deployment identity
 
-The release branch head is `37d1e9eb05a7810e7726770858fdcd53c2c83976`
-(`test: stabilize landing release checks`), authored as `Your Name
+The release branch head is `5b51b2c839e040c2a3a19eaee73214ee28ade642`
+(`fix: verify remote preview targets honestly`), authored as `Your Name
 <your-gitlab-email@example.com>`. The commit is pushed to
 `fix/release-readiness-blockers` and is the exact head used by Verify run
-`34899768471`. The local placeholder author identity is recorded for audit and
+`34905876802`. The local placeholder author identity is recorded for audit and
 is not evidence of association with the GitHub or Vercel account.
 
 The Vercel connector remains unavailable for deployment listing and protected
 share inspection with HTTP 403, recorded as
 `VERCEL_API_INSPECTION_BLOCKED_BY_AUTH`. GitHub’s Vercel status attached to the
-exact head points to deployment `8Tm9dAXEVvXVNPz99sruAAvRMT9y`, and the Vercel
+exact head points to deployment target `AQZe7g93K8KE28wZcvm3xE6q5aGx`, and the Vercel
 Preview comment identifies the feature branch and Preview URL. The connector
 does not expose a separate deployment commit field.

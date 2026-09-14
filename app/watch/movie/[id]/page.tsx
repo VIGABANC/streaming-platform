@@ -89,7 +89,7 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
             <ArrowLeft size={16} />
             <span>Back to movie details</span>
           </Link>
-          <span className="text-xs text-white/50">Streaming via configured provider</span>
+          <span className="text-xs text-white/50">Playback via authorized source</span>
         </div>
 
         {/* Video Player Frame */}

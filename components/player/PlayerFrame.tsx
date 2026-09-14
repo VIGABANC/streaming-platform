@@ -385,40 +385,42 @@ export function PlayerFrame({
       {/* Top Stream Control Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/8 bg-[#0A0D14]/90 p-2 px-3 text-xs backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 font-semibold text-white/80">
-            <Server size={13} className="text-primary" />
-            <span>Server:</span>
-          </span>
-          <div role="group" aria-label="Playback servers" className="flex flex-wrap items-center gap-1.5">
-            {candidateProviders.map((p) => {
-              const isActive = p.id === selectedProvider
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  aria-pressed={isActive}
-                  onClick={() => switchProvider(p.id)}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
-                      : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  {isActive && <Check size={11} />}
-                  <span>{p.name.replace(/\(.*\)/, '').trim()}</span>
-                  <span
-                    className={`rounded px-1 py-0.2 text-[9px] uppercase font-bold tracking-tight ${
-                      isActive ? 'bg-black/20 text-white' : 'bg-white/10 text-white/50'
-                    }`}
-                  >
-                    {p.authorizationStatus === 'unverified' ? 'Unverified' : p.badge}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-          {candidateProviders.length === 0 && (
-            <span role="status" className="text-[11px] text-amber-200/80">No verified provider is configured for this media type.</span>
+          {candidateProviders.length > 0 ? (
+            <>
+              <span className="flex items-center gap-1.5 font-semibold text-white/80">
+                <Server size={13} className="text-primary" />
+                <span>Server:</span>
+              </span>
+              <div role="group" aria-label="Authorized playback servers" className="flex flex-wrap items-center gap-1.5">
+                {candidateProviders.map((p) => {
+                  const isActive = p.id === selectedProvider
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => switchProvider(p.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                          : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {isActive && <Check size={11} />}
+                      <span>{p.name.replace(/\(.*\)/, '').trim()}</span>
+                      <span className={`rounded px-1 py-0.2 text-[9px] uppercase font-bold tracking-tight ${isActive ? 'bg-black/20 text-white' : 'bg-white/10 text-white/50'}`}>
+                        Authorized
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <span role="status" className="flex items-center gap-1.5 text-[11px] text-amber-200/80">
+              <Server size={13} aria-hidden="true" />
+              Authorized playback source unavailable
+            </span>
           )}
         </div>
 
@@ -427,19 +429,25 @@ export function PlayerFrame({
             className="inline text-[11px] text-white/45"
             title="Resolution is controlled by the selected provider"
           >
-            {activeSource?.mode === 'native-media' ? 'Quality: Native controls' : 'Quality: Provider controlled'}
+            {activeSource?.mode === 'native-media' ? 'Quality: Native controls' : 'Quality: Not available'}
           </span>
           <span
             role="status"
             aria-live="polite"
             className="text-[10px] text-white/45 sm:text-[11px]"
-            title={activeSource?.mode === 'native-media' ? 'VEYRA receives native media events' : 'VEYRA can verify only that the provider frame loaded'}
+            title={activeSource?.mode === 'native-media'
+              ? 'VEYRA receives native media events'
+              : activeSource
+                ? 'VEYRA can verify only that the provider frame loaded'
+                : 'No authorized playback source is configured'}
           >
             {activeSource?.mode === 'native-media'
               ? 'Playback: Native events'
-              : state === 'frame-loaded'
-                ? 'Playback: Frame loaded; not independently verified'
-                : 'Playback: Provider controlled'}
+              : activeSource
+                ? state === 'frame-loaded'
+                  ? 'Playback: Frame loaded; not independently verified'
+                  : 'Playback: Provider controlled'
+                : 'Playback: No authorized source'}
           </span>
           <button
             type="button"
@@ -511,10 +519,18 @@ export function PlayerFrame({
                 <AlertCircle size={36} className="mx-auto mb-4 text-primary" aria-hidden="true" />
               )}
               <h2 className="text-lg font-bold text-white font-display">
-                {state === 'offline' ? "You're offline" : resolution.reason === 'unsupported' ? 'Playback unavailable for this media type' : 'Stream Unavailable on This Server'}
+                {state === 'offline'
+                  ? "You're offline"
+                  : resolution.reason === 'unsupported'
+                    ? 'Playback unavailable for this media type'
+                    : 'Authorized playback source unavailable'}
               </h2>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                {playerErrorMessage(errorCode)}
+                {state === 'offline'
+                  ? playerErrorMessage(errorCode)
+                  : resolution.reason === 'unsupported'
+                    ? 'This media type is not supported by the configured playback adapters.'
+                    : 'No authorized HLS or MP4 source is configured for this title. Unverified third-party embeds are not enabled.'}
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2.5">
                 {candidateProviders.length > 1 && (

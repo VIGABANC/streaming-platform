@@ -96,8 +96,8 @@ npm test
 # Run end-to-end tests (Playwright)
 npm run test:e2e
 
-# Run the isolated deployed-provider smoke suite
-npx playwright test --config=playwright.live.config.ts
+# Run the default live smoke command (external checks skip without opt-in)
+npm run test:live
 
 # Run TypeScript compiler check
 npm run typecheck

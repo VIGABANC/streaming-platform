@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000'
+const usesLocalWebServer = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/.test(baseURL)
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 45000,
@@ -11,7 +14,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     // Keep cached service-worker shell state from leaking between isolated E2E contexts.
     // PWA registration and update behavior are covered by dedicated unit checks.
@@ -29,7 +32,7 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
     },
   ],
-  webServer: {
+  webServer: usesLocalWebServer ? {
     command: 'npm run start',
     port: 3000,
     reuseExistingServer: !process.env.CI,
@@ -39,5 +42,5 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'playwright-anon-key',
       TMDB_API_KEY: process.env.TMDB_API_KEY || 'playwright-tmdb-key',
     },
-  },
+  } : undefined,
 })

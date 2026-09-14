@@ -1,14 +1,16 @@
-# VEYRA Release-Readiness Report — 2026-09-13
+# VEYRA Release-Readiness Report — 2026-09-14
 
-## Recommendation: NO-GO
+## Recommendation: HOLD — fresh exact-head CI and Preview browser verification remain pending
 
 | Release status | Result |
 |---|---|
 | `CODE_VERIFIED` | PASS — local deterministic checks are green |
-| `CI_VERIFIED` | PENDING — requires a new green run on the pushed head |
-| `PREVIEW_VERIFIED` | UNVERIFIED — deployment identity/browser smoke pending |
-| `PRODUCTION_SHELL_VERIFIED` | LIMITED — checked production routes returned HTTP 200; SHA association is unavailable |
-| `LIVE_PROVIDER_PLAYBACK_UNVERIFIED` | PASS — providers remain behind the verification gate |
+| `LOCAL_E2E_VERIFIED` | PASS — 122/122, Chromium 61/61 and Mobile Chrome 61/61 |
+| `CI_VERIFIED` | PENDING — run `34899768471` passed the last pushed head; a fresh exact-head run is required after the current harness change is committed |
+| `PREVIEW_VERIFIED` | UNVERIFIED — Preview is Ready in GitHub/Vercel status, but direct HTTP/headless browser access is blocked by Deployment Protection; authenticated in-app shell observations do not certify the required Preview browser matrix |
+| `PRODUCTION_SHELL_VERIFIED` | PENDING — production has not been checked after the eventual merge |
+| `LIVE_PROVIDER_PLAYBACK_UNVERIFIED` | PASS — explicit smoke remains externally unavailable/unverified |
+| `EXTERNAL_PROVIDER_LIMITATION_ACCEPTED` | YES — deterministic VEYRA-controlled behavior is verified; provider playback is opaque |
 | `VERCEL_API_INSPECTION_BLOCKED_BY_AUTH` | YES — connector returned HTTP 403 |
 
 The local production build and complete E2E suite are green. This release uses the Vercel production URL `https://streaming-platform-beryl.vercel.app`; a custom domain is not required.
@@ -29,6 +31,9 @@ The local production build and complete E2E suite are green. This release uses t
 - `npm run build` succeeds; 29 app routes are generated, including the truthful
   unavailable anime watch route.
 - `npm audit --omit=dev --audit-level=high` reports no vulnerabilities.
+- The last pushed-head Verify run `34899768471` passed on `37d1e9eb05a7810e7726770858fdcd53c2c83976`; a fresh run is required for the current uncommitted `playwright.config.ts` change.
+- Vercel Preview deployment `8Tm9dAXEVvXVNPz99sruAAvRMT9y` is Ready at `https://streaming-platform-git-fix-r-0ab09b-zahidossama2-1958s-projects.vercel.app`. An authenticated in-app browser session observed the Preview application shell and player routes, but this does not certify the required Preview browser matrix.
+- The authenticated session observed `/`, `/browse`, `/movies`, `/tv`, `/anime`, `/new`, `/top10`, `/discover`, `/search`, `/my-list`, `/favorites`, `/history`, `/profile`, `/settings`, movie detail/watch, TV detail/watch, and anime watch. `/anime/1` returned VEYRA's existing 404 detail boundary; anime catalog links go directly to the truthful unavailable watch route. Direct unauthenticated HTTP/headless browser requests reached Vercel's `Login – Vercel` Deployment Protection page, and the available browser environment did not provide an authenticated mobile viewport.
 - JSON-LD serialization escapes script-context characters; route tests cover malformed watch routes; API routes validate payloads and expose bounded cache/rate-limit responses.
 - PWA registration, versioned shell cache, update messaging, offline route, and valid 192/512 icons exist.
 - Library snapshots have user-scoped Supabase RLS migrations and local-to-cloud merge code; signed-out and anonymous merge-preservation tests pass.
@@ -40,7 +45,7 @@ The local production build and complete E2E suite are green. This release uses t
 
 1. Custom domain: `NOT APPLICABLE — no custom domain is required for this release`; production is served through the Vercel `.vercel.app` domain.
 2. Full local `npm run test:e2e` passes 122/122; intermittent Next stream-closed messages were non-fatal.
-3. Live provider smoke is not green: movie Server 1 control timed out and TV iframe did not match the configured provider.
+3. Explicit Preview live smoke is blocked by the Vercel Deployment Protection page: the movie route did not expose the expected Server 1 control within 45 seconds, and the TV route did not expose `Season 1, Episode 1` within the assertion window. This is recorded as `BLOCKED_BY_ENVIRONMENT`; it does not establish provider failure or playback success.
 4. Supabase authenticated sync/RLS user-flow verification is blocked by unavailable test credentials/access; the grant review also found excessive table privileges pending migration.
 5. Local Core Web Vitals collection emitted no numeric LCP/CLS/INP sample, so performance evidence is unavailable.
 
@@ -69,9 +74,16 @@ The local production build and complete E2E suite are green. This release uses t
 
 ## Commit and deployment identity
 
-Local `HEAD` is `035d44d` (`docs: record Vercel production verification`), authored and
-committed as `Your Name <your-gitlab-email@example.com>`. The referenced GitHub
-commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` is authored by
-`VIGABANC <151966437+VIGABANC@users.noreply.github.com>`. The local placeholder
-identity is not evidence of association with the GitHub or Vercel account and
-must be corrected by the project owner before relying on automatic deployment.
+The release branch head is `37d1e9eb05a7810e7726770858fdcd53c2c83976`
+(`test: stabilize landing release checks`), authored as `Your Name
+<your-gitlab-email@example.com>`. The commit is pushed to
+`fix/release-readiness-blockers` and is the exact head used by Verify run
+`34899768471`. The local placeholder author identity is recorded for audit and
+is not evidence of association with the GitHub or Vercel account.
+
+The Vercel connector remains unavailable for deployment listing and protected
+share inspection with HTTP 403, recorded as
+`VERCEL_API_INSPECTION_BLOCKED_BY_AUTH`. GitHub’s Vercel status attached to the
+exact head points to deployment `8Tm9dAXEVvXVNPz99sruAAvRMT9y`, and the Vercel
+Preview comment identifies the feature branch and Preview URL. The connector
+does not expose a separate deployment commit field.

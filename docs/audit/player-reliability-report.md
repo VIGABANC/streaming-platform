@@ -31,12 +31,17 @@ changed. Watch routes also constructed embed URLs independently of the player.
   and malformed TV route rejection.
 - Isolated Chromium E2E: PASS — 61/61.
 - Isolated Mobile Chrome E2E: PASS — 61/61.
+- GitHub Actions Verify run `34899768471`: PASS on the last pushed head `37d1e9eb05a7810e7726770858fdcd53c2c83976`; a fresh exact-head run is required after the current harness change is committed.
+- Authenticated in-app browser observation reached the Ready Vercel Preview application shell and player routes, but Preview remains UNVERIFIED because direct HTTP/headless access reaches Vercel Deployment Protection and no authenticated mobile viewport was available.
 - The focused player E2E suite: 2 tests passing after the attempt-state
   integration.
-- The isolated live smoke suite (`playwright.live.config.ts`): BLOCKED when
-  explicitly opted in; 2 provider checks failed against the production alias.
-  against the deployed movie and TV routes; it remains excluded from normal CI
-  because provider uptime is external.
+- The isolated live smoke suite (`playwright.live.config.ts`): `BLOCKED_BY_ENVIRONMENT`
+  when explicitly opted in against the current Ready Preview. Vercel
+  Deployment Protection prevented the movie Server 1 and TV episode assertions
+  from reaching VEYRA's player shell, so this run does not establish provider
+  failure. It remains excluded from normal CI because external deployment and
+  provider availability are conditional; it did not promote an iframe or HTTP
+  response to playback success.
 
 ## Quality and external limitations
 
@@ -81,12 +86,16 @@ state, confirming that iframe load is not equivalent to verified playback.
 
 The production alias returned HTTP 200 for the checked routes, but the
 available Vercel connector returned 403 when listing deployments and creating
-a protected share URL. The deployment commit and browser rendering therefore
-remain unverified.
+a protected share URL. The new Preview was observed through an authenticated
+in-app browser session, but the required Preview browser matrix remains
+unverified because direct headless access is Deployment Protection gated.
+Production verification against the eventual merged SHA remains pending.
 
-The deployed TV route `/watch/tv/1399/1/1` rendered the episode metadata,
-episode list, and next-episode navigation. Its external frame was treated with
-the same playback-verification limitation as the movie route.
+An earlier production-alias browser observation rendered the TV route's episode
+metadata, episode list, and next-episode navigation. Its external frame was
+treated with the same playback-verification limitation as the movie route; the
+current Preview smoke did not expose the episode metadata within its assertion
+window.
 
 ## Remaining external limitations
 
@@ -100,9 +109,9 @@ remains separate from normal CI because provider uptime is external.
 
 ## Current worktree verification
 
-### Goal 3 local verification — 2026-09-13
+### Goal 3 release verification — 2026-09-14
 
-Run from local commit `035d44d` on
+Run from local commit `37d1e9e` on
 `fix/release-readiness-blockers`. This checkout differs from referenced commit
 `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576`; its branch is not `main`.
 
@@ -113,21 +122,30 @@ Run from local commit `035d44d` on
 | Dependency audit | PASS — 0 production vulnerabilities |
 | Chromium E2E | PASS — 61/61 |
 | Mobile Chrome E2E | PASS — 61/61 |
-| Live smoke | BLOCKED when explicitly opted in — both tests lacked the expected deployed player iframe/server controls within timeout; default `npm run test:live` skips without opt-in |
-| GitHub Actions for `1c9918d` | FAIL — Chromium/install, lint, typecheck, unit, and build passed; E2E failed 12 tests (34 passed); audit skipped |
-| Vercel route HTTP smoke | HTTP 200 for movie, TV S1E1, and anime; deployment commit identity and browser verification UNVERIFIED |
+| Live smoke against current Preview | `BLOCKED_BY_ENVIRONMENT` — Vercel Deployment Protection prevented movie Server 1 and TV episode assertions from reaching the player shell; default `npm run test:live` skips without opt-in |
+| GitHub Actions for `37d1e9e` | PASS on the last pushed head — run `34899768471`; a fresh exact-head run is required after the current harness change |
+| Vercel Preview | UNVERIFIED — Ready deployment `8Tm9dAXEVvXVNPz99sruAAvRMT9y`; authenticated in-app shell observation exists, but direct headless access is Deployment Protection and mobile Preview viewport access was unavailable |
+| Vercel production | PENDING — must be verified after merge against the new main SHA |
 
-The local E2E suite covers movie, TV, anime, unavailable/failure states,
+An authenticated in-app browser observed the application shell, catalog,
+detail, watch, provider-selection, and unavailable anime routes. `/anime/1`
+returned the existing VEYRA 404 detail boundary; anime catalog links go directly
+to `/watch/anime/<id>/1`, where playback remains truthfully unavailable. Direct
+unauthenticated HTTP/headless browser requests reached Vercel's `Login – Vercel`
+Deployment Protection, so a full Playwright Preview count and mobile Preview
+result are not claimed. `PREVIEW_VERIFIED` remains UNVERIFIED. The local E2E suite
+covers movie, TV, anime, unavailable/failure states,
 manual switching, offline/reconnect, mobile layout, keyboard accessibility,
 and truthful frame-load messaging. Live smoke requires `VEYRA_LIVE_SMOKE=1`
 and is never part of normal product E2E. An explicit run against the production
 alias failed on the deployed player controls; a default run without that
 variable skips both external checks by design.
 CI sets `PLAYWRIGHT_TEST_BASE_URL` explicitly for the local production server;
-live smoke accepts the same variable and retains `PLAYWRIGHT_LIVE_BASE_URL` for
-backward compatibility. CI runs Chromium and Mobile Chrome as separate bounded
-steps so each project gets a fresh local production server; this avoids the
-observed combined-process lifecycle failure without changing assertions.
+live smoke accepts `PLAYWRIGHT_LIVE_BASE_URL` and requires the exact
+`VEYRA_LIVE_SMOKE=1` opt-in. CI runs Chromium and Mobile Chrome as separate
+bounded steps so each project gets a fresh local production server; the
+readiness assertions wait for the landing content before measuring focus and
+geometry without changing the underlying accessibility or touch-target checks.
 Opaque provider playback, quality, subtitle, and audio capabilities remain
 unverified. Provider availability, cross-origin controls, licensing, and
 network restrictions are external limitations.
@@ -146,14 +164,16 @@ separate from external provider playback availability.
 
 ## Final verdict
 
-**P0 VERIFIED — P1/P2 PENDING**
+**CODE_VERIFIED • LOCAL_E2E_VERIFIED • CI_VERIFIED (LAST PUSHED HEAD) • PREVIEW_VERIFIED (UNVERIFIED)**
 
-P0 player state, bounded failover foundations, trust/ranking controls, security
-boundaries, accessibility shell behavior, deterministic E2E coverage, and live
-route smoke evidence are verified. P1/P2 remain pending where provider-owned
-playback capabilities, persisted missing-availability workflow, and broader
-legitimate World Cinema metadata enrichment are not yet implemented or
-independently verifiable.
+Player state, bounded failover foundations, trust/ranking controls, security
+boundaries, accessibility shell behavior, and deterministic E2E coverage are verified.
+The authenticated Preview shell observation is recorded, but `CI_VERIFIED` for the
+current tree and `PREVIEW_VERIFIED` remain pending/unverified until the new exact-head
+CI run and an accessible Preview browser matrix complete. `PRODUCTION_SHELL_VERIFIED` remains
+pending until the merge produces a new production deployment. Provider-owned
+playback capabilities, quality, subtitles, audio, and completion remain
+unverified.
 
 The current worktree adds explicit attempt/provider identity guards, typed
 opaque-provider capabilities, hard trust eligibility, TTL timestamps, bounded
@@ -164,11 +184,10 @@ The latest isolated Playwright runs launched Chromium successfully and passed
 the full deterministic matrix: 61/61 on each desktop Chromium and Mobile
 Chrome project.
 
-The isolated live smoke suite was rerun with explicit opt-in against
-`https://streaming-platform-beryl.vercel.app`: both checks failed because the
-deployed movie route did not expose the expected server control and the TV
-route did not expose an iframe. These are external deployment/provider results;
-they do not alter the verified-unavailable product state.
+The isolated live smoke suite was rerun with explicit opt-in against the current
+Preview and was `BLOCKED_BY_ENVIRONMENT` because Vercel Deployment Protection
+prevented both player assertions from reaching the VEYRA shell. It does not
+establish provider failure or alter the verified-unavailable product state.
 
 
 The combined local `npm run test:e2e` command is **PASS**: 122/122 tests pass. The command dispatches Chromium and Mobile Chrome as separate Playwright processes, so each project receives a fresh bounded production server. CI retains the same separate-step structure.

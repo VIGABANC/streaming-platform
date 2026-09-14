@@ -115,11 +115,16 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
   test('validates touch targets are at least 44x44px', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
     // Mobile nav touch targets
-    const mobileNavLinks = page.locator('nav[aria-label="Mobile navigation"] a')
+    const mobileNav = page.locator('nav[aria-label="Mobile navigation"]')
+    await expect(mobileNav).toBeVisible()
+    const mobileNavLinks = mobileNav.getByRole('link')
+    await expect(mobileNavLinks).toHaveCount(6)
     const count = await mobileNavLinks.count()
     for (let i = 0; i < count; i++) {
+      await expect(mobileNavLinks.nth(i)).toBeVisible()
       const box = await mobileNavLinks.nth(i).boundingBox()
       expect(box).not.toBeNull()
       if (box) {
@@ -209,6 +214,7 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
   test('keyboard focus navigation through hero and landing elements', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
     // Focus skip link
     const skipLink = page.locator('a.skip-link').first()

@@ -39,6 +39,7 @@ test.describe('Home Page & Core Layout', () => {
 
   test('skip link is focusable and targets main content', async ({ page }) => {
     await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     const skipLink = page.locator('a.skip-link')
     await expect(skipLink).toBeAttached()
     await skipLink.focus()

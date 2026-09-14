@@ -119,6 +119,20 @@ npm run start
 
 ---
 
+### Browser verification
+
+Run deterministic product E2E with `npm run test:e2e`. External provider smoke
+is opt-in and separate:
+
+```powershell
+$env:VEYRA_LIVE_SMOKE='1'
+$env:PLAYWRIGHT_LIVE_BASE_URL='https://streaming-platform-beryl.vercel.app'
+npm run test:live
+```
+
+Without `VEYRA_LIVE_SMOKE=1`, live tests are skipped. An iframe load never
+counts as verified playback.
+
 ## Attribution & Disclaimers
 
 - **TMDB**: This product uses the TMDB API but is not endorsed or certified by TMDB.

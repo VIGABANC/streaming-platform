@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 15
     env:
       PLAYWRIGHT_LIVE_BASE_URL: ${{ inputs.base_url }}
+      PLAYWRIGHT_TEST_BASE_URL: ${{ inputs.base_url }}
+      VEYRA_LIVE_SMOKE: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

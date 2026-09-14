@@ -2,6 +2,15 @@
 
 ## Recommendation: NO-GO
 
+| Release status | Result |
+|---|---|
+| `CODE_VERIFIED` | PASS — local deterministic checks are green |
+| `CI_VERIFIED` | PENDING — requires a new green run on the pushed head |
+| `PREVIEW_VERIFIED` | UNVERIFIED — deployment identity/browser smoke pending |
+| `PRODUCTION_SHELL_VERIFIED` | LIMITED — checked production routes returned HTTP 200; SHA association is unavailable |
+| `LIVE_PROVIDER_PLAYBACK_UNVERIFIED` | PASS — providers remain behind the verification gate |
+| `VERCEL_API_INSPECTION_BLOCKED_BY_AUTH` | YES — connector returned HTTP 403 |
+
 The local production build and complete E2E suite are green. This release uses the Vercel production URL `https://streaming-platform-beryl.vercel.app`; a custom domain is not required.
 
 ## Navigation unification checkpoint
@@ -60,7 +69,7 @@ The local production build and complete E2E suite are green. This release uses t
 
 ## Commit and deployment identity
 
-Local `HEAD` is `30acd70` (`release: finalize VEYRA on Vercel domain`), authored and
+Local `HEAD` is `035d44d` (`docs: record Vercel production verification`), authored and
 committed as `Your Name <your-gitlab-email@example.com>`. The referenced GitHub
 commit `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576` is authored by
 `VIGABANC <151966437+VIGABANC@users.noreply.github.com>`. The local placeholder

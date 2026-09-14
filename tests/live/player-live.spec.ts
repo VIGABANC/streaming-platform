@@ -23,6 +23,8 @@ async function inspectProvider(page: Page, label: string, origin: string) {
 }
 
 test.describe('LIVE provider smoke — excluded from normal CI', () => {
+  test.skip(process.env.VEYRA_LIVE_SMOKE !== '1', 'Set VEYRA_LIVE_SMOKE=1 to opt into external provider smoke')
+
   test('movie 1007757 exposes each configured provider without claiming playback', async ({ page }) => {
     await page.goto('/watch/movie/1007757', { waitUntil: 'domcontentloaded' })
     for (const provider of providers) await inspectProvider(page, provider.label, provider.origin)

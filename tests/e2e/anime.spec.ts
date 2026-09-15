@@ -21,6 +21,7 @@ test.describe('Anime playback boundary', () => {
     await expect(page.getByRole('heading', { name: 'Playback unavailable' })).toBeVisible()
     await expect(page.getByText('No iframe or playback claim is presented.')).toBeVisible()
     await expect(page.locator('iframe')).toHaveCount(0)
+    await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1)
   })
 
   test('rejects malformed anime route segments', async ({ page }) => {

@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { Shell } from '@/components/layout/Shell'
 import { getAnimeDetail } from '@/lib/jikan/client'
 import { isStrictPositiveInteger } from '@/lib/player'
+import { serializeJsonLd } from '@/lib/seo/json-ld'
 
 interface AnimeDetailPageProps {
   params: Promise<{ id: string }>
@@ -26,9 +27,25 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
 
   const anime = await getAnimeDetail(id)
   const title = anime?.title || `Anime ${id}`
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'TVSeries',
+    name: title,
+    image: anime?.image || undefined,
+    description: anime?.synopsis || 'Anime metadata and playback availability on VEYRA.',
+    datePublished: anime?.airedFrom || undefined,
+    numberOfEpisodes: anime?.episodes || undefined,
+    aggregateRating: anime?.score ? {
+      '@type': 'AggregateRating',
+      ratingValue: anime.score,
+      bestRating: '10',
+    } : undefined,
+    genre: anime?.genres || [],
+  }
 
   return (
     <Shell>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <article className="mx-auto max-w-[1100px] px-5 py-10 lg:px-10">
         <Link href="/anime" className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-white">
           <ArrowLeft size={16} aria-hidden="true" />

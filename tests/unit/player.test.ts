@@ -5,6 +5,7 @@ import {
   getTVEmbedUrl,
   isStrictPositiveInteger,
   rankProviders,
+  getInitialProviderIdForMode,
   emptyProviderHealth,
   playerErrorMessage,
   PROVIDERS,
@@ -145,6 +146,23 @@ describe('Player Architecture & URL Builders', () => {
       const health = { 'vidsrc-wiki': { ...emptyProviderHealth('vidsrc-wiki'), cooldownUntil: now + 60_000, circuit: 'OPEN' as const } }
       expect(rankProviders({ providers: verifiedProviders, health, now }).map((p) => p.id)).not.toContain('vidsrc-wiki')
       expect(rankProviders({ providers: verifiedProviders, health, now: now + 60_001 }).map((p) => p.id)).toContain('vidsrc-wiki')
+    })
+
+    it('honors manual server selection while preserving health ranking in auto mode', () => {
+      const health = {
+        'vidsrc-wiki': { attempts: 1, successes: 0, startupLatencyEWMA: 9000 },
+        'vidsrc-xyz': { attempts: 20, successes: 19, startupLatencyEWMA: 500 },
+      }
+      expect(getInitialProviderIdForMode({ defaultServer: 'vidsrc-wiki', playerMode: 'manual' }, {
+        providers: verifiedProviders,
+        health,
+        mediaType: 'movie',
+      })).toBe('vidsrc-wiki')
+      expect(getInitialProviderIdForMode({ defaultServer: 'vidsrc-wiki', playerMode: 'auto' }, {
+        providers: verifiedProviders,
+        health,
+        mediaType: 'movie',
+      })).toBe('vidsrc-xyz')
     })
 
     it('allows only one half-open recovery trial after cooldown', () => {

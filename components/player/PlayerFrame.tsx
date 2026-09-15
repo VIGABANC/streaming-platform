@@ -18,6 +18,7 @@ import {
   playerErrorMessage,
   PROVIDERS,
   getInitialProviderId,
+  getInitialProviderIdForMode,
   rankProviders,
   readProviderHealth,
   recordProviderAttempt,
@@ -89,12 +90,12 @@ export function PlayerFrame({
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const settings = store.getSettings()
 
   useEffect(() => {
     const settings = store.getSettings()
-    const preferredProviderId = getInitialProviderId(settings.defaultServer)
-    const initialProvider = rankProviders({ health: readProviderHealth(), preferredProviderId })[0]
-    if (initialProvider) setSelectedProvider(initialProvider.id)
+    const initialProviderId = getInitialProviderIdForMode(settings, { health: readProviderHealth(), mediaType })
+    setSelectedProvider(initialProviderId)
     setIsCinemaMode(settings.ambientLighting)
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -102,7 +103,7 @@ export function PlayerFrame({
     updateMotion()
     mediaQuery.addEventListener?.('change', updateMotion)
     return () => mediaQuery.removeEventListener?.('change', updateMotion)
-  }, [])
+  }, [mediaType])
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -136,9 +137,10 @@ export function PlayerFrame({
     mediaId,
     season,
     episode,
+    subtitleLanguage: settings.subtitleLanguage,
     preferredProviderId: selectedProvider,
     nativeSources,
-  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources])
+  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources, settings.subtitleLanguage])
   const allSources = resolution.sources
   const activeSource = allSources.find((source) => source.providerId === selectedProvider) ?? allSources[0]
   const activeSrc = activeSource?.mode === 'external-embed' ? activeSource.url : null

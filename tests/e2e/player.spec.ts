@@ -87,6 +87,19 @@ test.describe('Player reliability shell', () => {
     await expect(page.locator('iframe')).toHaveCount(0)
   })
 
+  test('persists server selection while keeping unverified playback unavailable', async ({ page }) => {
+    await page.goto('/settings')
+    const selection = page.getByLabel('Server Selection')
+    await selection.selectOption('manual')
+    await expect(selection).toHaveValue('manual')
+    await page.reload()
+    await expect(page.getByLabel('Server Selection')).toHaveValue('manual')
+
+    await page.goto('/watch/movie/1007757')
+    await expect(page.getByText('No verified provider is configured for this media type.')).toBeVisible()
+    await expect(page.locator('iframe[title*="playback"]')).toHaveCount(0)
+  })
+
   test('retry and reload preserve the unavailable state without eligible sources', async ({ page }) => {
     await page.goto('/watch/movie/1007757')
     const unavailable = page.getByRole('heading', { name: 'Stream Unavailable on This Server' })

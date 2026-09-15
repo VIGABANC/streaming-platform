@@ -24,7 +24,7 @@ function isValidRequest(request: PlaybackRequest): boolean {
 function sourceForProvider(provider: StreamProvider, request: PlaybackRequest): PlaybackSource | null {
   if (!provider.supportedMediaTypes.includes(request.mediaType)) return null
   if (request.mediaType !== 'movie' && !provider.supportsEpisodes) return null
-  const url = provider.sourceBuilder(request, { subtitleLanguage: 'auto' })
+  const url = provider.sourceBuilder(request, { subtitleLanguage: request.subtitleLanguage ?? 'auto' })
   if (!url) return null
   const validatedUrl = validatePlaybackUrl(url, provider)
   return {

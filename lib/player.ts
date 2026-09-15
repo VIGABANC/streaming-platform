@@ -98,6 +98,7 @@ export interface PlaybackRequest {
   episode?: string | number
   region?: string
   preferredProviderId?: string
+  subtitleLanguage?: string
   attemptedProviderIds?: string[]
   nativeSources?: PlaybackSource[]
 }
@@ -516,6 +517,18 @@ export function rankProviders(options: {
     })
     .sort((a, b) => b.score - a.score)
     .map(({ provider }) => provider)
+}
+
+export function getInitialProviderIdForMode(
+  settings: { defaultServer?: string; playerMode?: 'auto' | 'manual' },
+  options: Omit<Parameters<typeof rankProviders>[0], 'preferredProviderId'> = {},
+): string {
+  const preferredProviderId = getInitialProviderId(settings.defaultServer)
+  const ranked = rankProviders({ ...options, preferredProviderId })
+  if (settings.playerMode === 'manual') {
+    return ranked.find((provider) => provider.id === preferredProviderId)?.id ?? ranked[0]?.id ?? preferredProviderId
+  }
+  return ranked[0]?.id ?? preferredProviderId
 }
 
 export function getMovieEmbedUrl(id: string | number, providerId: string = 'vidsrc-wiki', options?: ProviderUrlOptions): string {

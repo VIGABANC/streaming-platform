@@ -27,7 +27,7 @@ state is unavailable for movie and TV playback. Anime has no approved provider.
 | Deterministic E2E | PASS — Chromium 65/65; Mobile Chrome 65/65 |
 | Default live smoke | PASS — opt-in external tests skipped by design |
 | Explicit provider smoke | EXTERNAL / CONDITIONAL; no playback claim |
-| CI | Historical PASS on `fb007601` run `34906508855`; fresh repair-head run pending |
+| CI | PASS — run `34943517664` on exact head `6c3cd4365d83e0f4cdce31aee7941c7c385baee8` |
 
 The local browser suite uses the real production routes and asserts the trust
 boundary. It does not add a test-only provider, scrape media, extract streams,

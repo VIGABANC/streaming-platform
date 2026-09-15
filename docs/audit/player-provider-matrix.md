@@ -20,8 +20,8 @@ scraper, stream extractor, or user-data-bearing URL was added.
 - Default live smoke: `PASS`, with opt-in external checks skipped.
 - Explicit live-provider playback: `LIVE_PROVIDER_PLAYBACK_UNVERIFIED` /
   `BLOCKED_BY_ENVIRONMENT` when Deployment Protection prevents access.
-- CI run `34906508855`: `PASS` for historical head `fb007601`; a fresh run for
-  the final repair SHA remains required.
+- CI run `34943517664`: `PASS` for exact head
+  `6c3cd4365d83e0f4cdce31aee7941c7c385baee8`.
 - Vercel connector: `VERCEL_API_INSPECTION_BLOCKED_BY_AUTH` (HTTP 403).
 
 Provider authorization, cross-origin controls, licensing, availability, and

@@ -7,7 +7,7 @@ HTTP status, iframe load, or a protected deployment page to playback evidence.
 |---|---|---|
 | `CODE_VERIFIED` | PASS | Trust gate, unavailable states, route validation, and test contracts reviewed locally |
 | `LOCAL_E2E_VERIFIED` | PASS | `npm run test:e2e`: Chromium 65/65 and Mobile Chrome 65/65 |
-| `CI_VERIFIED` | PASS (historical head) | Run `34906508855` passed on `fb007601`; a new run is required after the next push |
+| `CI_VERIFIED` | PASS | Run `34943517664` passed on exact head `6c3cd4365d83e0f4cdce31aee7941c7c385baee8` |
 | `PREVIEW_VERIFIED` | BLOCKED | Preview is Ready by GitHub status, but direct browser access is protected and the current local repair is not deployed |
 | `PRODUCTION_SHELL_VERIFIED` | NOT RUN for current head | Production has not been merged or rebuilt from this repair |
 | `LIVE_PROVIDER_PLAYBACK_UNVERIFIED` | ACCEPTED external limitation | Opaque providers expose no independently verifiable playback signal |
@@ -34,7 +34,7 @@ exists, remains `frame-loaded; playback not independently verified`.
 
 | Item | Evidence | Status | Action |
 |---|---|---|---|
-| Fresh CI for repair head | Existing run is for `fb007601` before current uncommitted repair | TODO | Commit only after all checks, push branch, then verify the new exact SHA |
+| Fresh CI for repair head | Run `34943517664` is green on exact head `6c3cd4365d83e0f4cdce31aee7941c7c385baee8` | VERIFIED | Keep the PR head unchanged while checking Preview |
 | Preview identity/browser smoke | Vercel API 403; Deployment Protection blocks direct headless access | EXTERNAL / OPERATIONAL ACCESS LIMITATION | Use GitHub deployment status and authenticated browser evidence; do not invent runtime logs |
 | Production current-head verification | No merge or current-head production deployment | TODO | Only after PR gates pass |
 | Live opaque providers | No documented trusted playback protocol | EXTERNAL_PROVIDER_LIMITATION_ACCEPTED | Keep all four providers unavailable |

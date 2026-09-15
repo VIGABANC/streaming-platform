@@ -21,6 +21,14 @@ function nullableNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function posterUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && url.hostname === 'cdn.myanimelist.net' && url.pathname.startsWith('/images/') && !url.username && !url.password ? url.href : null
+  } catch { return null }
+}
+
 async function fetchWithTimeout(url: string): Promise<Response> {
   const controller = new AbortController()
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -64,6 +72,54 @@ export const getJikanEnrichment = cache(async (
       score: nullableNumber(payload.data.score),
       rank: nullableNumber(payload.data.rank),
       popularity: nullableNumber(payload.data.popularity),
+    }
+  } catch {
+    return null
+  }
+})
+
+export interface JikanAnimeDetail {
+  id: number
+  title: string
+  image: string | null
+  synopsis: string
+  score: number | null
+  episodes: number | null
+  type: string | null
+  status: string | null
+  airedFrom: string | null
+  genres: string[]
+}
+
+export const getAnimeDetail = cache(async (
+  malId: number | string,
+): Promise<JikanAnimeDetail | null> => {
+  const id = positiveInteger(malId)
+  if (id === null) return null
+
+  try {
+    const response = await fetchWithTimeout(`${JIKAN_API}/anime/${id}/full`)
+    if (!response.ok) return null
+
+    const payload = await response.json() as JikanAnimeResponse
+    const data = payload?.data
+    const title = typeof data?.title === 'string' ? data.title : ''
+    if (!data || !title || data.mal_id !== id) return null
+
+    const airedFrom = typeof data.aired?.from === 'string' ? data.aired.from : null
+    const genres = Array.isArray(data.genres) ? data.genres.flatMap((genre) => genre && typeof genre.name === 'string' ? [genre.name] : []) : []
+
+    return {
+      id,
+      title,
+      image: posterUrl(data.images?.jpg?.image_url),
+      synopsis: typeof data.synopsis === 'string' ? data.synopsis : '',
+      score: nullableNumber(data.score),
+      episodes: typeof data.episodes === 'number' ? positiveInteger(data.episodes) : null,
+      type: typeof data.type === 'string' ? data.type : null,
+      status: typeof data.status === 'string' ? data.status : null,
+      airedFrom,
+      genres,
     }
   } catch {
     return null

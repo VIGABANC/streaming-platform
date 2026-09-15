@@ -133,6 +133,10 @@ npm run test:live
 Without `VEYRA_LIVE_SMOKE=1`, live tests are skipped. An iframe load never
 counts as verified playback.
 
+Current release verification is tracked in `docs/audit/release-readiness-report.md`.
+The configured external providers remain unavailable until VEYRA can verify
+authorization and playback signals; iframe loading alone is not sufficient.
+
 ## Attribution & Disclaimers
 
 - **TMDB**: This product uses the TMDB API but is not endorsed or certified by TMDB.

@@ -10,7 +10,12 @@ const projects = hasProject ? [null] : ['chromium', 'Mobile Chrome']
 
 for (const project of projects) {
   const projectArgs = project ? ['--project', project, ...args] : args
-  const result = spawnSync(process.execPath, [cli, 'test', ...projectArgs], { stdio: 'inherit' })
+  const explicitProject = args.find((arg) => arg.startsWith('--project='))?.slice('--project='.length)
+    ?? (args.includes('--project') ? args[args.indexOf('--project') + 1] : undefined)
+  const result = spawnSync(process.execPath, [cli, 'test', ...projectArgs], {
+    stdio: 'inherit',
+    env: { ...process.env, VEYRA_E2E_PROJECT: project ?? explicitProject ?? 'all' },
+  })
   if (result.error) throw result.error
   if (result.status !== 0) process.exit(result.status ?? 1)
 }

@@ -14,6 +14,15 @@ test.describe('Anime playback boundary', () => {
     await expect(page.locator('iframe')).toHaveCount(0)
   })
 
+  test('keeps the anime detail route reachable and truthful', async ({ page }) => {
+    const response = await page.goto('/anime/1')
+    expect(response?.status()).toBe(200)
+    await expect(page.getByText('Anime signal')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Playback unavailable' })).toBeVisible()
+    await expect(page.getByText('No iframe or playback claim is presented.')).toBeVisible()
+    await expect(page.locator('iframe')).toHaveCount(0)
+  })
+
   test('rejects malformed anime route segments', async ({ page }) => {
     await page.goto('/watch/anime/1abc/1')
     await expect(page.getByRole('heading', { name: 'Page Not Found' })).toBeVisible()

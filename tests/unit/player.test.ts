@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
   getMovieEmbedUrl,
@@ -10,7 +10,10 @@ import {
   PROVIDERS,
   isProviderEligible,
   isProviderAvailable,
+  recordProviderFailure,
+  recordProviderSuccess,
   type PlayerErrorCode,
+  parseDocumentedProviderEvent,
 } from '@/lib/player'
 import {
   beginAttempt,
@@ -22,8 +25,35 @@ import {
   setOffline,
   transitionAttempt,
 } from '@/lib/player-attempt'
+import { ExternalEmbedEngine, NativeMediaEngine } from '@/lib/player-engine'
+
+const verifiedProviders = PROVIDERS.map((provider) => ({
+  ...provider,
+  trustEligible: true,
+  authorizationStatus: 'authorized' as const,
+  verification: {
+    ...provider.verification,
+    authorizationEvidence: ['test authorization record'],
+    originChecks: [provider.origin],
+    lastVerifiedAt: new Date().toISOString(),
+    enabled: true,
+  },
+}))
 
 describe('Player Architecture & URL Builders', () => {
+  it('uses an explicit opaque external engine until an authorized direct source exists', () => {
+    expect(ExternalEmbedEngine.kind).toBe('external-embed')
+    expect(ExternalEmbedEngine.ownsMediaControls).toBe(false)
+    expect(ExternalEmbedEngine.canVerifyPlayback).toBe(false)
+    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidsrc-wiki' })).toBeNull()
+  })
+
+  it('keeps native playback gated behind an explicitly authorized direct source', () => {
+    expect(NativeMediaEngine.kind).toBe('native-media')
+    expect(NativeMediaEngine.ownsMediaControls).toBe(true)
+    expect(NativeMediaEngine.canVerifyPlayback).toBe(true)
+    expect(NativeMediaEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'native' })).toBeNull()
+  })
   describe('getMovieEmbedUrl', () => {
     it('generates correct embed url for movie IDs', () => {
       const url = getMovieEmbedUrl(603)
@@ -79,7 +109,8 @@ describe('Player Architecture & URL Builders', () => {
 
     it('treats trust eligibility as a hard gate', () => {
       expect(isProviderEligible({ ...PROVIDERS[0], trustEligible: false })).toBe(false)
-      expect(isProviderEligible(PROVIDERS[0])).toBe(true)
+      expect(isProviderEligible(PROVIDERS[0])).toBe(false)
+      expect(isProviderEligible(verifiedProviders[0])).toBe(true)
     })
 
     it('keeps CSP frame origins aligned with the provider registry', () => {
@@ -100,6 +131,7 @@ describe('Player Architecture & URL Builders', () => {
 
     it('prefers reliable providers over a single fast success', () => {
       const ranked = rankProviders({
+        providers: verifiedProviders,
         health: {
           'vidsrc-wiki': { attempts: 1, successes: 1, startupLatencyEWMA: 500 },
           'vidsrc-xyz': { attempts: 105, successes: 100, startupLatencyEWMA: 1200 },
@@ -111,8 +143,8 @@ describe('Player Architecture & URL Builders', () => {
     it('excludes an open circuit and allows it after cooldown', () => {
       const now = 1_000_000
       const health = { 'vidsrc-wiki': { ...emptyProviderHealth('vidsrc-wiki'), cooldownUntil: now + 60_000, circuit: 'OPEN' as const } }
-      expect(rankProviders({ health, now }).map((p) => p.id)).not.toContain('vidsrc-wiki')
-      expect(rankProviders({ health, now: now + 60_001 }).map((p) => p.id)).toContain('vidsrc-wiki')
+      expect(rankProviders({ providers: verifiedProviders, health, now }).map((p) => p.id)).not.toContain('vidsrc-wiki')
+      expect(rankProviders({ providers: verifiedProviders, health, now: now + 60_001 }).map((p) => p.id)).toContain('vidsrc-wiki')
     })
 
     it('allows only one half-open recovery trial after cooldown', () => {
@@ -129,6 +161,20 @@ describe('Player Architecture & URL Builders', () => {
     expect(isStrictPositiveInteger('1abc')).toBe(false)
     expect(isStrictPositiveInteger('1.5')).toBe(false)
     expect(isStrictPositiveInteger(0)).toBe(false)
+  })
+
+  it('records the last stable provider error category and clears it on recovery', () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    })
+    expect(recordProviderFailure('vidsrc-wiki', 'timeout', 1_000).lastErrorCategory).toBe('timeout')
+    expect(recordProviderFailure('vidsrc-wiki', 'error', 2_000).lastErrorCategory).toBe('frame-error')
+    expect(recordProviderSuccess('vidsrc-wiki', 300, 3_000).lastErrorCategory).toBeNull()
+    vi.unstubAllGlobals()
   })
 
   describe('attempt state machine', () => {
@@ -175,6 +221,28 @@ describe('Player Architecture & URL Builders', () => {
       expect(reloaded.phase).toBe('idle')
       expect(reloaded.attemptedProviderIds).toEqual([])
       expect(reloaded.attemptId).toBeGreaterThan(exhausted.attemptId)
+    })
+
+    it('does not accept provider events without an explicitly trusted origin', () => {
+      expect(parseDocumentedProviderEvent({ origin: 'https://v1.vidsrc.wiki', data: { type: 'PLAYBACK_STARTED' } }, 'vidsrc-wiki')).toBeNull()
+      expect(parseDocumentedProviderEvent({ origin: 'https://evil.example', data: { type: 'PLAYBACK_STARTED' } }, 'vidsrc-wiki')).toBeNull()
+    })
+
+    it('does not mistake a malformed progress event for playback evidence', () => {
+      expect(parseDocumentedProviderEvent({ origin: 'https://v1.vidsrc.wiki', data: { type: 'PROGRESS', currentTime: '10', duration: 100 } }, 'vidsrc-wiki')).toBeNull()
+    })
+
+    it('applies recent failure and timeout penalties when ranking close providers', () => {
+      const now = 1_000_000
+      const ranked = rankProviders({
+        providers: verifiedProviders,
+        now,
+        health: {
+          'vidsrc-wiki': { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500, lastFailureAt: now - 1_000, timeouts: 4 },
+          'vidsrc-xyz': { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500 },
+        },
+      })
+      expect(ranked[0].id).toBe('vidsrc-xyz')
     })
   })
 

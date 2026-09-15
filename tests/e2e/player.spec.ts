@@ -1,59 +1,63 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Player reliability shell', () => {
-  test('manual server switching replaces the iframe immediately', async ({ page }) => {
+  test('does not expose unverified server controls as playable sources', async ({ page }) => {
     await page.goto('/browse')
     await page.evaluate(() => localStorage.clear())
     await page.goto('/watch/movie/1007757')
-    const frame = page.locator('iframe[title*="playback"]')
-    await page.getByRole('button', { name: /Server 2/ }).click()
-    await expect(frame).toHaveAttribute('src', /vidsrc\.xyz/, { timeout: 1_000 })
+    await expect(page.getByText('No verified provider is configured for this media type.')).toBeVisible()
+    await expect(page.locator('iframe[title*="playback"]')).toHaveCount(0)
+  })
+
+  test('keeps playback unavailable when all providers are unverified', async ({ page }) => {
+    await page.goto('/watch/movie/1007757')
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
+    await expect(page.locator('iframe[title*="playback"]')).toHaveCount(0)
   })
 
   test('rejects malformed TV route segments', async ({ page }) => {
     const response = await page.goto('/watch/tv/1399/1abc/1')
     expect(response).toBeTruthy()
-    await expect(page.getByRole('heading', { name: 'Page Not Found' })).toBeVisible()
+    await expect(page.locator('body')).toContainText('Page Not Found')
     await expect(page.locator('iframe')).toHaveCount(0)
   })
 
   test('exposes a bounded, semantic server control surface', async ({ page }) => {
     await page.goto('/watch/movie/1007757')
-    await expect(page.getByRole('group', { name: 'Playback servers' })).toBeVisible()
+    await expect(page.getByText('No verified provider is configured for this media type.')).toBeVisible()
     const servers = page.getByRole('button', { name: /Server [1-4]/ })
-    await expect(servers).toHaveCount(4)
-    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(1)
-    await expect(page.locator('iframe[title*="playback"]')).toHaveAttribute('sandbox', /allow-scripts/)
-    await expect(page.locator('iframe[title*="playback"]')).not.toHaveAttribute('sandbox', /allow-top-navigation/)
+    await expect(servers).toHaveCount(0)
+    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(0)
+    await expect(page.locator('iframe[title*="playback"]')).toHaveCount(0)
   })
 
   test('keeps the player usable with reduced motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/watch/movie/1007757')
-    const frame = page.locator('iframe[title*="playback"]')
-    await expect(frame).toHaveClass(/opacity-100/)
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
   })
 
   test('does not overflow the viewport on mobile-sized layouts', async ({ page }) => {
     await page.goto('/watch/movie/1007757')
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
     const metrics = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
-      frameWidth: document.querySelector('iframe')?.getBoundingClientRect().width ?? 0,
+      playerWidth: document.querySelector('main')?.getBoundingClientRect().width ?? 0,
     }))
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewport + 1)
-    expect(metrics.frameWidth).toBeGreaterThan(0)
+    expect(metrics.playerWidth).toBeGreaterThan(0)
   })
 
-  test('allows keyboard activation of server controls without focus theft', async ({ page }) => {
+  test('supports keyboard activation of theater mode without focus theft', async ({ page }) => {
     await page.goto('/watch/movie/1007757')
-    await expect(page.getByRole('group', { name: 'Playback servers' }).locator('button[aria-pressed="true"]')).toHaveCount(1)
-    const secondServer = page.getByRole('button', { name: /Server 2/ })
-    await secondServer.focus()
-    await expect(secondServer).toBeFocused()
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
+    const theater = page.getByRole('button', { name: 'Enter theater mode' })
+    await theater.focus()
+    await expect(theater).toBeFocused()
     await page.keyboard.press('Enter')
-    await expect(secondServer).toHaveAttribute('aria-pressed', 'true')
-    await expect(secondServer).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Exit theater mode' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('button', { name: 'Exit theater mode' })).toBeFocused()
   })
 
   test('stops and restarts attempts across deterministic offline/reconnect events', async ({ page }) => {
@@ -66,8 +70,7 @@ test.describe('Player reliability shell', () => {
       })
     })
     await page.goto('/watch/movie/1007757')
-    const group = page.getByRole('group', { name: 'Playback servers' })
-    await expect(group).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
 
     await page.evaluate(() => {
       ;(window as Window & { __setVeyraOnline?: (next: boolean) => void }).__setVeyraOnline?.(false)
@@ -79,7 +82,28 @@ test.describe('Player reliability shell', () => {
       ;(window as Window & { __setVeyraOnline?: (next: boolean) => void }).__setVeyraOnline?.(true)
       window.dispatchEvent(new Event('online'))
     })
-    await expect(group).toBeVisible()
+    await expect(page.getByText('No verified provider is configured for this media type.')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Stream Unavailable on This Server' })).toBeVisible()
+    await expect(page.locator('iframe')).toHaveCount(0)
+  })
+
+  test('retry and reload preserve the unavailable state without eligible sources', async ({ page }) => {
+    await page.goto('/watch/movie/1007757')
+    const unavailable = page.getByRole('heading', { name: 'Stream Unavailable on This Server' })
+    await expect(unavailable).toBeVisible()
+    await page.getByRole('button', { name: /Retry/ }).click()
+    await expect(unavailable).toBeVisible()
+    await page.getByRole('button', { name: 'Reload player' }).click()
+    await expect(unavailable).toBeVisible()
+    await expect(page.locator('iframe')).toHaveCount(0)
+  })
+
+  test('keeps theater, lights-off, and fullscreen controls available on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/watch/movie/1007757')
+    await expect(page.getByRole('button', { name: /Turn lights on|Turn lights off/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Enter theater mode|Exit theater mode/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Enter full screen player|Exit full screen player/ })).toBeVisible()
   })
 
 })

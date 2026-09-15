@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   AlertCircle,
@@ -10,6 +10,7 @@ import {
   Server,
   Sparkles,
   Maximize2,
+  RectangleHorizontal,
   Check,
 } from 'lucide-react'
 import {
@@ -17,8 +18,6 @@ import {
   playerErrorMessage,
   PROVIDERS,
   getInitialProviderId,
-  getMovieEmbedUrl,
-  getTVEmbedUrl,
   rankProviders,
   readProviderHealth,
   recordProviderAttempt,
@@ -26,8 +25,12 @@ import {
   networkHint,
   startupDeadlineMs,
   type PlayerErrorCode,
+  type PlaybackMediaType,
+  type PlaybackSource,
 } from '@/lib/player'
-import { store, type UserSettings } from '@/lib/store'
+import { resolvePlaybackSources } from '@/lib/playback-resolver'
+import { NativeMediaPlayer } from '@/components/player/NativeMediaPlayer'
+import { store } from '@/lib/store'
 import { reportPlayerEvent } from '@/lib/observability/client'
 import {
   beginAttempt,
@@ -42,7 +45,7 @@ import {
 } from '@/lib/player-attempt'
 
 interface PlayerFrameProps {
-  mediaType: 'movie' | 'tv'
+  mediaType: PlaybackMediaType
   mediaId: string | number
   season?: string | number
   episode?: string | number
@@ -50,14 +53,14 @@ interface PlayerFrameProps {
   artwork?: string
   episodeLabel?: string
   backHref?: string
-  /** Fallback URL if mediaId builder is not used */
-  src?: string
+  nativeSources?: PlaybackSource[]
 }
 
 type PlayerState = 'loading' | 'frame-loaded' | 'timeout-warning' | 'timeout' | 'error' | 'offline'
 
 const TIMEOUT_WARNING_MS = 8_000
 const MAX_RETRIES = 3
+const EMPTY_SOURCES: PlaybackSource[] = []
 
 export function PlayerFrame({
   mediaType,
@@ -68,18 +71,18 @@ export function PlayerFrame({
   artwork,
   episodeLabel,
   backHref = '/',
-  src: _fallbackSrc,
+  nativeSources = EMPTY_SOURCES,
 }: PlayerFrameProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(PROVIDERS[0].id)
   const [state, setState] = useState<PlayerState>('loading')
   const [retryCount, setRetryCount] = useState(0)
   const [errorCode, setErrorCode] = useState<PlayerErrorCode>('UNKNOWN')
   const [isCinemaMode, setIsCinemaMode] = useState(false)
+  const [isTheaterMode, setIsTheaterMode] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
-  const [subtitleLanguage, setSubtitleLanguage] = useState<UserSettings['subtitleLanguage']>(() => store.getSettings().subtitleLanguage)
   const [frameAttemptId, setFrameAttemptId] = useState(0)
   const startedAtRef = useRef(Date.now())
-  const selectedProviderRef = useRef(selectedProvider)
   const attemptIdRef = useRef(0)
   const attemptStateRef = useRef(initialAttemptState)
   const attemptedProviderIdsRef = useRef<string[]>([])
@@ -90,11 +93,8 @@ export function PlayerFrame({
   useEffect(() => {
     const settings = store.getSettings()
     const preferredProviderId = getInitialProviderId(settings.defaultServer)
-    const initialProvider = settings.playerMode === 'manual'
-      ? PROVIDERS.find((provider) => provider.id === preferredProviderId)
-      : rankProviders({ health: readProviderHealth(), preferredProviderId })[0]
+    const initialProvider = rankProviders({ health: readProviderHealth(), preferredProviderId })[0]
     if (initialProvider) setSelectedProvider(initialProvider.id)
-    setSubtitleLanguage(settings.subtitleLanguage)
     setIsCinemaMode(settings.ambientLighting)
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -104,20 +104,88 @@ export function PlayerFrame({
     return () => mediaQuery.removeEventListener?.('change', updateMotion)
   }, [])
 
-  // Compute active embed source
-  const getEmbedUrl = useCallback(
-    (providerId: string) => {
-      const urlOptions = { subtitleLanguage }
-      if (mediaType === 'movie') {
-        return getMovieEmbedUrl(mediaId, providerId, urlOptions)
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return
+      if (event.key.toLowerCase() === 't') setIsTheaterMode((current) => !current)
+      if (event.key.toLowerCase() === 'l') setIsCinemaMode((current) => {
+        const next = !current
+        store.updateSettings({ ambientLighting: next })
+        return next
+      })
+      if (event.key.toLowerCase() === 'f') toggleFullscreen()
+      if (event.key === 'Escape') {
+        setIsTheaterMode(false)
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
       }
-      return getTVEmbedUrl(mediaId, season ?? 1, episode ?? 1, providerId, urlOptions)
-    },
-    [mediaId, mediaType, season, episode, subtitleLanguage],
-  )
+    }
+    window.addEventListener('keydown', handleShortcut)
+    return () => window.removeEventListener('keydown', handleShortcut)
+  }, [])
 
-  const activeSrc = getEmbedUrl(selectedProvider)
-  selectedProviderRef.current = selectedProvider
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', syncFullscreen)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen)
+  }, [])
+
+  const resolution = useMemo(() => resolvePlaybackSources({
+    mediaType,
+    mediaId,
+    season,
+    episode,
+    preferredProviderId: selectedProvider,
+    nativeSources,
+  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources])
+  const allSources = resolution.sources
+  const activeSource = allSources.find((source) => source.providerId === selectedProvider) ?? allSources[0]
+  const activeSrc = activeSource?.mode === 'external-embed' ? activeSource.url : null
+
+  useEffect(() => {
+    reportPlayerEvent('player_source_resolution', {
+      providerId: activeSource?.providerId ?? 'none',
+      mediaType,
+      resolutionStatus: resolution.status,
+    })
+  }, [activeSource?.providerId, mediaType, resolution.status])
+
+  const persistPlaybackContext = (patch: Partial<{
+    providerId: string
+    playbackMode: 'external-embed' | 'native-media'
+    positionSeconds: number
+    durationSeconds: number
+    verificationState: 'not-started' | 'frame-load-only' | 'native-playback-verified'
+  }>) => {
+    const itemId = Number(mediaId)
+    if (!Number.isSafeInteger(itemId)) return
+    const current = store.getContinueWatching().find((item) => item.id === itemId && item.media_type === mediaType)
+    if (current) store.updateContinueWatching({ ...current, ...patch, lastOpenedAt: Date.now() })
+  }
+
+  useEffect(() => {
+    if (!activeSource) return
+    persistPlaybackContext({
+      providerId: activeSource.providerId,
+      playbackMode: activeSource.mode,
+      verificationState: 'not-started',
+    })
+  // The current source is the complete playback context for this mounted route.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSource?.id, mediaId, mediaType])
+  useEffect(() => {
+    if (allSources.length === 0) {
+      clearTimers()
+      attemptStateRef.current = exhaustAttempts(attemptStateRef.current)
+      setErrorCode(resolution.reason === 'unsupported' ? 'UNSUPPORTED_MEDIA_TYPE' : 'STREAM_UNAVAILABLE')
+      setState('error')
+      return
+    }
+    if (!allSources.some((source) => source.providerId === selectedProvider)) {
+      setSelectedProvider(allSources[0].providerId)
+    }
+  }, [allSources, resolution.reason, selectedProvider, retryCount])
 
   const clearTimers = () => {
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current)
@@ -126,8 +194,8 @@ export function PlayerFrame({
 
   // Warm only the selected provider after playback is requested.
   useEffect(() => {
-    warmPlayerConnection(selectedProvider)
-  }, [selectedProvider])
+    if (activeSource?.mode === 'external-embed') warmPlayerConnection(selectedProvider)
+  }, [activeSource?.mode, selectedProvider])
 
   // Offline detection
   useEffect(() => {
@@ -174,16 +242,17 @@ export function PlayerFrame({
   // Deliberately depends only on attempt identity: warning-state renders must
   // not run cleanup and cancel the hard failover deadline.
   useEffect(() => {
-    if (state !== 'loading') return
-    attemptStateRef.current = beginAttempt(attemptStateRef.current, selectedProvider)
+    if (state !== 'loading' || !activeSource || activeSource.mode !== 'external-embed') return
+    const attemptProviderId = activeSource.providerId
+    attemptStateRef.current = beginAttempt(attemptStateRef.current, attemptProviderId)
     const attemptId = attemptStateRef.current.attemptId
     attemptIdRef.current = attemptId
     setFrameAttemptId(attemptId)
-    if (!attemptedProviderIdsRef.current.includes(selectedProvider)) {
-      attemptedProviderIdsRef.current = [...attemptedProviderIdsRef.current, selectedProvider]
+    if (!attemptedProviderIdsRef.current.includes(attemptProviderId)) {
+      attemptedProviderIdsRef.current = [...attemptedProviderIdsRef.current, attemptProviderId]
     }
-    recordProviderAttempt(selectedProvider)
-    reportPlayerEvent('player_attempt', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
+    recordProviderAttempt(attemptProviderId)
+    reportPlayerEvent('player_attempt', { providerId: attemptProviderId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
     clearTimers()
 
     const hardDeadline = startupDeadlineMs()
@@ -197,21 +266,24 @@ export function PlayerFrame({
     hardTimerRef.current = setTimeout(() => {
       if (attemptIdRef.current !== attemptId) return
       attemptStateRef.current = transitionAttempt(attemptStateRef.current, attemptId, 'failed')
-      recordProviderFailure(selectedProvider, 'timeout')
-      reportPlayerEvent('player_timeout', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'startup-timeout', networkHint: networkHint() })
+      recordProviderFailure(attemptProviderId, 'timeout')
+      reportPlayerEvent('player_timeout', { providerId: attemptProviderId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'startup-timeout', networkHint: networkHint() })
       setErrorCode('PLAYER_TIMEOUT')
       failoverToNextProvider()
     }, hardDeadline)
 
     return clearTimers
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retryCount, selectedProvider])
+  }, [activeSource, retryCount, selectedProvider])
 
   const handleLoad = (providerId: string, attemptId: number) => {
     if (!isCurrentAttempt(attemptStateRef.current, attemptId, providerId)) return
     clearTimers()
     attemptStateRef.current = transitionAttempt(attemptStateRef.current, attemptId, 'frame-loaded')
+    // An iframe load proves only that the document loaded. Opaque providers do
+    // not expose a verified ready/playing signal to VEYRA.
     setState('frame-loaded')
+    persistPlaybackContext({ verificationState: 'frame-load-only' })
     reportPlayerEvent('player_frame_loaded', { providerId, mediaType, startupMs: Date.now() - startedAtRef.current, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
     if (process.env.NODE_ENV === 'development') {
       console.debug('[veyra] player ready', {
@@ -220,7 +292,6 @@ export function PlayerFrame({
         signal: 'FRAME_DOCUMENT_LOADED',
         networkHint: networkHint(),
         retryCount,
-        src: activeSrc,
       })
     }
   }
@@ -242,6 +313,7 @@ export function PlayerFrame({
     }
     startedAtRef.current = Date.now()
     clearTimers()
+    reportPlayerEvent('player_retry', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: errorCode === 'PLAYER_TIMEOUT' ? 'timeout' : 'retry' })
     setRetryCount((c) => c + 1)
     setState('loading')
   }
@@ -266,12 +338,14 @@ export function PlayerFrame({
     setSelectedProvider(providerId)
     setRetryCount(0)
     setState('loading')
+    persistPlaybackContext({ providerId, playbackMode: activeSource?.mode ?? 'external-embed', verificationState: 'not-started' })
     reportPlayerEvent('player_manual_switch', { providerId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
     startedAtRef.current = Date.now()
   }
 
   const failoverToNextProvider = () => {
     const nextProvider = rankProviders({
+      mediaType,
       attemptedProviderIds: attemptedProviderIdsRef.current,
       health: readProviderHealth(),
       preferredProviderId: getInitialProviderId(store.getSettings().defaultServer),
@@ -281,7 +355,7 @@ export function PlayerFrame({
       attemptStateRef.current = exhaustAttempts(attemptStateRef.current)
       setState('timeout')
       setErrorCode('STREAM_UNAVAILABLE')
-      reportPlayerEvent('player_all_providers_exhausted', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'all-providers-failed' })
+      reportPlayerEvent('player_source_exhausted', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'all-providers-failed' })
       return
     }
     reportPlayerEvent('player_auto_failover', { providerId: nextProvider.id, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'provider-failed', networkHint: networkHint() })
@@ -298,10 +372,17 @@ export function PlayerFrame({
   }
 
   const isError = state === 'error' || state === 'timeout' || state === 'offline'
-  const activeProviderObj = PROVIDERS.find((p) => p.id === selectedProvider) ?? PROVIDERS[0]
+  const activeProviderObj = PROVIDERS.find((p) => p.id === selectedProvider) ?? null
+  const candidateProviders = allSources
+    .map((source) => PROVIDERS.find((provider) => provider.id === source.providerId))
+    .filter((provider): provider is typeof PROVIDERS[number] => Boolean(provider))
 
   return (
-    <div className="space-y-3">
+    <>
+      {isCinemaMode && (
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-30 bg-black/70 transition-opacity motion-reduce:transition-none" />
+      )}
+      <div className={isTheaterMode ? 'fixed inset-0 z-40 flex min-h-0 flex-col gap-3 bg-[#050507] p-3 sm:p-6' : `space-y-3 ${isCinemaMode ? 'relative z-40' : ''}`}>
       {/* Top Stream Control Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/8 bg-[#0A0D14]/90 p-2 px-3 text-xs backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-2">
@@ -310,7 +391,7 @@ export function PlayerFrame({
             <span>Server:</span>
           </span>
           <div role="group" aria-label="Playback servers" className="flex flex-wrap items-center gap-1.5">
-            {PROVIDERS.map((p) => {
+            {candidateProviders.map((p) => {
               const isActive = p.id === selectedProvider
               return (
                 <button
@@ -331,29 +412,46 @@ export function PlayerFrame({
                       isActive ? 'bg-black/20 text-white' : 'bg-white/10 text-white/50'
                     }`}
                   >
-                    {p.badge}
+                    {p.authorizationStatus === 'unverified' ? 'Unverified' : p.badge}
                   </span>
                 </button>
               )
             })}
           </div>
+          {candidateProviders.length === 0 && (
+            <span role="status" className="text-[11px] text-amber-200/80">No verified provider is configured for this media type.</span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
           <span
             className="inline text-[11px] text-white/45"
-            title="Resolution is controlled by the selected provider"
+            title={activeSource ? 'Resolution is controlled by the selected source' : 'No verified source is available'}
           >
-            Quality: Provider controlled
+            {!activeSource ? 'Quality: Unavailable' : activeSource.mode === 'native-media' ? 'Quality: Native controls' : 'Quality: Provider controlled'}
+          </span>
+          <span
+            role="status"
+            aria-live="polite"
+            className="text-[10px] text-white/45 sm:text-[11px]"
+            title={!activeSource ? 'No verified source is available' : activeSource.mode === 'native-media' ? 'VEYRA receives native media events' : 'A frame load does not verify playback'}
+          >
+            {!activeSource ? 'Playback: Unavailable' : activeSource.mode === 'native-media'
+              ? 'Playback: Native events'
+              : state === 'frame-loaded'
+                ? 'Playback: Frame loaded; not independently verified'
+                : 'Playback: Provider controlled'}
           </span>
           <button
             type="button"
+            aria-label={isCinemaMode ? 'Turn lights on' : 'Turn lights off'}
+            aria-pressed={isCinemaMode}
             onClick={() => setIsCinemaMode((prev) => {
               const next = !prev
               store.updateSettings({ ambientLighting: next })
               return next
             })}
-            className={`hidden sm:inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
               isCinemaMode
                 ? 'bg-accent/20 text-accent font-semibold'
                 : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -365,12 +463,26 @@ export function PlayerFrame({
           </button>
           <button
             type="button"
+            aria-label={isTheaterMode ? 'Exit theater mode' : 'Enter theater mode'}
+            aria-pressed={isTheaterMode}
+            onClick={() => setIsTheaterMode((current) => !current)}
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
+              isTheaterMode ? 'bg-primary/20 text-primary font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+            title="Toggle theater mode (T)"
+          >
+            <RectangleHorizontal size={12} />
+            <span>Theater</span>
+          </button>
+          <button
+            type="button"
+            aria-label={isFullscreen ? 'Exit full screen player' : 'Enter full screen player'}
             onClick={toggleFullscreen}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-white/60 hover:text-white hover:bg-white/5 transition-colors"
             title="Full screen player"
           >
             <Maximize2 size={12} />
-            <span className="hidden sm:inline">Fullscreen</span>
+            <span className="hidden sm:inline">{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</span>
           </button>
         </div>
       </div>
@@ -378,7 +490,7 @@ export function PlayerFrame({
       {/* Main Video Frame */}
       <div
         ref={containerRef}
-        className={`relative aspect-video w-full overflow-hidden rounded-2xl bg-black shadow-2xl transition-all ${
+        className={`${isTheaterMode ? 'min-h-0 flex-1 aspect-auto' : 'aspect-video'} relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl transition-all ${
           isCinemaMode ? 'ring-2 ring-primary/40 shadow-primary/10' : 'ring-1 ring-white/10'
         }`}
       >
@@ -400,27 +512,29 @@ export function PlayerFrame({
                 <AlertCircle size={36} className="mx-auto mb-4 text-primary" aria-hidden="true" />
               )}
               <h2 className="text-lg font-bold text-white font-display">
-                {state === 'offline' ? "You're offline" : 'Stream Unavailable on This Server'}
+                {state === 'offline' ? "You're offline" : resolution.reason === 'unsupported' ? 'Playback unavailable for this media type' : 'Stream Unavailable on This Server'}
               </h2>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 {playerErrorMessage(errorCode)}
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={failoverToNextProvider}
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-                >
-                  <Server size={13} aria-hidden="true" />
-                  Try Next Server
-                </button>
+                {candidateProviders.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={failoverToNextProvider}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  >
+                    <Server size={13} aria-hidden="true" />
+                    Try Next Server
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={retry}
                   className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:border-white/40 transition-colors"
                 >
                   <RotateCcw size={13} aria-hidden="true" />
-                  Retry ({MAX_RETRIES - retryCount} left)
+                  Retry ({Math.max(0, MAX_RETRIES - retryCount)} left)
                 </button>
                 <button
                   type="button"
@@ -443,11 +557,11 @@ export function PlayerFrame({
         )}
 
         {/* Loading overlay */}
-        {(state === 'loading' || state === 'timeout-warning' || state === 'frame-loaded') && (
+        {(state === 'loading' || state === 'timeout-warning') && (
           <div
             aria-live="polite"
             aria-label="Loading playback"
-            className={`absolute inset-0 z-10 grid place-items-center bg-[#050507] ${state === 'frame-loaded' ? 'pointer-events-none bg-transparent' : ''}`}
+            className="absolute inset-0 z-10 grid place-items-center bg-[#050507]"
           >
             {artwork && (
               <img
@@ -458,16 +572,14 @@ export function PlayerFrame({
               />
             )}
             <div className="relative z-10 text-center px-6">
-              {state !== 'frame-loaded' && <div
+              {<div
                 aria-hidden="true"
                 className="mx-auto mb-4 size-10 animate-spin rounded-full border-2 border-white/10 border-t-[#E50914] motion-reduce:animate-none"
               />}
               <p className="text-sm font-semibold text-white font-display">
-                {state === 'frame-loaded'
-                  ? 'Player loaded — playback is controlled by the provider.'
-                  : state === 'timeout-warning'
+                {state === 'timeout-warning'
                   ? 'Connecting to stream…'
-                  : `Connecting to ${activeProviderObj.name}…`}
+                  : `Connecting to ${activeProviderObj?.name ?? 'provider'}…`}
               </p>
               {episodeLabel && (
                 <p className="mt-1 text-xs text-primary/80 font-medium">{episodeLabel}</p>
@@ -495,8 +607,30 @@ export function PlayerFrame({
           </div>
         )}
 
-        {/* Iframe */}
-        {!isError && (
+        {activeSource?.mode === 'native-media' && !isError && (
+          <NativeMediaPlayer
+            source={activeSource}
+            title={title}
+            onReady={() => {
+              clearTimers()
+              setState('frame-loaded')
+            }}
+            onStarted={() => {
+              persistPlaybackContext({ verificationState: 'native-playback-verified' })
+              reportPlayerEvent('player_native_playback_started', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length })
+            }}
+            onEnded={() => reportPlayerEvent('player_playback_ended', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length })}
+            onError={() => {
+              setErrorCode('PROVIDER_LOAD_ERROR')
+              setState('error')
+              reportPlayerEvent('player_error', { providerId: activeSource.providerId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'network-failure', networkHint: networkHint() })
+            }}
+            onProgress={(positionSeconds, durationSeconds) => persistPlaybackContext({ positionSeconds, durationSeconds })}
+          />
+        )}
+
+        {/* Opaque external provider frame */}
+        {activeSource?.mode === 'external-embed' && !isError && activeSrc && (
           <iframe
             key={`${selectedProvider}-${retryCount}`}
             title={title}
@@ -513,6 +647,7 @@ export function PlayerFrame({
           />
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000'
 const usesLocalWebServer = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/.test(baseURL)
+const artifactProject = (process.env.VEYRA_E2E_PROJECT || 'all').replace(/[^a-z0-9-]/gi, '-').toLowerCase()
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -12,10 +13,11 @@ export default defineConfig({
   // Next's streamed shell can briefly expose the same landmark twice when
   // multiple cold production pages render concurrently; keep smoke assertions deterministic.
   workers: 1,
-  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
+  outputDir: `test-results/${artifactProject}`,
+  reporter: [['list'], ['html', { outputFolder: `playwright-report/${artifactProject}`, open: 'never' }]],
   use: {
     baseURL,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     // Keep cached service-worker shell state from leaking between isolated E2E contexts.
     // PWA registration and update behavior are covered by dedicated unit checks.
     serviceWorkers: 'block',
@@ -33,8 +35,8 @@ export default defineConfig({
     },
   ],
   webServer: usesLocalWebServer ? {
-    command: 'npm run start',
-    port: 3000,
+    command: `npm run start -- --port ${new URL(baseURL).port || (baseURL.startsWith('https:') ? '443' : '80')}`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 60000,
     env: {

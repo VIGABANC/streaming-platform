@@ -90,6 +90,14 @@ test.describe('Responsive Navigation', () => {
     await expect(mainNav.getByRole('link', { name: 'Explore VEYRA' })).toHaveAttribute('href', '/browse')
   })
 
+  test('internal audit route redirects to the public home surface', async ({ page }) => {
+    await page.goto('/audit')
+
+    await expect(page).toHaveURL('/')
+    await expect(page.getByRole('link', { name: 'Explore VEYRA' }).first()).toBeVisible()
+    await expect(page.getByText('Professional Audit')).toHaveCount(0)
+  })
+
   test('landing mobile menu exposes all navigation choices and closes with Escape', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')

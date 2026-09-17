@@ -10,6 +10,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'cdn.myanimelist.net', pathname: '/images/**' },
     ],
   },
+  async redirects() {
+    return [{ source: '/audit', destination: '/', permanent: true }]
+  },
   async headers() {
     let authOrigin = ''
     try {

@@ -234,3 +234,47 @@ remains enabled.
 **FINAL AUDIT COMPLETE**
 **REMEDIATION COMPLETE**
 **READY FOR FINAL ACCEPTANCE**
+
+## Phase 4 release-scope normalization addendum
+
+**Normalization date:** 2026-09-15
+**Normalization base SHA:** `c3ff78f208f38aeaecc5073e0708d852b31a28ff`
+**Merge base:** `1c9918d645fa7b5f2368d8bb31cf512f9a2cd576`
+
+Phase 4 re-established the current tree instead of trusting this older report.
+At `c3ff78f208f38aeaecc5073e0708d852b31a28ff`, PR #31 was open, cleanly
+mergeable, and contained 213 changed files, 40 commits, 6,858 additions, and
+5,448 deletions against `origin/main`. GitHub Actions run `34950553769`
+completed successfully on that exact SHA. GitHub deployment `6455398972`
+reported Preview `success` for the same SHA and exposed
+`https://streaming-platform-j4myw7p4u-zahidossama2-1958s-projects.vercel.app`.
+Vercel API inspection remains `VERCEL_API_INSPECTION_BLOCKED_BY_AUTH`.
+
+The changed-file review found that the remaining runtime, test, CI,
+Supabase, security, and release-documentation changes are tied to the release
+candidate: landing/navigation, anime/catalog/search, unavailable playback
+truthfulness, PWA/offline, library/settings, Telegram feedback hardening,
+Supabase RLS migrations, deterministic Playwright isolation, and final audit
+evidence.
+
+It also found release noise that should not ship as product scope. The public
+`/audit` route exposed an internal audit page and had replaced the original
+redirect. A regression test was added to `tests/e2e/navigation.spec.ts`; it
+failed before the fix because `/audit` remained at `/audit`, then passed after
+`app/audit/page.tsx` was removed and the permanent redirect to `/` was restored
+in `next.config.mjs`. The clean build route list no longer includes `/audit`.
+
+The release branch also added internal process artifacts under
+`.superpowers/sdd/**`, selected `docs/superpowers/**` plans/specs, and
+`docs/audit/veyra-skill-plugin-ledger.md`. These were removed from the
+candidate because they are not product functionality, required tests, CI,
+migrations, security configuration, or release-facing documentation. Historical
+superseded implementation removals remain part of the branch where imports and
+tests confirm replacement by the current Jikan, search, Telegram, library, and
+player modules.
+
+FM-01 is therefore normalized from an unknown broad-scope blocker to a
+reviewable broad-release decision: the PR still needs independent maintainer
+approval because it is a stacked release branch, but no reproduced
+VEYRA-controlled P1 application defect remains in the scope normalization
+slice.

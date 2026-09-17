@@ -7,6 +7,28 @@
 **Deployment identity:** GitHub Preview deployment `6455323793` reports `success` and is tied to the source SHA.  
 **Vercel API:** `VERCEL_API_INSPECTION_BLOCKED_BY_AUTH` (connector HTTP 403).
 
+## Phase 4 scope normalization
+
+Phase 4 rechecked PR #31 at
+`c3ff78f208f38aeaecc5073e0708d852b31a28ff` against merge base
+`1c9918d645fa7b5f2368d8bb31cf512f9a2cd576`. At that point the PR was open,
+cleanly mergeable, and broad: 213 changed files and 40 commits. GitHub Actions
+run `34950553769` was green on the exact SHA, and GitHub deployment
+`6455398972` reported Preview success for the exact SHA at
+`https://streaming-platform-j4myw7p4u-zahidossama2-1958s-projects.vercel.app`.
+
+The release-scope review confirmed that the product, test, CI, Supabase,
+security, and release-documentation changes are part of the final candidate,
+but found two normalization issues. First, `/audit` exposed an internal audit
+page. A regression test now requires `/audit` to redirect to `/`; it failed
+before the fix and passed after removing `app/audit/page.tsx` and restoring the
+permanent redirect in `next.config.mjs`. Second, added internal process
+artifacts under `.superpowers/sdd/**`, selected `docs/superpowers/**`, and
+`docs/audit/veyra-skill-plugin-ledger.md` were removed from the release
+candidate because they are not product functionality, required tests,
+deployment configuration, database migrations, security configuration, or
+release-facing evidence.
+
 ## Automated certification
 
 | Check | Result |
@@ -105,9 +127,10 @@ claimed.
 
 ## Remaining release items
 
-- `FM-01` remains a **P1 release-scope review item** because the feature branch
-  contains a broad historical delta against `origin/main`. This is a review
-  and merge-scope decision, not a reproduced application defect.
+- `FM-01` is **BROWSER_VERIFIED after Phase 4 normalization**: the public audit
+  route was removed, the redirect regression passes, and internal process
+  artifacts were removed from the candidate. The PR remains broad and still
+  requires independent maintainer approval before merge.
 - Authenticated library merge/cross-device acceptance requires a disposable
   test account and is `MANUAL_ACTION_REQUIRED`.
 - Exact protected Preview viewport heights, screen-reader/forced-colors/zoom

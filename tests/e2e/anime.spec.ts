@@ -1,34 +1,32 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('Anime discovery', () => {
-  test('exposes Anime in desktop and mobile navigation', async ({ page }) => {
-    await page.goto('/')
-    await expect(page.getByRole('link', { name: 'Anime', exact: true }).first()).toBeVisible()
-
-    await page.setViewportSize({ width: 390, height: 844 })
-    await page.getByRole('button', { name: 'Menu', exact: true }).click()
-    await expect(page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Anime', exact: true })).toBeVisible()
+test.describe('Anime playback boundary', () => {
+  test('exposes Anime as a labeled catalog destination', async ({ page }) => {
+    await page.goto('/anime')
+    await expect(page.getByRole('heading', { name: 'Discover anime' })).toBeVisible()
+    await expect(page.getByText('does not offer anime playback')).toBeVisible()
   })
 
-  test('opens the anime catalog with filterable content taxonomy', async ({ page }) => {
-    await page.goto('/anime?status=FINISHED&format=TV&genre=Action')
-    await expect(page).toHaveURL(/\/anime\?status=FINISHED&format=TV&genre=Action/)
-    await expect(page.getByRole('heading', { name: 'Anime', exact: true })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Anime movies', exact: true })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Anime series', exact: true })).toBeVisible()
-  })
-
-  test('keeps anime search as a separate result category', async ({ page }) => {
-    await page.goto('/search?q=One%20Piece')
-    await expect(page.getByRole('textbox', { name: 'Search movies, series, and anime' })).toHaveValue('One Piece')
-    await page.waitForTimeout(450)
-    const animeTab = page.getByRole('button', { name: /Anime \(/ })
-    await expect(animeTab).toBeVisible()
-  })
-
-  test('keeps anime playback truthful when no verified episode provider exists', async ({ page }) => {
+  test('keeps anime playback unavailable without a verified episode provider', async ({ page }) => {
     await page.goto('/watch/anime/1/1')
     await expect(page.getByRole('heading', { name: 'Playback unavailable for this media type' })).toBeVisible()
+    await expect(page.getByText('No iframe or playback claim is presented.')).toBeVisible()
+    await expect(page.locator('iframe')).toHaveCount(0)
+  })
+
+  test('keeps the anime detail route reachable and truthful', async ({ page }) => {
+    const response = await page.goto('/anime/1')
+    expect(response?.status()).toBe(200)
+    await expect(page.getByText('Anime signal')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Playback unavailable' })).toBeVisible()
+    await expect(page.getByText('No iframe or playback claim is presented.')).toBeVisible()
+    await expect(page.locator('iframe')).toHaveCount(0)
+    await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1)
+  })
+
+  test('rejects malformed anime route segments', async ({ page }) => {
+    await page.goto('/watch/anime/1abc/1')
+    await expect(page.getByRole('heading', { name: 'Page Not Found' })).toBeVisible()
     await expect(page.locator('iframe')).toHaveCount(0)
   })
 })

@@ -1,80 +1,44 @@
-# VEYRA player reliability report
+# VEYRA player reliability report — 2026-09-15
 
-**Updated:** 2026-09-13
-**Status:** Architecture partially verified; browser and external deployment verification pending
+The player enforces a verification gate before constructing an external frame.
+The four configured external providers are `unverified`, so the current product
+state is unavailable for movie and TV playback. Anime has no approved provider.
 
-## Current architecture
+## Verified behavior
 
-VEYRA separates opaque `ExternalEmbedEngine` behavior from the gated
-`NativeMediaEngine` contract. The external providers in the registry are
-cross-origin and unverified. They now carry explicit
-`PlaybackProviderVerification` records with `enabled: false`, so they are not
-eligible for playback resolution. Anime remains unavailable because no
-verified Anime playback source exists.
+- Provider ranking excludes unverified and unauthorized sources.
+- Invalid movie, TV, and anime identities are rejected before source creation.
+- Retry, reload, timeout, error, failover, and offline/reconnect state machines
+  preserve attempt identity and do not trust stale callbacks.
+- Manual selection is available only when a provider source is eligible.
+- Theater mode, lights-off mode, container fullscreen, mobile controls, focus,
+  keyboard activation, and truthful unavailable messaging are covered by E2E.
+- `frame-loaded; playback not independently verified` is the only iframe load
+  state. It is never recorded as playback success.
 
-The player shell still owns loading/error/retry presentation, provider health
-state, attempt identity guards, offline/reconnect handling, theater mode,
-lights-off overlay, and VEYRA-container fullscreen. An opaque iframe can only
-produce `frame loaded; not independently verified`; it cannot produce a
-verified playback, quality, audio, caption, or bitrate claim.
+## Current verification evidence
 
-## Fresh verification
+| Check | Result |
+|---|---|
+| Unit suite | PASS — 34 files / 161 tests |
+| Typecheck | PASS |
+| Lint | PASS |
+| Build | PASS — 40 routes listed |
+| Deterministic E2E | PASS — Chromium 65/65; Mobile Chrome 65/65 |
+| Default live smoke | PASS — opt-in external tests skipped by design |
+| Explicit provider smoke | EXTERNAL / CONDITIONAL; no playback claim |
+| CI | PASS — run `34943893351` on exact head `c803a4a4400df7915f189aaf6a084cd6699b8daf` |
 
-| Check | Result | Evidence |
-|---|---|---|
-| Typecheck | PASS | `npm run typecheck` exit 0 |
-| Lint | PASS | `npm run lint` exit 0 |
-| Unit tests | PASS | 30 files / 142 tests before current changes; targeted current suite 4 files / 38 tests passed |
-| Production build | PASS | `npm run build` exit 0; expected `TMDB_API_KEY_MISSING` fallback warning in no-secret environment |
-| Security audit | PASS | `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities |
-| Full E2E | BLOCKED | 44 tests failed before browser launch because Chromium executable is missing |
-| Mobile player E2E | BLOCKED | Chromium executable missing; Next also reported `uv_interface_addresses` environment error |
-| Live provider smoke | BLOCKED | 2 tests failed before browser launch because Chromium executable is missing |
-| Deployed watch pages | NOT VERIFIED | Vercel connector returned `403 Forbidden` for movie, TV, and Anime watch routes |
+The local browser suite uses the real production routes and asserts the trust
+boundary. It does not add a test-only provider, scrape media, extract streams,
+or make third-party availability a deterministic CI dependency.
 
-## Verified code-level guarantees
+## External limitations
 
-- Provider verification requires authorization evidence, origin checks, an
-  allowed embedding context, an enabled flag, and a fresh verification date.
-- All existing third-party embed providers are `unverified` and disabled.
-- The resolver returns no movie/TV embed source while those providers remain
-  unverified; Anime remains unavailable.
-- Native MP4/HLS/DASH sources are accepted only when explicitly authorized,
-  allowlisted, HTTPS, and format-valid. No native source is currently enabled.
-- IDs, seasons, and episodes are strictly validated before source construction.
-- URL validation rejects non-HTTPS, credential-bearing, and mismatched-origin
-  playback URLs.
-- Attempt callbacks are guarded by provider ID and monotonically increasing
-  attempt ID.
-- Player observability now includes source-resolution status separately from
-  frame-loaded and native-playback-started events.
-- Anime continue-watching state stores media type, episode, explicit
-  `providerId: null`, external-embed mode, and not-started verification state;
-  it does not invent an unavailable provider.
-- Mobile mode controls are rendered without desktop-only hiding. Lights-off
-  adds a viewport overlay, theater mode is a fixed container mode, and
-  fullscreen state is reflected in accessible labels.
-
-## Known gaps before finalization
-
-1. Chromium must be installed successfully in CI and the full E2E matrix must
-   run. Local browser execution is not currently possible in this environment.
-2. The separate live smoke suite must run against a reachable deployment. It
-   may verify frame loading only, never opaque-provider playback.
-3. The deployed pages must be re-inspected after an authenticated Vercel
-   deployment; the current connector cannot inspect the existing deployment.
-4. The native engine remains a gated contract. Subtitles, audio tracks,
-   quality choices, PiP, and native playback controls must not be shown until
-   an authorized direct source is actually configured.
-5. Historical verification claims from earlier runs are intentionally removed;
-   only fresh command output in this report is authoritative.
-
-## Final verdict
-
-**NOT READY FOR FINAL PUSH/DEPLOY.**
-
-The security and resolver changes are code-verified, but the completion
-criteria require successful browser verification and a reachable deployment.
-After Chromium CI and live smoke pass, run the final typecheck, lint, unit
-tests, E2E, build, and security audit again. Only then create the final commit,
-push GitHub, and trigger or confirm Vercel deployment.
+The provider pages are cross-origin and opaque. VEYRA cannot verify their
+license, actual video playback, quality, subtitles, audio tracks, progress, or
+completion from an iframe load. DNS, network policy, provider uptime, and
+Deployment Protection are outside the application boundary. These results are
+classified as `LIVE_PROVIDER_PLAYBACK_UNVERIFIED`, `EXTERNAL_FAILURE`,
+`TIMEOUT`, or `BLOCKED_BY_ENVIRONMENT` when observed; they are never upgraded
+to success.

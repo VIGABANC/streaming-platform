@@ -1,85 +1,59 @@
 'use client'
 
-import { useLayoutEffect, useRef } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Play } from 'lucide-react'
+import { LandingSection } from './LandingSection'
+import type { SeasonDetail, TVDetail } from '@/lib/tmdb'
+import { backdrop } from '@/lib/tmdb'
 
-gsap.registerPlugin(ScrollTrigger)
-
-export function EpisodeShowcase() {
-  const root = useRef<HTMLElement>(null)
+export function EpisodeShowcase({ detail, season }: { detail?: TVDetail; season?: SeasonDetail }) {
+  const root = useRef<HTMLDivElement>(null)
+  const [selectedSeason, setSelectedSeason] = useState(season?.season_number)
+  const [seasonsByNumber, setSeasonsByNumber] = useState<Record<number, SeasonDetail>>(() => season ? { [season.season_number]: season } : {})
+  const [loadingSeason, setLoadingSeason] = useState<number | undefined>()
+  const [failedSeason, setFailedSeason] = useState<number | undefined>()
 
   useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo('.ep-header',
-        { y: 30, opacity: 0 },
-        { 
-          y: 0, opacity: 1, duration: 1, ease: 'power3.out',
-          scrollTrigger: {
-            trigger: root.current,
-            start: 'top 75%'
-          }
-        }
-      )
-
-      gsap.fromTo('.ep-card',
-        { x: 30, opacity: 0 },
-        {
-          x: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '.ep-list',
-            start: 'top 80%'
-          }
-        }
-      )
+    const context = gsap.context(() => {
+      const media = gsap.matchMedia()
+      media.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.fromTo('[data-episode-intro]', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out', scrollTrigger: { trigger: root.current, start: 'top 78%' } })
+      })
+      return () => media.revert()
     }, root)
-    return () => ctx.revert()
+    return () => context.revert()
   }, [])
 
-  return (
-    <section ref={root} className="py-24 relative z-20 bg-[#050507]">
-      <div className="mx-auto max-w-[1440px] px-6 lg:px-12 flex flex-col lg:flex-row gap-16">
-        
-        <div className="flex-1 ep-header lg:sticky lg:top-32 self-start">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Every season.<br/>Every episode.
-          </h2>
-          <p className="text-xl text-white/60 mb-8 max-w-md">
-            Seamlessly navigate through years of television. Deep dive into episode descriptions, runtimes, and original air dates.
-          </p>
-          
-          <div className="inline-flex bg-white/5 border border-white/10 rounded-lg p-1">
-            {['Season 1', 'Season 2', 'Season 3'].map((s, i) => (
-              <div key={i} className={`px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${i === 1 ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white transition-colors'}`}>
-                {s}
-              </div>
-            ))}
-          </div>
-        </div>
+  const seasons = detail?.seasons?.filter((entry) => entry.season_number >= 0) ?? []
+  const title = detail?.name || detail?.title || 'this series'
+  const detailHref = detail ? `/tv/${detail.id}` : '/tv'
+  const activeSeason = selectedSeason === undefined ? undefined : seasonsByNumber[selectedSeason]
 
-        <div className="flex-1 ep-list space-y-4">
-          {[1, 2, 3, 4, 5].map((ep) => (
-            <div key={ep} className="ep-card group flex gap-4 p-4 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors cursor-pointer">
-              <div className="relative w-32 md:w-48 aspect-video bg-white/10 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Play size={14} className="text-white ml-0.5" />
-                </div>
-              </div>
-              <div className="flex-1 py-1 flex flex-col">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="text-white font-bold">Episode {ep}</h4>
-                  <span className="text-xs font-mono text-white/40">45m</span>
-                </div>
-                <div className="text-xs text-white/50 mb-2">Oct {10 + ep}, 2023</div>
-                <div className="w-full h-3 bg-white/5 rounded mt-auto" />
-                <div className="w-2/3 h-3 bg-white/5 rounded mt-2" />
-              </div>
-            </div>
-          ))}
-        </div>
+  const loadSeason = async (seasonNumber: number) => {
+    setSelectedSeason(seasonNumber)
+    setFailedSeason(undefined)
+    if (seasonsByNumber[seasonNumber]) return
 
-      </div>
-    </section>
-  )
+    setLoadingSeason(seasonNumber)
+    try {
+      const response = await fetch(`/api/tv/${detail!.id}/season/${seasonNumber}`)
+      if (!response.ok) throw new Error('Failed to load season episodes')
+      const loadedSeason = await response.json() as SeasonDetail
+      setSeasonsByNumber((loaded) => ({ ...loaded, [seasonNumber]: loadedSeason }))
+    } catch {
+      setFailedSeason(seasonNumber)
+    } finally {
+      setLoadingSeason((current) => current === seasonNumber ? undefined : current)
+    }
+  }
+
+  return <div ref={root}><LandingSection id="episode-guide" eyebrow="The episode guide" title="Every season. Every episode." description="Move through a series with the same practical detail available on every TV title.">
+    {!season || !detail ? <div data-episode-reveal className="rounded-2xl border border-white/10 bg-[#0b111a] p-7 sm:p-9"><p className="font-display text-2xl font-bold text-white">Season information is unavailable right now.</p><p className="mt-2 max-w-xl text-sm leading-6 text-white/60">The TV catalog is still live, and a full episode guide appears when a title has season data.</p><Link href="/tv" className="mt-5 inline-flex min-h-11 items-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white hover:border-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8f7d4]">Explore TV shows</Link></div> : <div className="grid gap-8 lg:grid-cols-[minmax(220px,.55fr)_minmax(0,1.45fr)]">
+      <div data-episode-intro className="lg:sticky lg:top-28 lg:self-start"><p className="font-display text-2xl font-bold text-white">{title}</p><div className="mt-5 flex flex-wrap gap-2" aria-label="Choose a season">{seasons.map((entry) => <button key={entry.id} type="button" aria-pressed={selectedSeason === entry.season_number} onClick={() => loadSeason(entry.season_number)} className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 text-xs font-semibold text-white/75 hover:border-white/45 aria-pressed:border-[#b8f7d4] aria-pressed:bg-[#b8f7d4] aria-pressed:text-[#050507] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8f7d4]">{entry.name || `Season ${entry.season_number}`}</button>)}</div><p className="mt-5 text-sm leading-6 text-white/60">Episode details include original air dates, runtimes, and a short guide to what is waiting next.</p><Link href={detailHref} className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#b8f7d4] hover:underline">Open {title}<span aria-hidden="true">→</span></Link></div>
+      {loadingSeason === selectedSeason ? <div aria-live="polite" className="flex min-h-[320px] items-center rounded-2xl border border-white/10 bg-[#0b111a] p-7 text-sm text-white/60">Loading {seasons.find((entry) => entry.season_number === selectedSeason)?.name || 'season'} episodes…</div> : failedSeason === selectedSeason ? <div role="alert" className="flex min-h-[320px] flex-col justify-center rounded-2xl border border-white/10 bg-[#0b111a] p-7"><p className="font-display text-xl font-bold text-white">Episodes could not be loaded.</p><p className="mt-2 text-sm leading-6 text-white/60">Check your connection and try this season again.</p><button type="button" onClick={() => { if (failedSeason !== undefined) loadSeason(failedSeason) }} className="mt-5 inline-flex min-h-11 w-fit items-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white hover:border-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8f7d4]">Retry</button></div> : activeSeason?.episodes.length ? <ol key={activeSeason.id} aria-label={`${activeSeason.name} episodes`} className="space-y-3">{activeSeason.episodes.map((episode) => <li key={episode.id} data-episode-reveal className="min-h-[132px] rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4"><div className="flex gap-4"><div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-white/[0.07] sm:w-40"><Image src={backdrop(episode.still_path, 'w500')} alt={episode.still_path ? `${episode.name} still` : ''} fill sizes="(max-width: 640px) 112px, 160px" className="object-cover" />{episode.still_path ? <span className="absolute inset-0 grid place-items-center bg-black/20"><Play className="size-4 text-white" fill="currentColor" aria-hidden="true" /></span> : null}</div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><h3 className="text-sm font-semibold text-white"><span className="mr-2 text-white/45">{episode.episode_number}.</span>{episode.name}</h3>{episode.runtime ? <span className="shrink-0 text-xs text-white/50">{episode.runtime}m</span> : null}</div><p className="mt-1 text-xs text-white/50">{episode.air_date ? new Date(`${episode.air_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Air date unavailable'}</p><p className="mt-2 line-clamp-2 text-xs leading-5 text-white/65">{episode.overview || 'Episode overview is unavailable.'}</p></div></div></li>)}</ol> : <div key={selectedSeason} data-episode-reveal className="flex min-h-[320px] flex-col justify-center rounded-2xl border border-white/10 bg-[#0b111a] p-7"><p className="font-display text-xl font-bold text-white">No episodes are available for this season.</p><p className="mt-2 text-sm leading-6 text-white/60">Open the title for its current season and episode information.</p><Link href={detailHref} className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-[#b8f7d4] hover:underline">View {title}</Link></div>}
+    </div>}
+  </LandingSection></div>
 }

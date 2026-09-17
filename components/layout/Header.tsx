@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
 import {
   Search,
   X,
@@ -12,27 +12,10 @@ import {
   History,
   Settings,
   ChevronDown,
-  Flame,
 } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
 import { warmPlayerConnection } from '@/lib/player'
-
-interface NavLinkItem {
-  href: string
-  label: string
-  badge?: string
-  icon?: React.ComponentType<{ size?: number; className?: string }>
-}
-
-const NAV_LINKS: NavLinkItem[] = [
-  { href: '/', label: 'Home' },
-  { href: '/movies', label: 'Movies' },
-  { href: '/tv', label: 'TV Shows' },
-  { href: '/anime', label: 'Anime' },
-  { href: '/new', label: 'New', badge: 'Fresh' },
-  { href: '/top10', label: 'Top 10', icon: Flame },
-  { href: '/discover', label: 'Discover' },
-]
+import { PUBLIC_NAV_ITEMS, isNavItemActive } from '@/components/navigation/public-nav'
 
 export function Header() {
   const pathname = usePathname()
@@ -43,6 +26,28 @@ export function Header() {
   const [profileOpen, setProfileOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
+  const profileButtonRef = useRef<HTMLButtonElement>(null)
+  useLayoutEffect(() => {
+    if (!profileOpen) return
+    const trigger = profileButtonRef.current
+    const items = Array.from(profileRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
+    const focusFirst = () => items[0]?.focus()
+    const focusFrame = requestAnimationFrame(focusFirst)
+    const keydown = (event: KeyboardEvent) => {
+      const index = items.indexOf(document.activeElement as HTMLElement)
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        event.preventDefault()
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
+        requestAnimationFrame(() => items[next]?.focus())
+      }
+      if (event.key === 'Escape' || event.key === 'Tab') { setProfileOpen(false); trigger?.focus() }
+    }
+    document.addEventListener('keydown', keydown)
+    return () => {
+      cancelAnimationFrame(focusFrame)
+      document.removeEventListener('keydown', keydown)
+    }
+  }, [profileOpen])
 
   // Track scroll for header bg
   useEffect(() => {
@@ -102,8 +107,7 @@ export function Header() {
     [query, router],
   )
 
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href)
+  const isActive = (href: string) => isNavItemActive(pathname, href)
 
   return (
     <header
@@ -117,24 +121,19 @@ export function Header() {
         <Logo />
 
         {/* Desktop nav */}
-        <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex ml-4">
-          {NAV_LINKS.map(({ href, label, badge, icon: Icon }) => (
+        <nav aria-label="Main navigation" className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto md:flex ml-4">
+          {PUBLIC_NAV_ITEMS.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
-              className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              aria-current={isActive(href) ? 'page' : undefined}
+              className={`relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
                 isActive(href)
                   ? 'text-white bg-white/8 font-semibold'
                   : 'text-muted-foreground hover:text-white hover:bg-white/5'
               }`}
             >
-              {Icon && <Icon size={14} className="text-amber-400" />}
               <span>{label}</span>
-              {badge && (
-                <span className="rounded bg-primary/20 border border-primary/40 px-1 py-0.2 text-[9px] font-extrabold uppercase tracking-tight text-primary">
-                  {badge}
-                </span>
-              )}
             </Link>
           ))}
         </nav>
@@ -153,6 +152,7 @@ export function Header() {
             <input
               ref={inputRef}
               type="search"
+              tabIndex={searchOpen ? 0 : -1}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search titles, actors, genres…"
@@ -208,14 +208,28 @@ export function Header() {
             <button
               type="button"
               aria-label="User Profile & Settings"
+              ref={profileButtonRef}
               aria-expanded={profileOpen}
               aria-haspopup="menu"
-              onClick={() => setProfileOpen((v) => !v)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  setProfileOpen(true)
+                }
+              }}
+              onClick={(event) => {
+                setProfileOpen((v) => {
+                  const next = event.detail === 0 ? true : !v
+                  if (next) setTimeout(() => profileRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0)
+                  return next
+                })
+              }}
               className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 p-1.5 sm:px-2.5 sm:py-1.5 text-white/80 hover:border-primary/50 hover:bg-white/10 hover:text-white transition-all focus:outline-none"
             >
               <div className="relative grid size-7 place-items-center rounded-full bg-gradient-to-tr from-primary to-cyan text-white shadow-sm">
                 <User size={14} />
               </div>
+              <span className="text-xs">Profile/Settings</span>
               <ChevronDown
                 size={13}
                 className={`hidden sm:block text-white/50 transition-transform duration-200 ${
@@ -227,6 +241,7 @@ export function Header() {
             {profileOpen && (
               <div
                 role="menu"
+                aria-label="Profile and settings"
                 className="absolute right-0 top-12 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#0A0D14]/95 p-1.5 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-top-2 duration-200"
                 style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 25px rgba(229,9,20,0.15)' }}
               >

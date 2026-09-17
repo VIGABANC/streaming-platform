@@ -14,6 +14,7 @@ export function Footer() {
           <nav aria-label="Footer navigation" className="flex flex-wrap items-center gap-x-5 gap-y-2">
             {[
               { href: '/discover', label: 'Discover' },
+              { href: '/world-cinema', label: 'World Cinema' },
               { href: '/my-list', label: 'My List' },
               { href: 'https://www.themoviedb.org/', label: 'TMDB', external: true },
             ].map(({ href, label, external }) => (

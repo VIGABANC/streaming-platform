@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Play, Clock, X } from 'lucide-react'
 import { store, type ContinueWatchingItem } from '@/lib/store'
-import { poster, type MediaType } from '@/lib/tmdb'
+import { poster } from '@/lib/tmdb'
 import { formatDate } from '@/lib/utils'
 
 export function ContinueWatchingRail() {
@@ -29,7 +29,7 @@ export function ContinueWatchingRail() {
 
   if (!hydrated || items.length === 0) return null
 
-  const remove = (id: number, mediaType: MediaType) => {
+  const remove = (id: number, mediaType: 'movie' | 'tv') => {
     store.removeFromContinueWatching(id, mediaType)
     loadItems()
   }
@@ -46,9 +46,7 @@ export function ContinueWatchingRail() {
           const href =
             item.media_type === 'tv' && item.season && item.episode
               ? `/watch/tv/${item.id}/${item.season}/${item.episode}`
-            : item.media_type === 'anime'
-                ? item.episode ? `/watch/anime/${item.id}/${item.episode}` : `/anime/${item.id}`
-                : `/watch/movie/${item.id}`
+              : `/watch/movie/${item.id}`
 
           const imgSrc = poster(item.backdrop_path ?? item.poster_path, 'w780')
 
@@ -82,11 +80,6 @@ export function ContinueWatchingRail() {
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       S{item.season} · E{item.episode}
                       {item.episodeTitle && ` · ${item.episodeTitle}`}
-                    </p>
-                  )}
-                  {item.media_type === 'anime' && item.episode && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Episode {item.episode}{item.episodeTitle && ` · ${item.episodeTitle}`}
                     </p>
                   )}
                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">

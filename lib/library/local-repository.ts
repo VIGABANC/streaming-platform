@@ -1,7 +1,7 @@
 import { store } from '@/lib/store'
 import { createEmptyLibrarySnapshot, normalizeLibrarySnapshot, type LibrarySnapshot } from './types'
 
-export const LIBRARY_OWNER_KEY = 'veyra-library-owner'
+export { LIBRARY_OWNER_KEY } from './session'
 
 export function readLocalLibrary(): LibrarySnapshot {
   const parsed = normalizeLibrarySnapshot(JSON.parse(store.exportData()))

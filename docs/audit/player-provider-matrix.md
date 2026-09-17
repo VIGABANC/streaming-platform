@@ -1,10 +1,30 @@
-# Provider matrix
+# VEYRA provider matrix — 2026-09-15
 
-| Provider | Origin | Media | Observability | Controls | Trust |
-|---|---|---|---|---|---|
-| Server 1 | `https://v1.vidsrc.wiki` | movie/TV | C: frame load only | provider-controlled | unverified; disabled |
-| Server 2 | `https://vidsrc.xyz` | movie/TV | C: frame load only | provider-controlled | unverified; disabled |
-| Server 3 | `https://www.2embed.cc` | movie/TV | C: frame load only | provider-controlled | unverified; disabled |
-| Server 4 | `https://player.autoembed.cc` | movie/TV | C: frame load only | provider-controlled | unverified; disabled |
+An iframe response or load event does not prove playback, quality, subtitles,
+audio, completion, or bitrate.
 
-No provider currently has authorization evidence, a current verification record, a verified documented event origin, or a direct media API in this repository. All external embeds are therefore excluded from playback resolution. DNS-specific failure is not claimed when a browser only exposes a generic iframe failure/timeout.
+| Provider | Media | Registry status | Eligible now | Truthful UI state |
+|---|---|---|---:|---|
+| `vidsrc-wiki` | Movie/TV | `unverified`, opaque external embed | No | Unavailable |
+| `vidsrc-xyz` | Movie/TV | `unverified`, opaque external embed | No | Unavailable |
+| `2embed` | Movie/TV | `unverified`, opaque external embed | No | Unavailable |
+| `autoembed` | Movie/TV | `unverified`, opaque external embed | No | Unavailable |
+| Anime providers | Anime | No approved verified provider | No | Unavailable |
+
+No provider was enabled because an iframe loaded. No new provider, mirror,
+scraper, stream extractor, or user-data-bearing URL was added.
+
+## Verification status
+
+- Deterministic local player behavior: `PASS`.
+- Default live smoke: `PASS`, with opt-in external checks skipped.
+- Explicit live-provider playback: `LIVE_PROVIDER_PLAYBACK_UNVERIFIED` /
+  `BLOCKED_BY_ENVIRONMENT` when Deployment Protection prevents access.
+- CI run `34943893351`: `PASS` for exact head
+  `c803a4a4400df7915f189aaf6a084cd6699b8daf`.
+- Vercel connector: `VERCEL_API_INSPECTION_BLOCKED_BY_AUTH` (HTTP 403).
+
+Provider authorization, cross-origin controls, licensing, availability, and
+documented playback APIs are external limitations. Only a future provider with
+explicit authorization evidence, origin checks, and a trusted documented signal
+may move into the eligible set.

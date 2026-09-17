@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: GenrePageProps): Promise<Meta
 
   return {
     title: `${genreName} ${mediaType === 'tv' ? 'TV Shows' : 'Movies'} — VEYRA`,
-    description: `Stream the best ${genreName} ${mediaType === 'tv' ? 'series' : 'films'} in 4K on VEYRA.`,
+    description: `Discover the best ${genreName} ${mediaType === 'tv' ? 'series' : 'films'} on VEYRA.`,
   }
 }
 

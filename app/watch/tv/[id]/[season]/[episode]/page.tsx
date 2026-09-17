@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { ArrowLeft, ChevronLeft, ChevronRight, Tv, Clock } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { PlayerFrame } from '@/components/player/PlayerFrame'
-import { ContinueWatchingTracker } from '@/components/player/ContinueWatchingTracker'
 import {
   getTVDetail,
   getSeason,
@@ -15,7 +14,7 @@ import {
   type SeasonDetail,
   type Episode,
 } from '@/lib/tmdb'
-import { parsePositiveIntSegment } from '@/lib/http/validation'
+import { isStrictPositiveInteger } from '@/lib/player'
 
 interface TVWatchProps {
   params: Promise<{
@@ -43,10 +42,11 @@ export async function generateMetadata({ params }: TVWatchProps): Promise<Metada
 
 export default async function WatchTVPage({ params }: TVWatchProps) {
   const { id, season, episode } = await params
-  const idNum = parsePositiveIntSegment(id, { min: 1, max: Number.MAX_SAFE_INTEGER })
-  const seasonNum = parsePositiveIntSegment(season, { min: 1, max: 10_000 })
-  const episodeNum = parsePositiveIntSegment(episode, { min: 1, max: 100_000 })
-  if (idNum == null || seasonNum == null || episodeNum == null) notFound()
+  if (!isStrictPositiveInteger(id) || !isStrictPositiveInteger(season) || !isStrictPositiveInteger(episode)) {
+    notFound()
+  }
+  const seasonNum = Number(season)
+  const episodeNum = Number(episode)
 
   let show: TVDetail | null = null
   let seasonData: SeasonDetail | null = null
@@ -93,24 +93,6 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
 
   return (
     <Shell>
-      {show && (
-        <ContinueWatchingTracker
-          item={{
-            id: show.id,
-            media_type: 'tv',
-            title,
-            poster_path: show.poster_path,
-            backdrop_path: show.backdrop_path,
-            season: seasonNum,
-            episode: episodeNum,
-            episodeTitle: episodeName,
-            playbackMode: 'external-embed',
-            verificationState: 'not-started',
-            lastOpenedAt: Date.now(),
-          }}
-        />
-      )}
-
       <div className="mx-auto max-w-[1440px] px-4 pt-6 sm:px-6 lg:px-8">
         {/* Top bar */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

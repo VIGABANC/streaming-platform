@@ -1,8 +1,7 @@
 import type { MetadataRoute } from 'next'
-import { getPublicSiteUrl } from '@/lib/config'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = getPublicSiteUrl()
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://veyra.stream'
 
   const staticRoutes = [
     '',
@@ -12,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/tv',
     '/anime',
     '/discover',
+    '/world-cinema',
     '/new',
     '/top10',
     '/providers',
@@ -21,5 +21,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1.0 : 0.8,
   }))
 
-  return staticRoutes
+  const genreRoutes = ['movie', 'tv'].flatMap((type) => [28, 12, 16, 35, 18].map((id) => ({
+    url: `${baseUrl}/genre/${type}/${id}`,
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+  })))
+  return [...staticRoutes, ...genreRoutes]
 }

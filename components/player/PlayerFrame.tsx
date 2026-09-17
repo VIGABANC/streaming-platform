@@ -18,6 +18,7 @@ import {
   playerErrorMessage,
   PROVIDERS,
   getInitialProviderId,
+  getInitialProviderIdForMode,
   rankProviders,
   readProviderHealth,
   recordProviderAttempt,
@@ -89,12 +90,12 @@ export function PlayerFrame({
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const settings = store.getSettings()
 
   useEffect(() => {
     const settings = store.getSettings()
-    const preferredProviderId = getInitialProviderId(settings.defaultServer)
-    const initialProvider = rankProviders({ health: readProviderHealth(), preferredProviderId })[0]
-    if (initialProvider) setSelectedProvider(initialProvider.id)
+    const initialProviderId = getInitialProviderIdForMode(settings, { health: readProviderHealth(), mediaType })
+    setSelectedProvider(initialProviderId)
     setIsCinemaMode(settings.ambientLighting)
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -102,7 +103,7 @@ export function PlayerFrame({
     updateMotion()
     mediaQuery.addEventListener?.('change', updateMotion)
     return () => mediaQuery.removeEventListener?.('change', updateMotion)
-  }, [])
+  }, [mediaType])
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -136,9 +137,10 @@ export function PlayerFrame({
     mediaId,
     season,
     episode,
+    subtitleLanguage: settings.subtitleLanguage,
     preferredProviderId: selectedProvider,
     nativeSources,
-  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources])
+  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources, settings.subtitleLanguage])
   const allSources = resolution.sources
   const activeSource = allSources.find((source) => source.providerId === selectedProvider) ?? allSources[0]
   const activeSrc = activeSource?.mode === 'external-embed' ? activeSource.url : null
@@ -169,7 +171,7 @@ export function PlayerFrame({
     persistPlaybackContext({
       providerId: activeSource.providerId,
       playbackMode: activeSource.mode,
-      verificationState: activeSource.mode === 'native-media' ? 'not-started' : 'frame-load-only',
+      verificationState: 'not-started',
     })
   // The current source is the complete playback context for this mounted route.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,7 +187,7 @@ export function PlayerFrame({
     if (!allSources.some((source) => source.providerId === selectedProvider)) {
       setSelectedProvider(allSources[0].providerId)
     }
-  }, [allSources, resolution.reason, selectedProvider])
+  }, [allSources, resolution.reason, selectedProvider, retryCount])
 
   const clearTimers = () => {
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current)
@@ -283,6 +285,7 @@ export function PlayerFrame({
     // An iframe load proves only that the document loaded. Opaque providers do
     // not expose a verified ready/playing signal to VEYRA.
     setState('frame-loaded')
+    persistPlaybackContext({ verificationState: 'frame-load-only' })
     reportPlayerEvent('player_frame_loaded', { providerId, mediaType, startupMs: Date.now() - startedAtRef.current, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
     if (process.env.NODE_ENV === 'development') {
       console.debug('[veyra] player ready', {
@@ -425,17 +428,17 @@ export function PlayerFrame({
         <div className="flex items-center gap-2">
           <span
             className="inline text-[11px] text-white/45"
-            title="Resolution is controlled by the selected provider"
+            title={activeSource ? 'Resolution is controlled by the selected source' : 'No verified source is available'}
           >
-            {activeSource?.mode === 'native-media' ? 'Quality: Native controls' : 'Quality: Provider controlled'}
+            {!activeSource ? 'Quality: Unavailable' : activeSource.mode === 'native-media' ? 'Quality: Native controls' : 'Quality: Provider controlled'}
           </span>
           <span
             role="status"
             aria-live="polite"
             className="text-[10px] text-white/45 sm:text-[11px]"
-            title={activeSource?.mode === 'native-media' ? 'VEYRA receives native media events' : 'VEYRA can verify only that the provider frame loaded'}
+            title={!activeSource ? 'No verified source is available' : activeSource.mode === 'native-media' ? 'VEYRA receives native media events' : 'A frame load does not verify playback'}
           >
-            {activeSource?.mode === 'native-media'
+            {!activeSource ? 'Playback: Unavailable' : activeSource.mode === 'native-media'
               ? 'Playback: Native events'
               : state === 'frame-loaded'
                 ? 'Playback: Frame loaded; not independently verified'

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createDefaultTelegramDependencies, formatTelegramWebhookError, handleTelegramUpdate, parseTelegramUpdate } from '@/lib/telegram'
+import { createDefaultTelegramDependencies, handleTelegramUpdate, parseTelegramUpdate } from '@/lib/telegram'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
-  const expectedSecret = process.env.TELEGRAM_FEEDBACK_WEBHOOK_SECRET ?? process.env.TELEGRAM_WEBHOOK_SECRET
-  if (expectedSecret && request.headers.get('x-telegram-bot-api-secret-token') !== expectedSecret) {
+  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET
+  if (!expectedSecret || request.headers.get('x-telegram-bot-api-secret-token') !== expectedSecret) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
   try {
@@ -14,10 +14,7 @@ export async function POST(request: Request) {
     await handleTelegramUpdate(update, createDefaultTelegramDependencies())
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('telegram webhook failed', {
-      name: error instanceof Error ? error.name : 'unknown',
-      message: formatTelegramWebhookError(error),
-    })
+    console.error('telegram webhook failed', error instanceof Error ? error.name : 'unknown')
     return NextResponse.json({ ok: false, error: 'temporarily_unavailable' }, { status: 503 })
   }
 }

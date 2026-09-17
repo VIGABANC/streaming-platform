@@ -38,11 +38,6 @@ export interface ContinueWatchingItem {
   season?: number
   episode?: number
   episodeTitle?: string
-  providerId?: string | null
-  playbackMode?: 'external-embed' | 'native-media'
-  positionSeconds?: number
-  durationSeconds?: number
-  verificationState?: 'not-started' | 'frame-load-only' | 'native-playback-verified'
   lastOpenedAt: number
 }
 
@@ -64,9 +59,6 @@ export interface HistoryItem {
   season?: number
   episode?: number
   episodeTitle?: string
-  providerId?: string | null
-  playbackMode?: 'external-embed' | 'native-media'
-  verificationState?: 'not-started' | 'frame-load-only' | 'native-playback-verified'
   watchedAt: number
 }
 
@@ -80,7 +72,10 @@ export interface UserProfile {
 export interface UserSettings {
   autoplayNext: boolean
   defaultServer: string
-  streamQuality: 'auto' | '1080p' | '720p'
+  playerMode?: 'auto' | 'manual'
+  /** Provider-controlled quality preference; VEYRA cannot select opaque iframe resolutions. */
+  streamQuality: 'auto' | 'provider'
+  subtitleLanguage: 'auto' | 'en' | 'ar' | 'fr' | 'de' | 'es' | 'ja' | 'ko'
   ambientLighting: boolean
   reducedMotion: boolean
 }
@@ -153,6 +148,7 @@ export const STORE_KEYS = {
   history: 'veyra-history',
   profile: 'veyra-profile',
   settings: 'veyra-settings',
+  missingAvailabilityReports: 'veyra-missing-availability-reports',
 } as const
 
 // ── Safe localStorage helpers ─────────────────────────────────────────────────
@@ -200,7 +196,9 @@ const DEFAULT_PROFILE: UserProfile = {
 const DEFAULT_SETTINGS: UserSettings = {
   autoplayNext: true,
   defaultServer: 'vidsrc-wiki',
+  playerMode: 'auto',
   streamQuality: 'auto',
+  subtitleLanguage: 'auto',
   ambientLighting: true,
   reducedMotion: false,
 }
@@ -336,9 +334,6 @@ class LocalStorageMediaStore implements UserMediaStore {
       season: item.season,
       episode: item.episode,
       episodeTitle: item.episodeTitle,
-      providerId: item.providerId,
-      playbackMode: item.playbackMode,
-      verificationState: item.verificationState,
     })
   }
 
@@ -398,7 +393,7 @@ class LocalStorageMediaStore implements UserMediaStore {
   // ── Settings ─────────────────────────────────────────────────────────────
 
   getSettings(): UserSettings {
-    return readStorage<UserSettings>(STORE_KEYS.settings, DEFAULT_SETTINGS)
+    return { ...DEFAULT_SETTINGS, ...readStorage<Partial<UserSettings>>(STORE_KEYS.settings, {}) }
   }
 
   updateSettings(settings: Partial<UserSettings>): UserSettings {
@@ -451,6 +446,7 @@ class LocalStorageMediaStore implements UserMediaStore {
       continueWatching: this.getContinueWatching(),
       profile: this.getProfile(),
       settings: this.getSettings(),
+      missingAvailabilityReports: readStorage<unknown[]>(STORE_KEYS.missingAvailabilityReports, []),
     }
     return JSON.stringify(data, null, 2)
   }
@@ -463,6 +459,7 @@ class LocalStorageMediaStore implements UserMediaStore {
       if (Array.isArray(data.ratings)) writeStorage(STORE_KEYS.ratings, data.ratings)
       if (Array.isArray(data.history)) writeStorage(STORE_KEYS.history, data.history)
       if (Array.isArray(data.continueWatching)) writeStorage(STORE_KEYS.continueWatching, data.continueWatching)
+      if (Array.isArray(data.missingAvailabilityReports)) writeStorage(STORE_KEYS.missingAvailabilityReports, data.missingAvailabilityReports)
       if (data.profile) writeStorage(STORE_KEYS.profile, data.profile)
       if (data.settings) writeStorage(STORE_KEYS.settings, data.settings)
       return true

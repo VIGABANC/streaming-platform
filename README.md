@@ -1,67 +1,43 @@
-<div align="center">
-
-<img src="./public/icon.svg" alt="VEYRA" height="72" />
-
 # VEYRA — The Night Signal
 
-**A cinematic discovery and streaming frontend for movies, series, and anime.**
-
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![TMDB](https://img.shields.io/badge/Powered_by-TMDB-01b4e4?style=flat-square)](https://www.themoviedb.org)
-
-[Features](#features) • [Getting Started](#getting-started) • [Project Structure](#project-structure) • [Configuration](#configuration) • [Testing](#testing)
-
-</div>
+VEYRA is a high-performance cinematic discovery and streaming frontend built with Next.js 16 (Turbopack), Tailwind CSS, TypeScript, and TMDB API.
 
 ---
 
-VEYRA is a high-performance, dark-mode-first streaming discovery interface built with **Next.js 16** and **Turbopack**. It integrates with the [TMDB API](https://www.themoviedb.org) for movies and TV, and [AniList](https://anilist.gitbook.io/anilist-apiv2-docs) for anime metadata, to surface trending, popular, top-rated, and newly released content through a polished, cinematic UI.
-
 ## Features
 
-- **Cinematic Discovery** — Curated rails for Trending, Popular, Top Rated, Now Playing, Airing Today, and On The Air content.
-- **Universal Search** — Debounced multi-search with URL query persistence, recent search history, category filtering, and a `/` hotkey focus shortcut.
-- **First-class Anime** — Anime browsing, status/genre/format filters, normalized metadata, relations, recommendations, and episode enrichment.
-- **Dynamic Detail Pages** — Comprehensive movie and TV detail views with backdrops, trailers, cast, production info, recommendations, and ratings.
-- **Full TV Navigation** — Multi-season dropdowns, specials handling, and episode cards with runtime, air date, and overview.
-- **Personal Library** — Watchlist, Favorites, and Continue Watching lists backed by `localStorage` and synchronized reactively across browser tabs.
-- **Embedded Video Player** — Configurable embed provider with tiered load timeout warnings and fallback recovery.
-- **PWA & Offline Support** — Web App Manifest with application shell caching and an offline fallback route.
-- **Accessibility & SEO** — Semantic HTML5, skip navigation links, OpenGraph metadata, `sitemap.xml`, and `robots.txt`.
+- **Cinematic Discovery**: Curated rails for Trending, Popular, Top Rated, Now Playing, Airing Today, and On The Air.
+- **Universal Finder (Search)**: Debounced multi-search with URL query persistence, recent search history, category filtering, and `/` hotkey focus.
+- **Dynamic Detail Pages**: Comprehensive movie and TV details including backdrops, trailers, cast, production info, recommendations, and ratings.
+- **Full TV Season & Episode Navigation**: Multi-season dropdown/tabs, specials handling, episode cards with runtime, air date, and overview.
+- **Watchlist, Favorites & Continue Watching**: Reactive client-side media storage synchronized across browser tabs with dedicated management views.
+- **Video Player Frame**: Embedded playback through the configured provider registry, bounded load timeout warnings, and fallback recovery.
+- **PWA & Offline Ready**: Web App Manifest with application shell caching and an offline fallback route.
+- **Accessibility & SEO**: Semantic HTML5, skip navigation links, OpenGraph metadata, `sitemap.xml`, and `robots.txt`.
+
+---
 
 ## Getting Started
 
-### Prerequisites
+### 1. Environment Setup
 
-- [Node.js 20+](https://nodejs.org/)
-- A free [TMDB API key](https://www.themoviedb.org/settings/api)
-
-### 1. Clone & install
-
-```bash
-git clone https://github.com/your-username/streaming-platform.git
-cd streaming-platform
-npm install
-```
-
-### 2. Configure environment
+Copy the example environment template:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local`:
+Configure your environment variables in `.env.local`:
 
 ```env
-# Required — get your free key at https://www.themoviedb.org/settings/api
+# TMDB API Key (Required for catalog browsing and search)
+# Get your free key at: https://www.themoviedb.org/settings/api
 TMDB_API_KEY=your_tmdb_api_key_here
 
+# Embed provider base URL (Default: https://v1.vidsrc.wiki)
 ```
 
-> [!IMPORTANT]
-> `TMDB_API_KEY` is server-side only and must never be prefixed with `NEXT_PUBLIC_`. It is never exposed to client bundles.
+> **Security Note:** `TMDB_API_KEY` is server-side only and never exposed to client bundles.
 
 ### Telegram feedback and AI enrichment
 
@@ -72,6 +48,18 @@ Feedback is inserted into Supabase before any AI call. The router then tries con
 Set `AI_ZERO_COST_ONLY=true` and `ALLOW_PAID_AI=false` to prevent known billable model use. Free-provider availability and quotas can change; the 24/7 guarantee applies to report acceptance and durable storage, not vendor uptime or quota.
 
 See `.env.example` for all supported provider, Telegram, GitHub, Supabase, model, timeout, failover, and circuit-breaker settings.
+
+### Applying Supabase migrations
+
+After authenticating the Supabase CLI, apply the checked-in migrations with:
+
+```powershell
+$env:SUPABASE_ACCESS_TOKEN = 'your-token'
+.\scripts\deploy-supabase.ps1 -ProjectRef 'your-project-ref'
+```
+
+The script validates the project reference, links the project, and runs
+`supabase db push`. It never prints or commits Supabase secrets.
 
 ---
 
@@ -85,92 +73,71 @@ npm install
 
 ---
 
-### 3. Start the development server
+### 3. Development Server
+
+Start the local development server:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) to view VEYRA in your browser.
 
-## Project Structure
+---
 
-```
-streaming-platform/
-├── app/                   # Next.js App Router pages & API routes
-│   ├── api/               # Server-side route handlers (search, TV)
-│   ├── movie/             # Movie detail pages
-│   ├── tv/                # TV detail & season/episode pages
-│   ├── browse/            # Catalog browse views
-│   ├── discover/          # Discovery by genre and filters
-│   ├── search/            # Search results page
-│   ├── my-list/           # Watchlist management
-│   ├── favorites/         # Favorites management
-│   ├── history/           # Watch history
-│   ├── watch/             # Embedded video player
-│   └── profile/           # User settings and profile
-├── components/            # Shared React components
-│   ├── landing/           # Homepage showcase sections
-│   ├── media/             # Media cards, rails, and posters
-│   ├── player/            # Video player UI
-│   ├── layout/            # Navigation and shell
-│   └── ui/                # Primitive UI components (shadcn/ui)
-├── lib/
-│   ├── tmdb.ts            # TMDB API client (server-side)
-│   ├── store.ts           # localStorage-backed user data store
-│   ├── player.ts          # Player state and utilities
-│   └── utils.ts           # Shared utilities
-├── public/                # Static assets and PWA manifest
-└── tests/
-    ├── unit/              # Vitest unit tests
-    ├── integration/       # Vitest integration tests
-    └── e2e/               # Playwright end-to-end tests
-```
+### 4. Quality Verification & Testing
 
-## Configuration
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `TMDB_API_KEY` | Yes | — | TMDB API key (server-side only) |
-| `ANILIST_API_URL` | No | `https://graphql.anilist.co` | Server-side anime metadata endpoint |
-| `JIKAN_API_URL` | No | `https://api.jikan.moe/v4` | Optional server-side episode enrichment endpoint |
-
-Playback sources are constructed only by the typed provider registry and
-resolver. Pages cannot override an iframe URL at runtime. Current external
-providers are opaque third-party embeds: the provider owns the controls and
-VEYRA reports only frame-document load, not verified playback or quality.
-
-## Testing
+Run the test suites:
 
 ```bash
-# Unit and integration tests (Vitest)
+# Run unit and integration tests (Vitest)
 npm test
 
-# End-to-end tests (Playwright)
+# Run end-to-end tests (Playwright)
 npm run test:e2e
 
-# TypeScript type checking
+# Run the default live smoke command (external checks skip without opt-in)
+npm run test:live
+
+# Run TypeScript compiler check
 npm run typecheck
 
-# Linting
+# Run linter
 npm run lint
 ```
 
-## Deployment
+---
 
-Build the optimized production bundle and start the server:
+### 5. Production Build
+
+Build and launch the optimized production server:
 
 ```bash
 npm run build
 npm run start
 ```
 
-VEYRA is designed to deploy on [Vercel](https://vercel.com) with zero configuration. Set the required environment variables in your Vercel project settings before deploying.
+---
 
-> [!NOTE]
-> Vercel Analytics is automatically enabled in production via `@vercel/analytics`.
+### Browser verification
 
-## Attribution
+Run deterministic product E2E with `npm run test:e2e`. External provider smoke
+is opt-in and separate:
 
-- **TMDB** — This product uses the TMDB API but is not endorsed or certified by TMDB.
-- **External Video Providers** — Video streams are served via third-party embed providers. VEYRA does not host, store, or stream any media content directly.
+```powershell
+$env:VEYRA_LIVE_SMOKE='1'
+$env:PLAYWRIGHT_LIVE_BASE_URL='https://streaming-platform-beryl.vercel.app'
+npm run test:live
+```
+
+Without `VEYRA_LIVE_SMOKE=1`, live tests are skipped. An iframe load never
+counts as verified playback.
+
+Current release verification is tracked in `docs/audit/release-readiness-report.md`.
+The configured external providers remain unavailable until VEYRA can verify
+authorization and playback signals; iframe loading alone is not sufficient.
+
+## Attribution & Disclaimers
+
+- **TMDB**: This product uses the TMDB API but is not endorsed or certified by TMDB.
+- **External Video Providers**: Video streams are served via external embed providers. VEYRA does not host, store, or stream media content directly.

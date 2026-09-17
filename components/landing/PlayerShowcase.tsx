@@ -1,87 +1,26 @@
 'use client'
 
+import Link from 'next/link'
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { AlertTriangle, Play, RotateCcw, Wifi } from 'lucide-react'
+import { LandingSection } from './LandingSection'
+import { titleOf, type Media } from '@/lib/tmdb'
 
 gsap.registerPlugin(ScrollTrigger)
 
-export function PlayerShowcase() {
-  const root = useRef<HTMLElement>(null)
-
+export function PlayerShowcase({ item }: { item?: Media }) {
+  const root = useRef<HTMLDivElement>(null)
+  const watchHref = item ? (item.media_type === 'tv' ? `/watch/tv/${item.id}/1/1` : `/watch/movie/${item.id}`) : undefined
   useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: root.current,
-          start: 'top 60%',
-        }
-      })
-
-      tl.fromTo('.player-header',
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, ease: 'power3.out' }
-      )
-      .fromTo('.player-frame',
-        { scale: 0.95, opacity: 0, y: 40 },
-        { scale: 1, opacity: 1, y: 0, duration: 1.2, ease: 'power3.out' },
-        "-=0.6"
-      )
-      .fromTo('.player-glow',
-        { opacity: 0 },
-        { opacity: 1, duration: 2, ease: 'power2.inOut' },
-        "-=0.5"
-      )
-
+    const context = gsap.context(() => {
+      const media = gsap.matchMedia()
+      media.add('(prefers-reduced-motion: reduce)', () => gsap.set('[data-player-progress]', { width: '38%' }))
+      media.add('(prefers-reduced-motion: no-preference)', () => gsap.fromTo('[data-player-progress]', { width: 0 }, { width: '38%', duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: root.current, start: 'top 80%', once: true } }))
+      return () => media.revert()
     }, root)
-    return () => ctx.revert()
+    return () => context.revert()
   }, [])
-
-  return (
-    <section ref={root} className="py-32 relative z-20 bg-[#050507]">
-      <div className="mx-auto max-w-[1440px] px-6 lg:px-12 text-center">
-        
-        <div className="player-header mb-16 max-w-3xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            From discovery to play.
-          </h2>
-          <p className="text-xl text-white/60">
-            A seamless bridge to your content. VEYRA provides a resilient cinematic viewing frame with smart fallback recovery.
-          </p>
-        </div>
-
-        <div className="relative max-w-5xl mx-auto">
-          <div className="player-glow absolute inset-0 bg-cyan-500/20 blur-[100px] pointer-events-none rounded-full transform scale-90" />
-          
-          <div className="player-frame relative aspect-video bg-[#0A0D14] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col justify-end p-6 lg:p-10">
-            {/* Fake player UI */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-            
-            <div className="relative z-10 w-full">
-              <div className="w-full h-1.5 bg-white/20 rounded-full mb-6 overflow-hidden">
-                <div className="h-full bg-primary w-1/3 rounded-full" />
-              </div>
-              <div className="flex justify-between items-center text-white">
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[8px] border-l-black border-b-[6px] border-b-transparent ml-1" />
-                  </div>
-                  <div className="flex flex-col text-left">
-                    <span className="font-bold text-sm">The Night Signal</span>
-                    <span className="text-xs text-white/60">00:45:12 / 02:16:00</span>
-                  </div>
-                </div>
-                <div className="flex gap-4 opacity-70">
-                  <div className="w-6 h-6 bg-white/20 rounded" />
-                  <div className="w-6 h-6 bg-white/20 rounded" />
-                  <div className="w-6 h-6 bg-white/20 rounded" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-  )
+  return <div ref={root}><LandingSection id="player-experience" eyebrow="The playback handoff" title="From discovery to play." description="A clear handoff to the available playback route, with recovery states kept in view."><div className="mx-auto max-w-5xl"><div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-[#0b111a] shadow-2xl"><div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_15%,rgba(184,247,212,.16),transparent_34%),linear-gradient(145deg,#111b29,#050507_70%)]" /><div className="absolute inset-x-0 bottom-0 p-5 sm:p-8"><div className="flex items-center justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b8f7d4]">Illustrative player state</p><p className="mt-2 font-display text-xl font-bold text-white">{item ? titleOf(item) : 'Choose a title to begin'}</p></div><span className="grid size-12 place-items-center rounded-full bg-white text-[#050507]"><Play className="ml-0.5 size-5" fill="currentColor" aria-hidden="true" /></span></div><div className="mt-6 h-1.5 overflow-hidden rounded-full bg-white/15"><div data-player-progress className="h-full w-[38%] rounded-full bg-[#b8f7d4]" /></div><div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/65"><span className="inline-flex items-center gap-1"><Wifi className="size-3.5" />Connecting to a provider</span><span className="inline-flex items-center gap-1"><AlertTriangle className="size-3.5" />Timeout warning</span><span className="inline-flex items-center gap-1"><RotateCcw className="size-3.5" />Retry or switch provider</span></div></div></div><p className="mt-4 text-center text-xs leading-5 text-white/50">VEYRA does not host or store video media. Playback is provided by third-party providers.</p>{watchHref ? <div className="mt-5 text-center"><Link href={watchHref} className="inline-flex min-h-11 items-center rounded-full border border-white/25 px-5 text-sm font-semibold text-white hover:border-white/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8f7d4]">Open playback for {titleOf(item!)}</Link></div> : <div className="mt-5 text-center"><Link href="/browse" className="text-sm font-semibold text-[#b8f7d4] hover:underline">Find a title to play</Link></div>}</div></LandingSection></div>
 }

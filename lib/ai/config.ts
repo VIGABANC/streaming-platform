@@ -12,7 +12,7 @@ import { aiProviderIds, type AIConfig, type AIProvider, type AIProviderId } from
 const defaultOrder: AIProviderId[] = [...aiProviderIds]
 const defaultModels: Record<AIProviderId, string> = {
   groq: 'openai/gpt-oss-20b',
-  gemini: 'gemini-3.5-flash-lite',
+  gemini: 'gemini-2.0-flash-lite',
   cloudflare: '@cf/meta/llama-3.1-8b-instruct',
   mistral: 'mistral-small-latest',
   openrouter: 'openrouter/free',
@@ -22,8 +22,6 @@ const defaultModels: Record<AIProviderId, string> = {
   nvidia: 'meta/llama-3.1-8b-instruct',
   deterministic: 'deterministic',
 }
-
-const retiredGeminiModels = new Set(['gemini-2.0-flash-lite', 'gemini-2.0-flash-lite-001'])
 
 type Environment = Record<string, string | undefined>
 
@@ -47,7 +45,6 @@ export function getAIConfig(env: Environment = process.env): AIConfig {
     const key = `${provider.toUpperCase()}_MODEL`
     if (env[key]) models[provider] = env[key]!
   }
-  if (retiredGeminiModels.has(models.gemini)) models.gemini = defaultModels.gemini
   const allowPaidAi = bool(env, 'ALLOW_PAID_AI', false)
   const zeroCostOnly = bool(env, 'AI_ZERO_COST_ONLY', true)
   if ((zeroCostOnly || !allowPaidAi) && env.OPENROUTER_MODEL && !freeOpenRouterModel(models.openrouter)) {
@@ -55,10 +52,7 @@ export function getAIConfig(env: Environment = process.env): AIConfig {
   }
 
   const configuredOrder = env.AI_PROVIDER_ORDER?.split(',').map((value) => value.trim()).filter(Boolean) ?? defaultOrder
-  const requestedOrder = configuredOrder.filter((value): value is AIProviderId => (aiProviderIds as readonly string[]).includes(value))
-  // Keep the configured primary provider first, then use every other
-  // configured provider as an automatic fallback.
-  const providerOrder = [...new Set([...requestedOrder, ...defaultOrder])]
+  const providerOrder = configuredOrder.filter((value): value is AIProviderId => (aiProviderIds as readonly string[]).includes(value))
   return {
     providerOrder: providerOrder.length ? providerOrder : defaultOrder,
     providerTimeoutMs: Math.min(15_000, Math.max(8_000, positiveInt(env, 'AI_PROVIDER_TIMEOUT_MS', 10_000))),

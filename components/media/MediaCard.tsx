@@ -20,7 +20,6 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
   const title = titleOf(item)
   const mediaType = item.media_type
   const href = `/${mediaType}/${item.id}`
-  const enrichedItem = item as typeof item & { posterUrl?: string | null; backdropUrl?: string | null }
 
   // Hydrate watchlist state
   useEffect(() => {
@@ -41,8 +40,8 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
   }
 
   const imgSrc = landscape
-    ? enrichedItem.backdropUrl || poster(item.backdrop_path, 'w780')
-    : enrichedItem.posterUrl || poster(item.poster_path, 'w342')
+    ? poster(item.backdrop_path, 'w780')
+    : poster(item.poster_path, 'w342')
 
   return (
     <article
@@ -84,7 +83,7 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
           {/* Media type badge — top-left */}
           <div className="absolute left-2 top-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
             <span className="rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-sm">
-              {mediaType === 'tv' ? 'Series' : mediaType === 'anime' ? 'Anime' : 'Movie'}
+              {mediaType === 'tv' ? 'TV' : 'Film'}
             </span>
           </div>
         </div>

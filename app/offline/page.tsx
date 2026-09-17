@@ -17,6 +17,7 @@ export default function OfflinePage() {
         <p className="mt-3 max-w-sm text-sm text-muted-foreground leading-relaxed">
           VEYRA requires an active internet connection to stream movies and discover new titles.
         </p>
+        <p className="mt-3 max-w-sm text-sm text-muted-foreground">Your library remains saved on this device. Reconnect to open library pages and sync account changes. Videos are not downloaded for offline playback.</p>
 
         <div className="mt-8">
           <a

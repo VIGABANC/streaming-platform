@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { store, type WatchlistItem, type FavoriteItem, type ContinueWatchingItem } from '@/lib/store'
+import { store, STORE_KEYS, type WatchlistItem, type FavoriteItem, type ContinueWatchingItem } from '@/lib/store'
 
 // Mock in-memory localStorage for Node environment
 const mockStorage: Record<string, string> = {}
@@ -128,5 +128,19 @@ describe('UserMediaStore (LocalStorage abstraction)', () => {
       store.removeRating(550, 'movie')
       expect(store.getRating(550, 'movie')).toBeNull()
     })
+  })
+
+  it('includes local availability reports in export, import, and reset lifecycle', () => {
+    const report = { source: 'tmdb', region: 'MA', mediaType: 'movie', description: 'Missing title' }
+    localStorage.setItem(STORE_KEYS.missingAvailabilityReports, JSON.stringify([report]))
+
+    const exported = JSON.parse(store.exportData())
+    expect(exported.missingAvailabilityReports).toEqual([report])
+
+    store.clearAll()
+    expect(localStorage.getItem(STORE_KEYS.missingAvailabilityReports)).toBeNull()
+
+    expect(store.importData(JSON.stringify({ missingAvailabilityReports: [report] }))).toBe(true)
+    expect(JSON.parse(localStorage.getItem(STORE_KEYS.missingAvailabilityReports) || '[]')).toEqual([report])
   })
 })

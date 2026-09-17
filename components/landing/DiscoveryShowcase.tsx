@@ -1,117 +1,42 @@
-'use client'
-
-import { useLayoutEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { poster } from '@/lib/tmdb'
-import type { Media } from '@/lib/tmdb'
+import { mediaHref, usableMedia } from '@/components/landing/landing-types'
+import { poster, titleOf, type Media } from '@/lib/tmdb'
 
-gsap.registerPlugin(ScrollTrigger)
-
-interface DiscoveryShowcaseProps {
-  movies: Media[]
-  tv: Media[]
+interface DiscoveryCategory {
+  label: string
+  href: string
+  items: Media[]
 }
 
-export function DiscoveryShowcase({ movies, tv }: DiscoveryShowcaseProps) {
-  const root = useRef<HTMLElement>(null)
+interface DiscoveryShowcaseProps {
+  categories: DiscoveryCategory[]
+}
 
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo('.discover-title',
-        { y: 30, opacity: 0 },
-        { 
-          y: 0, opacity: 1, duration: 1, ease: 'power3.out',
-          scrollTrigger: {
-            trigger: root.current,
-            start: 'top 75%'
-          }
-        }
-      )
+export function DiscoveryShowcase({ categories }: DiscoveryShowcaseProps) {
+  return <section data-testid="discovery-showcase" className="landing-section pb-24" aria-labelledby="discovery-heading">
+    <div className="mx-auto max-w-[1440px] px-5 sm:px-6 lg:px-12">
+      <header className="mb-8 max-w-2xl"><p className="eyebrow">Discovery desk</p><h2 id="discovery-heading" className="section-title mt-2">Everything worth watching.<br /><span className="text-amber-400">One signal away.</span></h2></header>
+      <div className="grid gap-5 md:grid-cols-2" role="list">{categories.map((category) => <CategoryStory key={category.label} category={category} />)}</div>
+    </div>
+  </section>
+}
 
-      gsap.fromTo('.discover-card',
-        { y: 50, opacity: 0, rotationY: 10 },
-        {
-          y: 0, opacity: 1, rotationY: 0, duration: 0.8, stagger: 0.15, ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '.discover-grid',
-            start: 'top 80%'
-          }
-        }
-      )
-    }, root)
+function CategoryStory({ category }: { category: DiscoveryCategory }) {
+  const items = usableMedia(category.items, 3)
 
-    return () => ctx.revert()
-  }, [])
+  return <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]" role="listitem">
+    <div className="flex items-center justify-between gap-4 px-5 pb-4 pt-5">
+      <div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-300">Category signal</p><h3 className="mt-1 text-xl font-semibold text-white"><Link href={category.href} className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300">{category.label}</Link></h3></div>
+      <Link href={category.href} className="text-sm text-white/65 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300">Explore<span className="sr-only"> {category.label}</span><span aria-hidden="true"> →</span></Link>
+    </div>
+    {items.length ? <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)] gap-2 px-2 pb-2"><ArtworkLink item={items[0]} featured /><div className="grid gap-2">{items.slice(1).map((item) => <ArtworkLink key={`${item.media_type ?? 'movie'}-${item.id}`} item={item} />)}</div></div> : <p className="px-5 pb-6 text-sm leading-6 text-white/60">This category is temporarily unavailable. Explore the wider signal while we reconnect.</p>}
+  </article>
+}
 
-  // Create artwork slices for the cards
-  const popMovies = movies.slice(0, 4)
-  const popTv = tv.slice(0, 4)
-  const topMovies = movies.slice(4, 8)
-  const topTv = tv.slice(4, 8)
-
-  const categories = [
-    { title: 'Popular Movies', desc: 'The most watched stories this week', items: popMovies, href: '/movies' },
-    { title: 'Popular TV', desc: 'The shows everyone is talking about', items: popTv, href: '/tv' },
-    { title: 'Top Rated', desc: 'Critically acclaimed cinematic masterpieces', items: topMovies, href: '/movies' },
-    { title: 'Now Playing', desc: 'Currently in theaters worldwide', items: topTv, href: '/tv' }
-  ]
-
-  return (
-    <section ref={root} className="py-32 relative z-20 bg-[#050507]" aria-labelledby="discovery-heading">
-      <div className="mx-auto max-w-[1440px] px-6 lg:px-12">
-        <div className="max-w-2xl mb-16">
-          <h2 id="discovery-heading" className="discover-title text-4xl md:text-5xl font-bold text-white mb-6">
-            Everything worth watching.<br/>
-            <span className="text-amber-500">One signal away.</span>
-          </h2>
-        </div>
-
-        <div className="discover-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" role="list">
-          {categories.map((cat, i) => (
-            <Link href={cat.href} key={i} className="discover-card relative h-[380px] p-6 rounded-2xl bg-[#0A0D14] border border-white/10 hover:border-white/20 transition-all hover:-translate-y-1 group overflow-hidden flex flex-col justify-end" role="listitem">
-              
-              {/* Mosaic Background */}
-              <div className="absolute inset-0 z-0 p-4 opacity-50 group-hover:opacity-80 transition-opacity duration-500">
-                <div className="grid grid-cols-2 gap-2 h-[200px]">
-                  {cat.items.map((item, j) => (
-                    <div 
-                      key={item.id} 
-                      className="relative rounded-md overflow-hidden bg-white/5 transform transition-transform duration-700"
-                      style={{ 
-                        transform: `translateY(${j % 2 === 0 ? '-10px' : '10px'}) scale(${1 + (j * 0.02)})`,
-                      }}
-                    >
-                      {item.poster_path && (
-                        <Image
-                          src={poster(item.poster_path, 'w500')}
-                          alt=""
-                          fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-700"
-                          sizes="150px"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Gradient mask */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D14] via-[#0A0D14]/90 to-[#0A0D14]/10 z-10" />
-              
-              <div className="relative z-20">
-                <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white mb-4 group-hover:bg-amber-500 group-hover:border-amber-400 group-hover:text-black transition-colors">
-                  <span className="font-bold text-sm">0{i+1}</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-amber-400 transition-colors">{cat.title}</h3>
-                <p className="text-white/60 text-sm leading-relaxed">{cat.desc}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
+function ArtworkLink({ item, featured = false }: { item: Media; featured?: boolean }) {
+  return <Link href={mediaHref(item)} aria-label={`${titleOf(item)} — view details`} className={`group relative block overflow-hidden rounded-lg bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${featured ? 'aspect-[4/5]' : 'aspect-[2/1]'}`}>
+    <Image src={poster(item.poster_path, featured ? 'w500' : 'w342')} alt={`${titleOf(item)} poster`} fill sizes={featured ? '(max-width: 768px) 55vw, 360px' : '(max-width: 768px) 35vw, 240px'} className="object-cover transition-transform duration-500 motion-reduce:transition-none group-hover:scale-[1.02] motion-reduce:group-hover:scale-100" />
+    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pb-3 pt-8 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{titleOf(item)}</span>
+  </Link>
 }

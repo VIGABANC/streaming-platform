@@ -1,7 +1,12 @@
 // VEYRA Service Worker — App Shell & Offline Support
 // Strictly caches navigation shell & static UI assets. Does NOT cache third-party video streams.
 
-const CACHE_NAME = 'veyra-shell-v2'
+// Bump SERVICE_WORKER_VERSION or BUILD_ID whenever the shell contract changes.
+// Old caches are removed during activate so stale app-shell state cannot trap
+// the player behind an obsolete client bundle.
+const SERVICE_WORKER_VERSION = '3'
+const BUILD_ID = '2026-09-13'
+const CACHE_NAME = `veyra-shell-v${SERVICE_WORKER_VERSION}-${BUILD_ID}`
 const STATIC_ASSETS = [
   '/',
   '/offline',
@@ -17,7 +22,6 @@ self.addEventListener('install', (event) => {
       return cache.addAll(STATIC_ASSETS)
     })
   )
-  self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
@@ -38,6 +42,15 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
+  // Never store page HTML: all same-origin document navigations get an honest
+  // offline fallback, including private/library/watch pages.
+  if (url.origin === self.location.origin && event.request.mode === 'navigate' && !url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request).catch(async () =>
+      await caches.match('/offline') ?? new Response('You are offline. Reconnect to browse or play.', { status: 503, headers: { 'Content-Type': 'text/plain' } }),
+    ))
+    return
+  }
+
   // Never intercept or cache external video streams, iframes, or API calls
   if (
     url.origin !== self.location.origin ||
@@ -50,16 +63,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/history') ||
     url.pathname.startsWith('/settings')
   ) {
-    return
-  }
-
-  // Network first with offline fallback for navigation requests
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/offline') || caches.match('/')
-      })
-    )
     return
   }
 

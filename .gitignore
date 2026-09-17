@@ -12,8 +12,12 @@ __v0_jsx-dev-runtime.ts
 
 # Common ignores
 node_modules
+playwright-live-report/
 .next/
 .DS_Store
 *.tsbuildinfo
 test-results/
 playwright-report/
+.vercel
+.env*
+supabase/.temp/

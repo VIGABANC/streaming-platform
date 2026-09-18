@@ -165,6 +165,19 @@ describe('Player Architecture & URL Builders', () => {
       })).toBe('vidsrc-xyz')
     })
 
+    it('falls back from an ineligible saved provider and keeps the fallback visible to callers', () => {
+      const ineligibleProvider = { ...verifiedProviders[0], trustEligible: false }
+      const eligibleProvider = { ...verifiedProviders[1] }
+      const selected = getInitialProviderIdForMode({ defaultServer: ineligibleProvider.id, playerMode: 'auto' }, {
+        providers: [ineligibleProvider, eligibleProvider],
+        health: { [eligibleProvider.id]: { attempts: 4, successes: 4, startupLatencyEWMA: 700 } },
+        mediaType: 'movie',
+      })
+
+      expect(selected).toBe(eligibleProvider.id)
+      expect(selected).not.toBe(ineligibleProvider.id)
+    })
+
     it('allows only one half-open recovery trial after cooldown', () => {
       const now = 1_000_000
       expect(isProviderAvailable({ cooldownUntil: now - 1, circuit: 'HALF_OPEN' }, now)).toBe(true)

@@ -21,6 +21,19 @@ export type {
 export type PlayerMode = PlaybackMode
 export type PlaybackMediaType = 'movie' | 'tv' | 'anime'
 export type ProviderHealthState = 'unknown' | 'healthy' | 'degraded' | 'unavailable'
+export type ProviderAuthorization = 'LICENSED_PARTNER' | 'PUBLIC_DOMAIN' | 'CREATOR_OWNED' | 'UNKNOWN'
+
+export interface ProviderEmbedContract {
+  mode: PlayerMode
+  healthEndpoint?: string
+  playbackSignal: 'native-media-events' | 'documented-provider-events' | 'none'
+}
+
+export interface ProviderEligibilityRules {
+  allowedOrigins: string[]
+  allowedRegions?: string[]
+  requiresAttemptIdentity: boolean
+}
 export type ProviderCooldownState = 'closed' | 'open' | 'half-open'
 
 export type PlayerErrorCode =
@@ -51,6 +64,10 @@ export interface StreamProvider {
   badge: string
   origin: string
   authorizationStatus: ProviderAuthorizationStatus
+  /** Authorization classification is required for every registry entry. */
+  authorization?: ProviderAuthorization
+  embedContract?: ProviderEmbedContract
+  eligibilityRules?: ProviderEligibilityRules
   supportedMediaTypes: PlaybackMediaType[]
   supportsEpisodes: boolean
   playbackMode: PlayerMode
@@ -305,6 +322,11 @@ export const PROVIDERS: StreamProvider[] = [
 /** Exact origins used by the registry. Security configuration must not drift from this list. */
 export const PLAYER_FRAME_ORIGINS = PROVIDERS.map((provider) => provider.origin)
 
+/** Config-driven registry view; unknown authorization is never production-eligible. */
+export function getEligibleProviderRegistry(providers: StreamProvider[] = PROVIDERS): StreamProvider[] {
+  return providers.filter(isProviderEligible)
+}
+
 export type DocumentedProviderEvent =
   | { type: 'FRAME_LOADED' }
   | { type: 'PLAYER_READY' }
@@ -336,7 +358,12 @@ export function parseDocumentedProviderEvent(
 export const DEFAULT_PROVIDER = PROVIDERS[0].id
 
 export function isProviderEligible(provider: StreamProvider): boolean {
-  return provider.trustEligible && isPlaybackProviderEligible(provider)
+  const authorization = provider.authorization ?? (provider.authorizationStatus === 'authorized' ? 'CREATOR_OWNED' : 'UNKNOWN')
+  const eligibilityRules = provider.eligibilityRules ?? { allowedOrigins: [provider.origin], requiresAttemptIdentity: true }
+  if (authorization === 'UNKNOWN') return false
+  if (!eligibilityRules.allowedOrigins.includes(provider.origin)) return false
+  if (!provider.trustEligible || !isPlaybackProviderEligible(provider)) return false
+  return provider.embedContract?.playbackSignal !== 'none' || provider.playbackMode === 'native-media' || authorization === 'CREATOR_OWNED'
 }
 
 export function validatePlaybackUrl(url: string, provider: Pick<StreamProvider, 'origin'>): string {

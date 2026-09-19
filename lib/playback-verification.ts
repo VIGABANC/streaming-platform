@@ -1,10 +1,22 @@
 import type {
   PlaybackMode,
   PlaybackProviderVerification,
+  PlaybackVerificationEvidence,
   ProviderAuthorizationStatus,
 } from './media-model'
 
 export type { PlaybackProviderVerification } from './media-model'
+export type { PlaybackSignal, PlaybackVerificationEvidence, PlaybackVerificationStage } from './media-model'
+
+export const TRUSTED_PLAYBACK_SIGNALS = ['loadedmetadata', 'canplay', 'playing', 'provider-reported-state'] as const
+
+export function isTrustedPlaybackSignal(signal: string): boolean {
+  return (TRUSTED_PLAYBACK_SIGNALS as readonly string[]).includes(signal)
+}
+
+export function hasPlaybackSignalEvidence(evidence: PlaybackVerificationEvidence[] = []): boolean {
+  return evidence.some((item) => item.stage === 'playback-signal' && item.passed && item.signal && isTrustedPlaybackSignal(item.signal))
+}
 
 export interface PlaybackProviderVerificationTarget {
   id: string
@@ -30,6 +42,7 @@ export function isPlaybackProviderEligible(
   if (!provider.origin.startsWith('https://')) return false
   if (!record.authorizationEvidence.length || !record.originChecks.includes(provider.origin)) return false
   if (!record.allowedEmbeddingContexts.includes(contextForMode(provider.playbackMode))) return false
+  if (record.evidence && !hasPlaybackSignalEvidence(record.evidence)) return false
   if (!record.lastVerifiedAt) return false
 
   const verifiedAt = Date.parse(record.lastVerifiedAt)

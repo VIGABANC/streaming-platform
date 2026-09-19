@@ -93,6 +93,18 @@ export type ProviderCapability = 'none' | 'provider-ui' | 'provider-controlled' 
 export type PlaybackVerification = 'frame-load-only' | 'documented-api' | 'native-events'
 export type PlaybackAvailability = 'available' | 'unavailable' | 'unsupported' | 'unverified'
 
+export type PlaybackVerificationStage = 'metadata' | 'detail' | 'watch-route' | 'playback-signal'
+export type PlaybackSignal = 'loadedmetadata' | 'canplay' | 'playing' | 'provider-reported-state'
+
+export interface PlaybackVerificationEvidence {
+  stage: PlaybackVerificationStage
+  passed: boolean
+  checkedAt: string
+  url?: string
+  signal?: PlaybackSignal
+  detail?: string
+}
+
 export interface PlaybackProviderVerification {
   providerId: string
   authorizationEvidence: string[]
@@ -102,6 +114,7 @@ export interface PlaybackProviderVerification {
   verificationMethod: 'manual-review' | 'automated-smoke' | 'provider-documentation'
   riskNotes: string[]
   enabled: boolean
+  evidence?: PlaybackVerificationEvidence[]
 }
 
 export interface ProviderAvailability {

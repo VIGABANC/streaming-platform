@@ -141,6 +141,14 @@ function appendProviderOptions(url: string, options?: ProviderUrlOptions, suppor
 
 const EXTERNAL_TIMEOUT_POLICY = { warningMs: 8_000, deadlineMs: 8_000, maxRetries: 3 }
 const EXTERNAL_RATE_LIMIT_POLICY = { maxAttemptsPerMinute: 30, retryAfterSeconds: 60 }
+const AUTHORIZED_NATIVE_PROVIDER_ORIGIN = 'https://archive.org'
+const AUTHORIZED_NATIVE_PROVIDER_ID = 'internet-archive'
+
+function authorizedNativeSourceBuilder(request: PlaybackRequest): string | null {
+  // Internet Archive identifiers are intentionally explicit; TMDB ids are never guessed into URLs.
+  if (request.mediaType !== 'movie' || String(request.mediaId) !== 'night_of_the_living_dead') return null
+  return 'https://archive.org/download/night_of_the_living_dead/night_of_the_living_dead_512kb.mp4'
+}
 
 function unverifiedExternalVerification(providerId: string): PlaybackProviderVerification {
   return {

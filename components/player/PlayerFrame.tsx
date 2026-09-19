@@ -514,10 +514,18 @@ export function PlayerFrame({
                 <AlertCircle size={36} className="mx-auto mb-4 text-primary" aria-hidden="true" />
               )}
               <h2 className="text-lg font-bold text-white font-display">
-                {state === 'offline' ? "You're offline" : resolution.reason === 'unsupported' ? 'Playback unavailable for this media type' : 'Stream Unavailable on This Server'}
+                {state === 'offline'
+                  ? "You're offline"
+                  : resolution.reason === 'unsupported'
+                    ? 'Playback unavailable for this media type'
+                    : candidateProviders.length === 0
+                      ? 'No authorized playback source configured'
+                      : 'Stream Unavailable on This Server'}
               </h2>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                {playerErrorMessage(errorCode)}
+                {candidateProviders.length === 0 && resolution.reason !== 'unsupported'
+                  ? 'Add an authorized native media source for this title, or configure a verified playback provider.'
+                  : playerErrorMessage(errorCode)}
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2.5">
                 {candidateProviders.length > 1 && (

@@ -1,0 +1,12 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "TMDB_API_KEY",
+      "description": "TMDB API key for movie/TV catalog browsing and search. Get a free key at https://www.themoviedb.org/settings/api",
+      "requiredAtBoot": false
+    }
+  ]
+}

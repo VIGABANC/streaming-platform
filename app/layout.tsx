@@ -1,12 +1,8 @@
 import type { Metadata, Viewport } from 'next'
-import { Manrope, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { WebVitals } from '@/components/observability/WebVitals'
 import './globals.css'
-
-const displayFont = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk', display: 'swap' })
-const bodyFont = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' })
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://veyra.stream'
 
@@ -50,8 +46,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} dark`}>
+    <html lang="en" className="dark">
       <head>
+        {/* Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
         {/* Provider connection hints */}
         <link rel="dns-prefetch" href="https://v1.vidsrc.wiki" />
         <link rel="preconnect" href="https://v1.vidsrc.wiki" crossOrigin="anonymous" />

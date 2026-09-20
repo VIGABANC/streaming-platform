@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import sitemap from '@/app/sitemap'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+function getSitemapUrls(): string[] {
+  const xml = readFileSync(join(process.cwd(), 'app', 'sitemap.xml'), 'utf-8')
+  return Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g)).map((m) => m[1])
+}
 
 describe('SEO route policy', () => {
   it('includes public discovery routes and excludes private or query-driven routes', () => {
-    const urls = sitemap().map((entry) => entry.url)
+    const urls = getSitemapUrls()
 
     expect(urls).toEqual(expect.arrayContaining([
       'https://veyra.stream',
@@ -16,6 +22,7 @@ describe('SEO route policy', () => {
   })
 
   it('does not claim a synthetic last-modified time', () => {
-    expect(sitemap().every((entry) => !('lastModified' in entry))).toBe(true)
+    const xml = readFileSync(join(process.cwd(), 'app', 'sitemap.xml'), 'utf-8')
+    expect(xml).not.toContain('<lastmod>')
   })
 })

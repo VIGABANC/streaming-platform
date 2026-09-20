@@ -17,6 +17,8 @@
   --color-cyan: var(--cyan);
 
   /* Fonts */
+  --font-space-grotesk: 'Space Grotesk';
+  --font-manrope: 'Manrope';
   --font-display: var(--font-space-grotesk), sans-serif;
   --font-sans: var(--font-manrope), sans-serif;
   --font-mono: 'Geist Mono', monospace;

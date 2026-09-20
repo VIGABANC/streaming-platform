@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://veyra.stream</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://veyra.stream/landing</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/browse</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/movies</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/tv</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/anime</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/discover</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/world-cinema</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/new</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/top10</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/providers</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://veyra.stream/genre/movie/28</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/movie/12</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/movie/16</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/movie/35</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/movie/18</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/tv/28</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/tv/12</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/tv/16</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/tv/35</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://veyra.stream/genre/tv/18</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+</urlset>

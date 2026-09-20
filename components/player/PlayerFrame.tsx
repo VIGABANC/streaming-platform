@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   AlertCircle,
   WifiOff,
@@ -17,6 +18,8 @@ import {
   RefreshCw,
   Globe,
   ChevronRight,
+  HelpCircle,
+  X,
 } from 'lucide-react'
 import {
   warmPlayerConnection,
@@ -83,6 +86,9 @@ type PlaybackState = 'playing' | 'paused' | 'buffering' | 'ended' | 'error'
 const TIMEOUT_WARNING_MS = 8_000
 const MAX_RETRIES = 3
 const EMPTY_SOURCES: PlaybackSource[] = []
+const THEATER_MODE_KEY = 'veyra-player-theater'
+const HEALTH_REFRESH_DEBOUNCE_MS = 5_000
+const NEXT_EPISODE_COUNTDOWN_S = 10
 
 export function PlayerFrame({
   mediaType,
@@ -110,6 +116,13 @@ export function PlayerFrame({
   const [playbackState, setPlaybackState] = useState<PlaybackState>('paused')
   const [showCenterIcon, setShowCenterIcon] = useState(false)
   const [controlsVisible, setControlsVisible] = useState(true)
+  const [healthState, setHealthState] = useState(providerHealth)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const [nextCountdown, setNextCountdown] = useState<number | null>(null)
+  const showShortcutsRef = useRef(false)
+  const videoElementRef = useRef<HTMLVideoElement | null>(null)
+  const lastHealthRefreshRef = useRef(0)
+  const router = useRouter()
   const startedAtRef = useRef(Date.now())
   const attemptIdRef = useRef(0)
   const attemptStateRef = useRef(initialAttemptState)
@@ -121,39 +134,49 @@ export function PlayerFrame({
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const settings = store.getSettings()
 
-  // Build a health lookup map from server-passed data
+  // Server-rendered health data is the initial snapshot; "Retry health"
+  // replaces it with a fresh probe response.
+  useEffect(() => {
+    setHealthState(providerHealth)
+  }, [providerHealth])
+
+  useEffect(() => {
+    showShortcutsRef.current = showShortcuts
+  }, [showShortcuts])
+
+  // Build a health lookup map from the current health snapshot
   const healthMap = useMemo(() => {
     const map = new Map<string, ProviderHealthInfo>()
-    for (const h of providerHealth) map.set(h.id, h)
+    for (const h of healthState) map.set(h.id, h)
     return map
-  }, [providerHealth])
+  }, [healthState])
 
   // Providers that are usable (DNS resolved)
   const usableProviderIds = useMemo(() => {
-    if (providerHealth.length === 0) return new Set(PROVIDERS.map((p) => p.id))
-    return new Set(providerHealth.filter((h) => h.dnsResolved).map((h) => h.id))
-  }, [providerHealth])
+    if (healthState.length === 0) return new Set(PROVIDERS.map((p) => p.id))
+    return new Set(healthState.filter((h) => h.dnsResolved).map((h) => h.id))
+  }, [healthState])
 
   // DNS-failed providers
   const dnsFailedProviderIds = useMemo(() => {
-    if (providerHealth.length === 0) return new Set<string>()
-    return new Set(providerHealth.filter((h) => !h.dnsResolved).map((h) => h.id))
-  }, [providerHealth])
+    if (healthState.length === 0) return new Set<string>()
+    return new Set(healthState.filter((h) => !h.dnsResolved).map((h) => h.id))
+  }, [healthState])
 
   // Whether the selected provider has a DNS failure
   const selectedProviderDnsFailed = dnsFailedProviderIds.has(selectedProvider)
-  const noHealthyProviders = providerHealth.length > 0 && usableProviderIds.size === 0
+  const noHealthyProviders = healthState.length > 0 && usableProviderIds.size === 0
 
   useEffect(() => {
     const settings = store.getSettings()
     // Auto-select the first healthy provider if health data is available
-    if (providerHealth.length > 0) {
-      const firstHealthy = providerHealth.find((h) => h.dnsResolved && (h.status === 'healthy' || h.status === 'degraded'))
+    if (healthState.length > 0) {
+      const firstHealthy = healthState.find((h) => h.dnsResolved && (h.status === 'healthy' || h.status === 'degraded'))
       if (firstHealthy) {
         setSelectedProvider(firstHealthy.id)
       } else {
         // Fall back to first DNS-resolved provider
-        const firstResolved = providerHealth.find((h) => h.dnsResolved)
+        const firstResolved = healthState.find((h) => h.dnsResolved)
         if (firstResolved) setSelectedProvider(firstResolved.id)
       }
     } else {
@@ -161,6 +184,8 @@ export function PlayerFrame({
       setSelectedProvider(initialProviderId)
     }
     setIsCinemaMode(settings.ambientLighting)
+    // Restore persisted theater mode preference
+    if (window.localStorage.getItem(THEATER_MODE_KEY) === '1') setIsTheaterMode(true)
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     const updateMotion = () => setReducedMotion(settings.reducedMotion || mediaQuery.matches)
@@ -179,15 +204,48 @@ export function PlayerFrame({
         togglePlayback()
         showControlsTemporarily()
       }
-      if (event.key.toLowerCase() === 't') setIsTheaterMode((current) => !current)
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        const video = videoElementRef.current
+        if (video && Number.isFinite(video.duration)) {
+          event.preventDefault()
+          video.currentTime = Math.min(video.duration, Math.max(0, video.currentTime + (event.key === 'ArrowRight' ? 10 : -10)))
+        }
+      }
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        const video = videoElementRef.current
+        if (video) {
+          event.preventDefault()
+          video.volume = Math.min(1, Math.max(0, video.volume + (event.key === 'ArrowUp' ? 0.05 : -0.05)))
+          video.muted = false
+        }
+      }
+      if (event.key.toLowerCase() === 't') toggleTheaterMode()
       if (event.key.toLowerCase() === 'l') setIsCinemaMode((current) => {
         const next = !current
         store.updateSettings({ ambientLighting: next })
         return next
       })
       if (event.key.toLowerCase() === 'f') toggleFullscreen()
+      if (event.key.toLowerCase() === 'm') {
+        const video = videoElementRef.current
+        if (video) video.muted = !video.muted
+      }
+      if (event.key.toLowerCase() === 'c') {
+        const video = videoElementRef.current
+        if (video && video.textTracks.length > 0) {
+          const next = video.textTracks[0].mode !== 'showing'
+          for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = i === 0 && next ? 'showing' : 'disabled'
+          window.localStorage.setItem('veyra-player-captions', next ? '1' : '0')
+        }
+      }
       if (event.key === 'Escape') {
+        // The shortcuts tooltip closes before Esc exits fullscreen/theater.
+        if (showShortcutsRef.current) {
+          setShowShortcuts(false)
+          return
+        }
         setIsTheaterMode(false)
+        window.localStorage.setItem(THEATER_MODE_KEY, '0')
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
       }
     }
@@ -441,8 +499,14 @@ export function PlayerFrame({
   }
 
   const togglePlayback = () => {
-    // For external embeds we can't control the iframe video directly,
-    // but we flash a visual indicator for user feedback
+    // Native playback is controlled directly; opaque external embeds only
+    // get a visual flash because the provider owns its own controls.
+    const video = videoElementRef.current
+    if (video) {
+      if (video.paused) video.play().catch(() => {})
+      else video.pause()
+      return
+    }
     setPlaybackState((prev) => {
       const next = prev === 'playing' ? 'paused' : 'playing'
       flashCenterIcon(next === 'playing' ? 'play' : 'pause')
@@ -467,10 +531,64 @@ export function PlayerFrame({
     }
   }
 
+  const toggleTheaterMode = useCallback(() => {
+    setIsTheaterMode((current) => {
+      const next = !current
+      window.localStorage.setItem(THEATER_MODE_KEY, next ? '1' : '0')
+      return next
+    })
+  }, [])
+
+  const registerVideo = useCallback((element: HTMLVideoElement | null) => {
+    videoElementRef.current = element
+  }, [])
+
   const refreshHealth = () => {
-    // Trigger a fresh health check; the server-rendered data updates on next navigation
-    fetch('/api/health/providers').catch(() => {})
+    // Debounced: rapid clicks must not hammer providers (5s minimum).
+    const now = Date.now()
+    if (now - lastHealthRefreshRef.current < HEALTH_REFRESH_DEBOUNCE_MS) return
+    lastHealthRefreshRef.current = now
+    fetch('/api/health/providers?refresh=1')
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error('health check failed'))))
+      .then((body: { providers?: ProviderHealthInfo[] }) => {
+        if (Array.isArray(body.providers)) setHealthState(body.providers)
+      })
+      .catch(() => {})
   }
+
+  // ── Next episode countdown ────────────────────────────────────────────────
+  const nextEpisodeCancelKey = `veyra-next-cancelled:${mediaType}:${mediaId}:${season ?? ''}:${episode ?? ''}`
+
+  const startNextEpisodeCountdown = () => {
+    if (!nextEpisodeHref) return
+    try {
+      if (window.sessionStorage.getItem(nextEpisodeCancelKey) === '1') return
+    } catch { /* sessionStorage unavailable — still show the countdown */ }
+    setNextCountdown(NEXT_EPISODE_COUNTDOWN_S)
+  }
+
+  const cancelNextEpisode = () => {
+    try {
+      window.sessionStorage.setItem(nextEpisodeCancelKey, '1')
+    } catch { /* best effort */ }
+    setNextCountdown(null)
+  }
+
+  useEffect(() => {
+    if (nextCountdown == null) return
+    if (nextCountdown <= 0) {
+      router.push(nextEpisodeHref as string)
+      setNextCountdown(null)
+      return
+    }
+    // The countdown pauses while the tab is backgrounded.
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        setNextCountdown((count) => (count == null ? null : count - 1))
+      }
+    }, 1_000)
+    return () => clearInterval(timer)
+  }, [nextCountdown, nextEpisodeHref, router])
 
   const isError = state === 'error' || state === 'timeout' || state === 'offline'
   const isDnsError = selectedProviderDnsFailed || noHealthyProviders
@@ -512,11 +630,13 @@ export function PlayerFrame({
               const dnsFailed = dnsFailedProviderIds.has(p.id)
               const health = healthDotClass(p.id)
               return (
+                <span key={p.id} className="inline-flex items-center">
                 <button
-                  key={p.id}
                   type="button"
                   aria-pressed={isActive}
                   disabled={dnsFailed}
+                  aria-disabled={dnsFailed || undefined}
+                  aria-describedby={dnsFailed ? `server-status-${p.id}` : undefined}
                   title={dnsFailed ? 'Domain not resolvable' : health.label}
                   onClick={() => !dnsFailed && switchProvider(p.id)}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
@@ -531,6 +651,12 @@ export function PlayerFrame({
                   <span className={`size-1.5 rounded-full ${health.dot}`} aria-hidden="true" />
                   <span>{p.name.replace(/\(.*\)/, '').trim()}</span>
                 </button>
+                {dnsFailed && (
+                  <span id={`server-status-${p.id}`} className="sr-only">
+                    Domain not resolvable — this server is unavailable.
+                  </span>
+                )}
+                </span>
               )
             })}
             <button
@@ -586,11 +712,44 @@ export function PlayerFrame({
             <Sparkles size={12} />
             <span>Lights {isCinemaMode ? 'Off' : 'On'}</span>
           </button>
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Keyboard shortcuts"
+              aria-expanded={showShortcuts}
+              aria-haspopup="dialog"
+              onClick={() => setShowShortcuts((current) => !current)}
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
+                showShortcuts ? 'bg-white/10 text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+              title="Keyboard shortcuts (?)"
+            >
+              <HelpCircle size={12} />
+              <span className="hidden sm:inline">Shortcuts</span>
+            </button>
+            {showShortcuts && (
+              <div
+                role="dialog"
+                aria-label="Keyboard shortcuts"
+                className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-white/10 bg-[#0A0D14] p-3 shadow-2xl backdrop-blur-md"
+              >
+                <ul className="space-y-1.5 text-[11px] text-white/80">
+                  <li className="flex items-center justify-between gap-3"><span>Play / Pause</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">Space / K</kbd></li>
+                  <li className="flex items-center justify-between gap-3"><span>Seek 10s</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">← / →</kbd></li>
+                  <li className="flex items-center justify-between gap-3"><span>Volume</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">↑ / ↓</kbd></li>
+                  <li className="flex items-center justify-between gap-3"><span>Fullscreen</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">F</kbd></li>
+                  <li className="flex items-center justify-between gap-3"><span>Mute</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">M</kbd></li>
+                  <li className="flex items-center justify-between gap-3"><span>Captions</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">C</kbd></li>
+                  <li className="flex items-center justify-between gap-3"><span>Close / Exit</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">Esc</kbd></li>
+                </ul>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             aria-label={isTheaterMode ? 'Exit theater mode' : 'Enter theater mode'}
             aria-pressed={isTheaterMode}
-            onClick={() => setIsTheaterMode((current) => !current)}
+            onClick={toggleTheaterMode}
             className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
               isTheaterMode ? 'bg-primary/20 text-primary font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
             }`}
@@ -803,6 +962,33 @@ export function PlayerFrame({
           </div>
         )}
 
+        {/* Next episode countdown */}
+        {nextCountdown != null && nextCountdown > 0 && nextEpisodeHref && (
+          <div
+            role="dialog"
+            aria-label="Next episode countdown"
+            className="absolute bottom-4 right-4 z-20 w-56 rounded-xl border border-white/10 bg-black/85 p-4 text-white backdrop-blur-md shadow-2xl"
+          >
+            <p className="text-xs font-semibold font-display">Next episode in {nextCountdown}s</p>
+            <div className="mt-3 flex items-center gap-2">
+              <Link
+                href={nextEpisodeHref}
+                className="flex-1 rounded-full bg-primary px-3 py-1.5 text-center text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Play now
+              </Link>
+              <button
+                type="button"
+                onClick={cancelNextEpisode}
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:border-white/40 hover:text-white transition-colors"
+              >
+                <X size={11} />
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Center icon flash for keyboard / interaction feedback */}
         {showCenterIcon && !isError && !isDnsError && (
           <div className="pointer-events-none absolute inset-0 z-15 grid place-items-center">
@@ -837,7 +1023,11 @@ export function PlayerFrame({
               persistPlaybackContext({ verificationState: 'native-playback-verified' })
               reportPlayerEvent('player_native_playback_started', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length })
             }}
-            onEnded={() => reportPlayerEvent('player_playback_ended', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length })}
+            registerVideo={registerVideo}
+            onEnded={() => {
+              reportPlayerEvent('player_playback_ended', { providerId: selectedProvider, mediaType, attemptIndex: attemptedProviderIdsRef.current.length })
+              startNextEpisodeCountdown()
+            }}
             onError={() => {
               setErrorCode('PROVIDER_LOAD_ERROR')
               setState('error')

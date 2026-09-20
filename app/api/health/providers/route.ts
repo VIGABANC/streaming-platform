@@ -4,9 +4,13 @@ import { getProviderHealthForClient } from '@/lib/provider-health'
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
-export async function GET() {
+// The only accepted input is the `refresh=1` flag, which bypasses the 60s
+// result cache. Probe targets always come from the hardcoded provider
+// registry — no request input can influence which origins are probed.
+export async function GET(request: Request) {
   try {
-    const results = await getProviderHealthForClient()
+    const force = new URL(request.url).searchParams.get('refresh') === '1'
+    const results = await getProviderHealthForClient(force)
     return NextResponse.json(
       { providers: results, cached: true },
       {

@@ -16,13 +16,20 @@ describe('playback provider registry and resolver', () => {
     expect(PROVIDERS.every((provider) => provider.supportedRegions.includes('global'))).toBe(true)
   })
 
-  it('does not resolve unverified movie embeds as playable sources', () => {
+  // Aligned with ffc38a2 ("Allow unverified providers in playback source resolution"):
+  // unverified providers resolve, but every source they produce must be explicitly
+  // flagged as unverified so the UI never overclaims provider readiness.
+  it('resolves unverified movie embeds only as explicitly unverified sources', () => {
     const request: PlaybackRequest = { mediaType: 'movie', mediaId: 603, region: 'US' }
     const result = resolvePlaybackSources(request)
 
-    expect(result.status).toBe('unavailable')
-    expect(result.sources).toEqual([])
-    expect(result.reason).toBe('no-source')
+    expect(result.status).toBe('success')
+    expect(result.sources.length).toBeGreaterThan(0)
+    for (const source of result.sources) {
+      expect(source.availability).toBe('unverified')
+      expect(source.authorizationStatus).toBe('unverified')
+      expect(source.verification).toBe('frame-load-only')
+    }
   })
 
   it('does not fabricate Anime sources when no provider supports Anime', () => {

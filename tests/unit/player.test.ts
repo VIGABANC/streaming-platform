@@ -42,11 +42,16 @@ const verifiedProviders = PROVIDERS.map((provider) => ({
 }))
 
 describe('Player Architecture & URL Builders', () => {
-  it('uses an explicit opaque external engine until an authorized direct source exists', () => {
+  // Aligned with ffc38a2 ("Allow unverified providers in playback source resolution"):
+  // the opaque external engine resolves unverified provider embeds, but never owns
+  // media controls or claims playback verification.
+  it('resolves unverified providers through the opaque external engine without owning media controls', () => {
     expect(ExternalEmbedEngine.kind).toBe('external-embed')
     expect(ExternalEmbedEngine.ownsMediaControls).toBe(false)
     expect(ExternalEmbedEngine.canVerifyPlayback).toBe(false)
-    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidsrc-wiki' })).toBeNull()
+    const source = ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidsrc-wiki' })
+    expect(source).toBe(getMovieEmbedUrl(603, 'vidsrc-wiki'))
+    expect(source && new URL(source).origin).toBe('https://v1.vidsrc.wiki')
   })
 
   it('keeps native playback gated behind an explicitly authorized direct source', () => {

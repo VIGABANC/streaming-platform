@@ -166,7 +166,7 @@ export async function getHealthyProviderIds(): Promise<Set<string>> {
  * Returns health results suitable for client-side consumption.
  * Strips resolved IPs for security.
  */
-export async function getProviderHealthForClient(): Promise<Omit<ProviderHealthResult, 'resolvedIp'>[]> {
-  const results = await getProviderHealth()
+export async function getProviderHealthForClient(force = false): Promise<Omit<ProviderHealthResult, 'resolvedIp'>[]> {
+  const results = await getProviderHealth(force)
   return results.map(({ resolvedIp: _resolvedIp, ...rest }) => rest)
 }

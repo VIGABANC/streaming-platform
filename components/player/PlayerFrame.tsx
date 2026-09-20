@@ -120,6 +120,8 @@ export function PlayerFrame({
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
   const showShortcutsRef = useRef(false)
+  const shortcutsTriggerRef = useRef<HTMLButtonElement>(null)
+  const shortcutsDialogRef = useRef<HTMLDivElement>(null)
   const videoElementRef = useRef<HTMLVideoElement | null>(null)
   const lastHealthRefreshRef = useRef(0)
   const router = useRouter()
@@ -142,6 +144,26 @@ export function PlayerFrame({
 
   useEffect(() => {
     showShortcutsRef.current = showShortcuts
+  }, [showShortcuts])
+
+  // Shortcuts dialog: focus trap while open, focus restored on close, and
+  // any pointer press outside it (and its trigger) closes it.
+  useEffect(() => {
+    if (!showShortcuts) return
+    const trigger = shortcutsTriggerRef.current
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (!shortcutsDialogRef.current?.contains(target) && !trigger?.contains(target)) {
+        setShowShortcuts(false)
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    shortcutsDialogRef.current?.focus()
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      trigger?.focus()
+    }
   }, [showShortcuts])
 
   // Build a health lookup map from the current health snapshot
@@ -715,6 +737,7 @@ export function PlayerFrame({
           <div className="relative">
             <button
               type="button"
+              ref={shortcutsTriggerRef}
               aria-label="Keyboard shortcuts"
               aria-expanded={showShortcuts}
               aria-haspopup="dialog"
@@ -729,9 +752,16 @@ export function PlayerFrame({
             </button>
             {showShortcuts && (
               <div
+                ref={shortcutsDialogRef}
                 role="dialog"
+                aria-modal="true"
                 aria-label="Keyboard shortcuts"
-                className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-white/10 bg-[#0A0D14] p-3 shadow-2xl backdrop-blur-md"
+                tabIndex={-1}
+                onKeyDown={(event) => {
+                  // Focus trap: the dialog itself is the only tab stop.
+                  if (event.key === 'Tab') event.preventDefault()
+                }}
+                className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-white/10 bg-[#0A0D14] p-3 shadow-2xl outline-none backdrop-blur-md"
               >
                 <ul className="space-y-1.5 text-[11px] text-white/80">
                   <li className="flex items-center justify-between gap-3"><span>Play / Pause</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 font-semibold">Space / K</kbd></li>

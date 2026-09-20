@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getProviderHealthForClient } from '@/lib/provider-health'
+import { checkRateLimit, requestIdentity } from '@/lib/http/rate-limit'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
+
+// Forced refreshes bypass the 60s result cache, so they are rate limited
+// per client IP to keep clients from using the endpoint as a probe relay.
+const REFRESH_POLICY = { limit: 1, windowMs: 5_000 }
 
 // The only accepted input is the `refresh=1` flag, which bypasses the 60s
 // result cache. Probe targets always come from the hardcoded provider
@@ -10,6 +15,20 @@ export const revalidate = 60
 export async function GET(request: Request) {
   try {
     const force = new URL(request.url).searchParams.get('refresh') === '1'
+    if (force) {
+      const decision = checkRateLimit(`health-refresh:${requestIdentity(request)}`, REFRESH_POLICY)
+      if (!decision.allowed) {
+        return NextResponse.json(
+          { error: 'Too many forced refreshes. Try again shortly.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(decision.retryAfterSeconds ?? 5),
+            },
+          },
+        )
+      }
+    }
     const results = await getProviderHealthForClient(force)
     return NextResponse.json(
       { providers: results, cached: true },

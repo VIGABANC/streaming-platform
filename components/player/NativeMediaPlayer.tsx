@@ -54,6 +54,10 @@ export function NativeMediaPlayer({
   registerVideo,
 }: NativeMediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  // True while the user just seeked to (or near) the end of the video —
+  // browsers fire `ended` for that too, but it must not trigger the
+  // next-episode countdown.
+  const seekedToEndRef = useRef(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -187,7 +191,23 @@ export function NativeMediaPlayer({
           onProgress?.(video.currentTime, video.duration)
         }}
         onProgress={updateBuffered}
-        onEnded={() => { setIsPlaying(false); onEnded() }}
+        onSeeking={(event) => {
+          const video = event.currentTarget
+          seekedToEndRef.current =
+            Number.isFinite(video.duration) &&
+            video.duration > 0 &&
+            video.currentTime > 0 &&
+            video.duration - video.currentTime < 1
+        }}
+        onEnded={() => {
+          setIsPlaying(false)
+          // Skip `ended` caused by a seek to the last frame.
+          if (seekedToEndRef.current) {
+            seekedToEndRef.current = false
+            return
+          }
+          onEnded()
+        }}
         onError={onError}
         onVolumeChange={(event) => {
           const video = event.currentTarget

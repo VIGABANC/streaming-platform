@@ -1,0 +1,6 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /watch/
+
+Sitemap: https://veyra.stream/sitemap.xml

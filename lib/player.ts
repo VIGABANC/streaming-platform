@@ -499,7 +499,7 @@ export function rankProviders(options: {
   const now = options.now ?? Date.now()
   const providers = options.providers ?? PROVIDERS
   return providers
-    .filter(isProviderEligible)
+    .filter((provider) => isProviderEligible(provider) || provider.authorizationStatus === 'unverified')
     .filter((provider) => !options.mediaType || provider.supportedMediaTypes.includes(options.mediaType))
     .filter((provider) => !attempted.has(provider.id))
     .filter((provider) => isProviderAvailable(options.health?.[provider.id] ?? emptyProviderHealth(provider.id), now))

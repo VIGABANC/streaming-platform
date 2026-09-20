@@ -16,6 +16,7 @@ import {
   type MediaType,
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
+import { getProviderHealthForClient } from '@/lib/provider-health'
 
 interface WatchMoviePageProps {
   params: Promise<{ id: string }>
@@ -51,6 +52,9 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
   const year = movie ? yearOf(movie) : ''
   const backdropUrl = movie?.backdrop_path ? backdrop(movie.backdrop_path, 'w1280') : undefined
 
+  // Server-side provider health check — exclude DNS-failed providers
+  const providerHealth = await getProviderHealthForClient().catch(() => [])
+
   const similarTitles: (Media & { media_type: MediaType })[] = (
     movie?.recommendations?.results ?? movie?.similar?.results ?? []
   ).map((m) => ({
@@ -81,6 +85,7 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
             title={`${title} playback`}
             artwork={backdropUrl}
             backHref={`/movie/${id}`}
+            providerHealth={providerHealth}
           />
         </div>
 

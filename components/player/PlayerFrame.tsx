@@ -12,6 +12,11 @@ import {
   Maximize2,
   RectangleHorizontal,
   Check,
+  Play,
+  Pause,
+  RefreshCw,
+  Globe,
+  ChevronRight,
 } from 'lucide-react'
 import {
   warmPlayerConnection,
@@ -45,6 +50,18 @@ import {
   isCurrentAttempt,
 } from '@/lib/player-attempt'
 
+export interface ProviderHealthInfo {
+  id: string
+  name: string
+  origin: string
+  dnsResolved: boolean
+  reachable: boolean
+  status: 'healthy' | 'degraded' | 'dns-failure' | 'unreachable' | 'timeout' | 'rate-limited' | 'unverified'
+  latencyMs: number | null
+  lastCheckedAt: string
+  error: string | null
+}
+
 interface PlayerFrameProps {
   mediaType: PlaybackMediaType
   mediaId: string | number
@@ -55,9 +72,13 @@ interface PlayerFrameProps {
   episodeLabel?: string
   backHref?: string
   nativeSources?: PlaybackSource[]
+  providerHealth?: ProviderHealthInfo[]
+  nextEpisodeHref?: string
+  prevEpisodeHref?: string
 }
 
 type PlayerState = 'loading' | 'frame-loaded' | 'timeout-warning' | 'timeout' | 'error' | 'offline'
+type PlaybackState = 'playing' | 'paused' | 'buffering' | 'ended' | 'error'
 
 const TIMEOUT_WARNING_MS = 8_000
 const MAX_RETRIES = 3
@@ -73,6 +94,9 @@ export function PlayerFrame({
   episodeLabel,
   backHref = '/',
   nativeSources = EMPTY_SOURCES,
+  providerHealth = [],
+  nextEpisodeHref,
+  prevEpisodeHref,
 }: PlayerFrameProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(PROVIDERS[0].id)
   const [state, setState] = useState<PlayerState>('loading')
@@ -83,6 +107,9 @@ export function PlayerFrame({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [frameAttemptId, setFrameAttemptId] = useState(0)
+  const [playbackState, setPlaybackState] = useState<PlaybackState>('paused')
+  const [showCenterIcon, setShowCenterIcon] = useState(false)
+  const [controlsVisible, setControlsVisible] = useState(true)
   const startedAtRef = useRef(Date.now())
   const attemptIdRef = useRef(0)
   const attemptStateRef = useRef(initialAttemptState)
@@ -90,12 +117,49 @@ export function PlayerFrame({
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const centerIconTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const settings = store.getSettings()
+
+  // Build a health lookup map from server-passed data
+  const healthMap = useMemo(() => {
+    const map = new Map<string, ProviderHealthInfo>()
+    for (const h of providerHealth) map.set(h.id, h)
+    return map
+  }, [providerHealth])
+
+  // Providers that are usable (DNS resolved)
+  const usableProviderIds = useMemo(() => {
+    if (providerHealth.length === 0) return new Set(PROVIDERS.map((p) => p.id))
+    return new Set(providerHealth.filter((h) => h.dnsResolved).map((h) => h.id))
+  }, [providerHealth])
+
+  // DNS-failed providers
+  const dnsFailedProviderIds = useMemo(() => {
+    if (providerHealth.length === 0) return new Set<string>()
+    return new Set(providerHealth.filter((h) => !h.dnsResolved).map((h) => h.id))
+  }, [providerHealth])
+
+  // Whether the selected provider has a DNS failure
+  const selectedProviderDnsFailed = dnsFailedProviderIds.has(selectedProvider)
+  const noHealthyProviders = providerHealth.length > 0 && usableProviderIds.size === 0
 
   useEffect(() => {
     const settings = store.getSettings()
-    const initialProviderId = getInitialProviderIdForMode(settings, { health: readProviderHealth(), mediaType })
-    setSelectedProvider(initialProviderId)
+    // Auto-select the first healthy provider if health data is available
+    if (providerHealth.length > 0) {
+      const firstHealthy = providerHealth.find((h) => h.dnsResolved && (h.status === 'healthy' || h.status === 'degraded'))
+      if (firstHealthy) {
+        setSelectedProvider(firstHealthy.id)
+      } else {
+        // Fall back to first DNS-resolved provider
+        const firstResolved = providerHealth.find((h) => h.dnsResolved)
+        if (firstResolved) setSelectedProvider(firstResolved.id)
+      }
+    } else {
+      const initialProviderId = getInitialProviderIdForMode(settings, { health: readProviderHealth(), mediaType })
+      setSelectedProvider(initialProviderId)
+    }
     setIsCinemaMode(settings.ambientLighting)
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -103,13 +167,18 @@ export function PlayerFrame({
     updateMotion()
     mediaQuery.addEventListener?.('change', updateMotion)
     return () => mediaQuery.removeEventListener?.('change', updateMotion)
-  }, [mediaType])
+  }, [mediaType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return
       const target = event.target as HTMLElement | null
       if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return
+      if (event.key === ' ' || event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        togglePlayback()
+        showControlsTemporarily()
+      }
       if (event.key.toLowerCase() === 't') setIsTheaterMode((current) => !current)
       if (event.key.toLowerCase() === 'l') setIsCinemaMode((current) => {
         const next = !current
@@ -124,7 +193,7 @@ export function PlayerFrame({
     }
     window.addEventListener('keydown', handleShortcut)
     return () => window.removeEventListener('keydown', handleShortcut)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement))
@@ -364,6 +433,31 @@ export function PlayerFrame({
     switchProvider(nextProvider.id)
   }
 
+  const flashCenterIcon = (icon: 'play' | 'pause' | 'replay' | 'error') => {
+    setPlaybackState(icon === 'play' ? 'playing' : icon === 'pause' ? 'paused' : icon === 'replay' ? 'ended' : 'error')
+    setShowCenterIcon(true)
+    if (centerIconTimerRef.current) clearTimeout(centerIconTimerRef.current)
+    centerIconTimerRef.current = setTimeout(() => setShowCenterIcon(false), 800)
+  }
+
+  const togglePlayback = () => {
+    // For external embeds we can't control the iframe video directly,
+    // but we flash a visual indicator for user feedback
+    setPlaybackState((prev) => {
+      const next = prev === 'playing' ? 'paused' : 'playing'
+      flashCenterIcon(next === 'playing' ? 'play' : 'pause')
+      return next
+    })
+  }
+
+  const showControlsTemporarily = () => {
+    setControlsVisible(true)
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
+    if (playbackState === 'playing') {
+      controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 2_000)
+    }
+  }
+
   const toggleFullscreen = () => {
     if (!containerRef.current) return
     if (!document.fullscreenElement) {
@@ -373,11 +467,31 @@ export function PlayerFrame({
     }
   }
 
+  const refreshHealth = () => {
+    // Trigger a fresh health check; the server-rendered data updates on next navigation
+    fetch('/api/health/providers').catch(() => {})
+  }
+
   const isError = state === 'error' || state === 'timeout' || state === 'offline'
+  const isDnsError = selectedProviderDnsFailed || noHealthyProviders
   const activeProviderObj = PROVIDERS.find((p) => p.id === selectedProvider) ?? null
   const candidateProviders = allSources
     .map((source) => PROVIDERS.find((provider) => provider.id === source.providerId))
     .filter((provider): provider is typeof PROVIDERS[number] => Boolean(provider))
+
+  const healthDotClass = (providerId: string): { dot: string; label: string } => {
+    const h = healthMap.get(providerId)
+    if (!h) return { dot: 'bg-white/40', label: 'Unverified' }
+    switch (h.status) {
+      case 'healthy': return { dot: 'bg-green-500', label: 'Healthy' }
+      case 'degraded': return { dot: 'bg-yellow-500', label: 'Slow' }
+      case 'dns-failure': return { dot: 'bg-red-500', label: 'DNS failure' }
+      case 'unreachable':
+      case 'timeout': return { dot: 'bg-red-500', label: 'Unreachable' }
+      case 'rate-limited': return { dot: 'bg-yellow-500', label: 'Rate limited' }
+      default: return { dot: 'bg-white/40', label: 'Unverified' }
+    }
+  }
 
   return (
     <>
@@ -386,7 +500,7 @@ export function PlayerFrame({
       )}
       <div className={isTheaterMode ? 'fixed inset-0 z-40 flex min-h-0 flex-col gap-3 bg-[#050507] p-3 sm:p-6' : `space-y-3 ${isCinemaMode ? 'relative z-40' : ''}`}>
       {/* Top Stream Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/8 bg-[#0A0D14]/90 p-2 px-3 text-xs backdrop-blur-md">
+      <div className={`flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/8 bg-[#0A0D14]/90 p-2 px-3 text-xs backdrop-blur-md transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 font-semibold text-white/80">
             <Server size={13} className="text-primary" />
@@ -395,30 +509,39 @@ export function PlayerFrame({
           <div role="group" aria-label="Playback servers" className="flex flex-wrap items-center gap-1.5">
             {candidateProviders.map((p) => {
               const isActive = p.id === selectedProvider
+              const dnsFailed = dnsFailedProviderIds.has(p.id)
+              const health = healthDotClass(p.id)
               return (
                 <button
                   key={p.id}
                   type="button"
                   aria-pressed={isActive}
-                  onClick={() => switchProvider(p.id)}
+                  disabled={dnsFailed}
+                  title={dnsFailed ? 'Domain not resolvable' : health.label}
+                  onClick={() => !dnsFailed && switchProvider(p.id)}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
                     isActive
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
-                      : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                      : dnsFailed
+                        ? 'bg-white/5 text-white/30 cursor-not-allowed opacity-50'
+                        : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   {isActive && <Check size={11} />}
+                  <span className={`size-1.5 rounded-full ${health.dot}`} aria-hidden="true" />
                   <span>{p.name.replace(/\(.*\)/, '').trim()}</span>
-                  <span
-                    className={`rounded px-1 py-0.2 text-[9px] uppercase font-bold tracking-tight ${
-                      isActive ? 'bg-black/20 text-white' : 'bg-white/10 text-white/50'
-                    }`}
-                  >
-                    {p.authorizationStatus === 'unverified' ? 'Unverified' : p.badge}
-                  </span>
                 </button>
               )
             })}
+            <button
+              type="button"
+              onClick={refreshHealth}
+              title="Retry health check"
+              aria-label="Retry health check"
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <RefreshCw size={11} />
+            </button>
           </div>
           {candidateProviders.length === 0 && (
             <span role="status" className="text-[11px] text-amber-200/80">No verified provider is configured for this media type.</span>
@@ -486,6 +609,24 @@ export function PlayerFrame({
             <Maximize2 size={12} />
             <span className="hidden sm:inline">{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</span>
           </button>
+          {prevEpisodeHref && (
+            <Link
+              href={prevEpisodeHref}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              title="Previous episode"
+            >
+              <ArrowLeft size={12} />
+            </Link>
+          )}
+          {nextEpisodeHref && (
+            <Link
+              href={nextEpisodeHref}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              title="Next episode"
+            >
+              <ChevronRight size={12} />
+            </Link>
+          )}
         </div>
       </div>
 
@@ -609,7 +750,82 @@ export function PlayerFrame({
           </div>
         )}
 
-        {activeSource?.mode === 'native-media' && !isError && (
+        {/* DNS failure — do not render iframe */}
+        {isDnsError && !isError && (
+          <div className="absolute inset-0 z-20 grid place-items-center bg-black/90 backdrop-blur-sm">
+            {artwork && (
+              <img
+                src={artwork}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-10 blur-md"
+              />
+            )}
+            <div className="relative z-10 max-w-md p-8 text-center">
+              <Globe size={36} className="mx-auto mb-4 text-red-500" aria-hidden="true" />
+              <h2 className="text-lg font-bold text-white font-display">
+                Provider unavailable
+              </h2>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                This server&apos;s domain cannot be resolved. Try another server.
+              </p>
+              <div className="mt-6 flex flex-wrap justify-center gap-2.5">
+                {candidateProviders.filter((p) => !dnsFailedProviderIds.has(p.id)).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextHealthy = candidateProviders.find((p) => !dnsFailedProviderIds.has(p.id))
+                      if (nextHealthy) switchProvider(nextHealthy.id)
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  >
+                    <Server size={13} aria-hidden="true" />
+                    Switch server
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={refreshHealth}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:border-white/40 transition-colors"
+                >
+                  <RefreshCw size={13} aria-hidden="true" />
+                  Retry health
+                </button>
+                <Link
+                  href={backHref}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-white/70 hover:text-white transition-colors"
+                >
+                  <ArrowLeft size={13} aria-hidden="true" />
+                  Go back
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Center icon flash for keyboard / interaction feedback */}
+        {showCenterIcon && !isError && !isDnsError && (
+          <div className="pointer-events-none absolute inset-0 z-15 grid place-items-center">
+            <div className="grid size-16 place-items-center rounded-full bg-black/50 backdrop-blur-sm">
+              {playbackState === 'playing' && <Play size={28} fill="white" className="text-white" />}
+              {playbackState === 'paused' && <Pause size={28} fill="white" className="text-white" />}
+              {playbackState === 'ended' && <RotateCcw size={28} className="text-white" />}
+              {playbackState === 'error' && <AlertCircle size={28} className="text-red-500" />}
+            </div>
+          </div>
+        )}
+
+        {/* Click overlay for play/pause toggle (only when not loading/error) */}
+        {state === 'frame-loaded' && !isError && !isDnsError && (
+          <div
+            className="absolute inset-0 z-5"
+            onClick={togglePlayback}
+            onMouseMove={showControlsTemporarily}
+            onDoubleClick={toggleFullscreen}
+          />
+        )}
+
+        {activeSource?.mode === 'native-media' && !isError && !isDnsError && (
           <NativeMediaPlayer
             source={activeSource}
             title={title}
@@ -632,7 +848,7 @@ export function PlayerFrame({
         )}
 
         {/* Opaque external provider frame */}
-        {activeSource?.mode === 'external-embed' && !isError && activeSrc && (
+        {activeSource?.mode === 'external-embed' && !isError && !isDnsError && activeSrc && (
           <iframe
             key={`${selectedProvider}-${retryCount}`}
             title={title}

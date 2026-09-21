@@ -215,7 +215,10 @@ export async function getConsumetHealth(force = false): Promise<ConsumetHealthRe
       error: null,
     }
   } else {
-    const check = await checkOrigin(config.baseUrl)
+    // Probe the instance root as a concrete URL. Keeping the trailing slash
+    // also makes the request unambiguous for strict HTTP servers while the
+    // public origin remains normalized in the response.
+    const check = await checkOrigin(`${config.baseUrl}/`)
     result = {
       configured: true,
       id: 'consumet',

@@ -42,6 +42,7 @@ import { resolvePlaybackSources } from '@/lib/playback-resolver'
 import { NativeMediaPlayer } from '@/components/player/NativeMediaPlayer'
 import { store } from '@/lib/store'
 import { reportPlayerEvent } from '@/lib/observability/client'
+import { getEmbedProviderConfig } from '@/lib/providers/embed-registry'
 import {
   beginAttempt,
   exhaustAttempts,
@@ -122,6 +123,7 @@ export function PlayerFrame({
   const [healthState, setHealthState] = useState(providerHealth)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
   const showShortcutsRef = useRef(false)
   const shortcutsTriggerRef = useRef<HTMLButtonElement>(null)
   const shortcutsDialogRef = useRef<HTMLDivElement>(null)
@@ -495,6 +497,10 @@ export function PlayerFrame({
     attemptedProviderIdsRef.current = attemptedProviderIdsRef.current.filter((id) => id !== providerId)
     setSelectedProvider(providerId)
     if (automaticFallbacksRef.current > 0) {
+      const providerName = uiRegistry.find((provider) => provider.id === providerId)?.name ?? 'another server'
+      setFallbackNotice(`Switched to ${providerName}`)
+      window.setTimeout(() => setFallbackNotice(null), 4_000)
+
       reportPlayerEvent('player_auto_failover', { providerId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'provider-failed', networkHint: networkHint() })
     }
     setRetryCount(0)
@@ -642,7 +648,7 @@ export function PlayerFrame({
 
   const healthDotClass = (providerId: string): { dot: string; label: string } => {
     const h = healthMap.get(providerId)
-    if (!h) return { dot: 'bg-white/40', label: 'Unverified' }
+    if (!h) return { dot: 'bg-white/40', label: 'Unknown' }
     switch (h.status) {
       case 'healthy': return { dot: 'bg-green-500', label: 'Healthy' }
       case 'degraded': return { dot: 'bg-yellow-500', label: 'Slow' }
@@ -660,6 +666,11 @@ export function PlayerFrame({
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-30 bg-black/70 transition-opacity motion-reduce:transition-none" />
       )}
       <div className={isTheaterMode ? 'fixed inset-0 z-40 flex min-h-0 flex-col gap-3 bg-[#050507] p-3 sm:p-6' : `space-y-3 ${isCinemaMode ? 'relative z-40' : ''}`}>
+      {fallbackNotice && (
+        <div role="status" aria-live="polite" className="pointer-events-none fixed left-1/2 top-6 z-[60] -translate-x-1/2 rounded-full border border-primary/40 bg-[#151019]/95 px-4 py-2 text-xs font-semibold text-white shadow-2xl shadow-primary/20">
+          {fallbackNotice}
+        </div>
+      )}
       {/* Top Stream Control Bar */}
       <div className={`flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/8 bg-[#0A0D14]/90 p-2 px-3 text-xs backdrop-blur-md transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="flex flex-wrap items-center gap-2">
@@ -858,18 +869,28 @@ export function PlayerFrame({
                 className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-10 blur-md"
               />
             )}
-            <div className="relative z-10 max-w-md p-8 text-center">
+            <div role="alert" aria-live="assertive" className="relative z-10 max-w-md p-8 text-center">
               {state === 'offline' ? (
                 <WifiOff size={36} className="mx-auto mb-4 text-muted-foreground" aria-hidden="true" />
               ) : (
                 <AlertCircle size={36} className="mx-auto mb-4 text-primary" aria-hidden="true" />
               )}
               <h2 className="text-lg font-bold text-white font-display">
-                {state === 'offline' ? "You're offline" : resolution.reason === 'unsupported' ? 'Playback unavailable for this media type' : 'Stream Unavailable on This Server'}
+                {state === 'offline' ? "You're offline" : resolution.reason === 'unsupported' ? 'Playback unavailable for this media type' : automaticFallbacksRef.current >= 2 ? 'Playback unavailable' : 'This server did not start'}
               </h2>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                {playerErrorMessage(errorCode)}
+                {automaticFallbacksRef.current >= 2 && state !== 'offline'
+                  ? `Tried ${attemptedProviderIdsRef.current.length} servers — none responded.`
+                  : playerErrorMessage(errorCode)}
               </p>
+              {automaticFallbacksRef.current >= 2 && state !== 'offline' && (
+                <ul className="mt-4 space-y-1 text-left text-[11px] text-white/60" aria-label="Server results">
+                  {candidateProviders.map((provider) => {
+                    const failed = attemptedProviderIdsRef.current.includes(provider.id)
+                    return <li key={provider.id} className="flex items-center justify-between gap-4"><span>{failed ? '✕' : '•'} {provider.name}</span><span>{dnsFailedProviderIds.has(provider.id) ? 'DNS failure' : failed ? 'did not respond' : 'not tried'}</span></li>
+                  })}
+                </ul>
+              )}
               <div className="mt-6 flex flex-wrap justify-center gap-2.5">
                 {candidateProviders.length > 1 && (
                   <button
@@ -1094,15 +1115,15 @@ export function PlayerFrame({
             key={`${selectedProvider}-${retryCount}`}
             title={title}
             src={activeSrc}
-            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allow={getEmbedProviderConfig(selectedProvider)?.allow ?? 'autoplay; fullscreen; encrypted-media; picture-in-picture'}
             allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
+            referrerPolicy={getEmbedProviderConfig(selectedProvider)?.referrerPolicy ?? 'origin'}
             className={`h-full w-full ${reducedMotion ? 'opacity-100' : 'transition-opacity duration-500'} ${
               reducedMotion || state === 'frame-loaded' ? 'opacity-100' : 'opacity-0'
             }`}
             onLoad={() => handleLoad(selectedProvider, frameAttemptId)}
             onError={() => handleError(selectedProvider, frameAttemptId)}
-            sandbox="allow-scripts allow-same-origin allow-presentation"
+            sandbox={getEmbedProviderConfig(selectedProvider)?.sandbox ?? 'allow-scripts allow-same-origin allow-presentation allow-forms allow-popups allow-popups-to-escape-sandbox allow-orientation-lock'}
           />
         )}
       </div>

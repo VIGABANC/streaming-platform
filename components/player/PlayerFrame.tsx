@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 import {
   warmPlayerConnection,
-  playerErrorMessage,
   PROVIDERS,
   CONSUMET_PROVIDER,
   getInitialProviderId,
@@ -42,6 +41,8 @@ import { resolvePlaybackSources } from '@/lib/playback-resolver'
 import { NativeMediaPlayer } from '@/components/player/NativeMediaPlayer'
 import { store } from '@/lib/store'
 import { reportPlayerEvent } from '@/lib/observability/client'
+import { getEmbedProviderConfig } from '@/lib/providers/embed-registry'
+import { playbackErrorCopyForPlayer } from '@/lib/providers/errors'
 import {
   beginAttempt,
   exhaustAttempts,
@@ -79,6 +80,7 @@ interface PlayerFrameProps {
   providerHealth?: ProviderHealthInfo[]
   nextEpisodeHref?: string
   prevEpisodeHref?: string
+  preferredProviderId?: string
 }
 
 type PlayerState = 'loading' | 'frame-loaded' | 'timeout-warning' | 'timeout' | 'error' | 'offline'
@@ -104,6 +106,7 @@ export function PlayerFrame({
   providerHealth = [],
   nextEpisodeHref,
   prevEpisodeHref,
+  preferredProviderId,
 }: PlayerFrameProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(PROVIDERS[0].id)
   const [state, setState] = useState<PlayerState>('loading')
@@ -120,6 +123,8 @@ export function PlayerFrame({
   const [healthState, setHealthState] = useState(providerHealth)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
+  const [retryAllAt, setRetryAllAt] = useState(0)
   const showShortcutsRef = useRef(false)
   const shortcutsTriggerRef = useRef<HTMLButtonElement>(null)
   const shortcutsDialogRef = useRef<HTMLDivElement>(null)
@@ -130,6 +135,7 @@ export function PlayerFrame({
   const attemptIdRef = useRef(0)
   const attemptStateRef = useRef(initialAttemptState)
   const attemptedProviderIdsRef = useRef<string[]>([])
+  const automaticFallbacksRef = useRef(0)
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -193,7 +199,9 @@ export function PlayerFrame({
   useEffect(() => {
     const settings = store.getSettings()
     // Auto-select the first healthy provider if health data is available
-    if (healthState.length > 0) {
+    if (preferredProviderId && !healthState.some((h) => h.id === preferredProviderId && !h.dnsResolved)) {
+      setSelectedProvider(preferredProviderId)
+    } else if (healthState.length > 0) {
       const firstHealthy = healthState.find((h) => h.dnsResolved && (h.status === 'healthy' || h.status === 'degraded'))
       if (firstHealthy) {
         setSelectedProvider(firstHealthy.id)
@@ -288,9 +296,9 @@ export function PlayerFrame({
     season,
     episode,
     subtitleLanguage: settings.subtitleLanguage,
-    preferredProviderId: selectedProvider,
+    preferredProviderId: preferredProviderId ?? selectedProvider,
     nativeSources,
-  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources, settings.subtitleLanguage])
+  }), [mediaId, mediaType, season, episode, selectedProvider, preferredProviderId, nativeSources, settings.subtitleLanguage])
   const allSources = resolution.sources
   const activeSource = allSources.find((source) => source.providerId === selectedProvider) ?? allSources[0]
   const activeSrc = activeSource?.mode === 'external-embed' ? activeSource.url : null
@@ -437,6 +445,7 @@ export function PlayerFrame({
     setState('frame-loaded')
     persistPlaybackContext({ verificationState: 'frame-load-only' })
     reportPlayerEvent('player_frame_loaded', { providerId, mediaType, startupMs: Date.now() - startedAtRef.current, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
+    void fetch('/api/player/preference', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ providerId }) }).catch(() => {})
     if (process.env.NODE_ENV === 'development') {
       console.debug('[veyra] player ready', {
         startupMs: Date.now() - startedAtRef.current,
@@ -488,6 +497,13 @@ export function PlayerFrame({
     attemptIdRef.current = attemptStateRef.current.attemptId
     attemptedProviderIdsRef.current = attemptedProviderIdsRef.current.filter((id) => id !== providerId)
     setSelectedProvider(providerId)
+    if (automaticFallbacksRef.current > 0) {
+      const providerName = uiRegistry.find((provider) => provider.id === providerId)?.name ?? 'another server'
+      setFallbackNotice(`Switched to ${providerName}`)
+      window.setTimeout(() => setFallbackNotice(null), 4_000)
+
+      reportPlayerEvent('player_auto_failover', { providerId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'provider-failed', networkHint: networkHint() })
+    }
     setRetryCount(0)
     setState('loading')
     persistPlaybackContext({ providerId, playbackMode: activeSource?.mode ?? 'external-embed', verificationState: 'not-started' })
@@ -496,6 +512,14 @@ export function PlayerFrame({
   }
 
   const failoverToNextProvider = () => {
+    if (automaticFallbacksRef.current >= 2) {
+      clearTimers()
+      attemptStateRef.current = exhaustAttempts(attemptStateRef.current)
+      setState('timeout')
+      setErrorCode('STREAM_UNAVAILABLE')
+      return
+    }
+    automaticFallbacksRef.current += 1
     const nextProvider = rankProviders({
       mediaType,
       attemptedProviderIds: attemptedProviderIdsRef.current,
@@ -625,7 +649,7 @@ export function PlayerFrame({
 
   const healthDotClass = (providerId: string): { dot: string; label: string } => {
     const h = healthMap.get(providerId)
-    if (!h) return { dot: 'bg-white/40', label: 'Unverified' }
+    if (!h) return { dot: 'bg-white/40', label: 'Unknown' }
     switch (h.status) {
       case 'healthy': return { dot: 'bg-green-500', label: 'Healthy' }
       case 'degraded': return { dot: 'bg-yellow-500', label: 'Slow' }
@@ -643,6 +667,11 @@ export function PlayerFrame({
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-30 bg-black/70 transition-opacity motion-reduce:transition-none" />
       )}
       <div className={isTheaterMode ? 'fixed inset-0 z-40 flex min-h-0 flex-col gap-3 bg-[#050507] p-3 sm:p-6' : `space-y-3 ${isCinemaMode ? 'relative z-40' : ''}`}>
+      {fallbackNotice && (
+        <div role="status" aria-live="polite" className="pointer-events-none fixed left-1/2 top-6 z-[60] -translate-x-1/2 rounded-full border border-primary/40 bg-[#151019]/95 px-4 py-2 text-xs font-semibold text-white shadow-2xl shadow-primary/20">
+          {fallbackNotice}
+        </div>
+      )}
       {/* Top Stream Control Bar */}
       <div className={`flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-white/8 bg-[#0A0D14]/90 p-2 px-3 text-xs backdrop-blur-md transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="flex flex-wrap items-center gap-2">
@@ -841,18 +870,54 @@ export function PlayerFrame({
                 className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-10 blur-md"
               />
             )}
-            <div className="relative z-10 max-w-md p-8 text-center">
+            <div role="alert" aria-live="assertive" className="relative z-10 max-w-md p-8 text-center">
               {state === 'offline' ? (
                 <WifiOff size={36} className="mx-auto mb-4 text-muted-foreground" aria-hidden="true" />
               ) : (
                 <AlertCircle size={36} className="mx-auto mb-4 text-primary" aria-hidden="true" />
               )}
               <h2 className="text-lg font-bold text-white font-display">
-                {state === 'offline' ? "You're offline" : resolution.reason === 'unsupported' ? 'Playback unavailable for this media type' : 'Stream Unavailable on This Server'}
+                {state === 'offline' ? "You're offline" : resolution.reason === 'unsupported' ? 'Playback unavailable for this media type' : automaticFallbacksRef.current >= 2 ? 'Playback unavailable' : 'This server did not start'}
               </h2>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                {playerErrorMessage(errorCode)}
+                {automaticFallbacksRef.current >= 2 && state !== 'offline'
+                  ? playbackErrorCopyForPlayer('STREAM_UNAVAILABLE')
+                  : playbackErrorCopyForPlayer(errorCode)}
               </p>
+              {automaticFallbacksRef.current >= 2 && state !== 'offline' && (
+                <div role="alert" aria-live="assertive" className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left">
+                  <ul className="space-y-2 text-[11px] text-white/70" aria-label="Server results">
+                    {candidateProviders.map((provider) => {
+                      const failed = attemptedProviderIdsRef.current.includes(provider.id)
+                      const dnsFailed = dnsFailedProviderIds.has(provider.id)
+                      return <li key={provider.id} className="flex items-center justify-between gap-4"><span>{failed ? '×' : '·'} {provider.name}</span><span className={dnsFailed ? 'text-red-300' : failed ? 'text-amber-200' : 'text-white/45'}>{dnsFailed ? 'DNS failure' : failed ? 'did not respond' : 'not tried'}</span></li>
+                    })}
+                  </ul>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={retryAllAt > Date.now()}
+                      onClick={() => {
+                        if (retryAllAt > Date.now()) return
+                        setRetryAllAt(Date.now() + 10_000)
+                        reloadPlayer()
+                      }}
+                      className="rounded-full border border-primary/40 px-3 py-1.5 text-[11px] font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Retry all{retryAllAt > Date.now() ? ' (10s)' : ''}
+                    </button>
+                    <label className="sr-only" htmlFor="failed-server-switch">Switch server</label>
+                    <select
+                      id="failed-server-switch"
+                      value={selectedProvider}
+                      onChange={(event) => switchProvider(event.target.value)}
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] text-white"
+                    >
+                      {candidateProviders.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
               <div className="mt-6 flex flex-wrap justify-center gap-2.5">
                 {candidateProviders.length > 1 && (
                   <button
@@ -1077,15 +1142,15 @@ export function PlayerFrame({
             key={`${selectedProvider}-${retryCount}`}
             title={title}
             src={activeSrc}
-            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allow={getEmbedProviderConfig(selectedProvider)?.allow ?? 'autoplay; fullscreen; encrypted-media; picture-in-picture'}
             allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
+            referrerPolicy={getEmbedProviderConfig(selectedProvider)?.referrerPolicy ?? 'origin'}
             className={`h-full w-full ${reducedMotion ? 'opacity-100' : 'transition-opacity duration-500'} ${
               reducedMotion || state === 'frame-loaded' ? 'opacity-100' : 'opacity-0'
             }`}
             onLoad={() => handleLoad(selectedProvider, frameAttemptId)}
             onError={() => handleError(selectedProvider, frameAttemptId)}
-            sandbox="allow-scripts allow-same-origin allow-presentation"
+            sandbox={getEmbedProviderConfig(selectedProvider)?.sandbox ?? 'allow-scripts allow-same-origin allow-presentation allow-forms allow-popups allow-popups-to-escape-sandbox allow-orientation-lock'}
           />
         )}
       </div>

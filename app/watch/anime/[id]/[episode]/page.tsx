@@ -95,7 +95,7 @@ export default async function AnimeWatchPage({ params }: AnimeWatchPageProps) {
           </div>
         </div>
 
-        {ready && playback ? (
+        {ready && playback?.source ? (
           <>
             {/* Native video player — anime never renders an iframe */}
             <div className="overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl bg-black">

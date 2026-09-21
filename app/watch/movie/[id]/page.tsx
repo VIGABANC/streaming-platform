@@ -17,6 +17,7 @@ import {
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
 import { getProviderHealthForClient } from '@/lib/provider-health'
+import { cookies } from 'next/headers'
 
 interface WatchMoviePageProps {
   params: Promise<{ id: string }>
@@ -53,7 +54,11 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
   const backdropUrl = movie?.backdrop_path ? backdrop(movie.backdrop_path, 'w1280') : undefined
 
   // Server-side provider health check — exclude DNS-failed providers
-  const providerHealth = await getProviderHealthForClient().catch(() => [])
+  const [providerHealth, cookieStore] = await Promise.all([
+    getProviderHealthForClient().catch(() => []),
+    cookies(),
+  ])
+  const preferredProviderId = cookieStore.get('veyra_preferred_provider')?.value
 
   const similarTitles: (Media & { media_type: MediaType })[] = (
     movie?.recommendations?.results ?? movie?.similar?.results ?? []
@@ -86,6 +91,7 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
             artwork={backdropUrl}
             backHref={`/movie/${id}`}
             providerHealth={providerHealth}
+            preferredProviderId={preferredProviderId}
           />
         </div>
 

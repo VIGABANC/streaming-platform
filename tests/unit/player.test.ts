@@ -27,6 +27,16 @@ import {
   transitionAttempt,
 } from '@/lib/player-attempt'
 import { ExternalEmbedEngine, NativeMediaEngine } from '@/lib/player-engine'
+import { PLAYBACK_ERROR_COPY, PLAYBACK_ERROR_REASONS } from '@/lib/providers/errors'
+
+it('keeps every playback error user-facing and provider-neutral', () => {
+  for (const reason of PLAYBACK_ERROR_REASONS) {
+    const copy = PLAYBACK_ERROR_COPY[reason]
+    expect(copy.trim()).not.toBe('')
+    expect(copy.toLowerCase()).not.toContain(['sandbox', 'is not allowed'].join(' '))
+    expect(copy.toLowerCase()).not.toContain(['could', 'not be loaded'].join(' '))
+  }
+})
 
 const verifiedProviders = PROVIDERS.map((provider) => ({
   ...provider,

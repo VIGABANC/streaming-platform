@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 import {
   warmPlayerConnection,
-  playerErrorMessage,
   PROVIDERS,
   CONSUMET_PROVIDER,
   getInitialProviderId,
@@ -43,6 +42,7 @@ import { NativeMediaPlayer } from '@/components/player/NativeMediaPlayer'
 import { store } from '@/lib/store'
 import { reportPlayerEvent } from '@/lib/observability/client'
 import { getEmbedProviderConfig } from '@/lib/providers/embed-registry'
+import { playbackErrorCopyForPlayer } from '@/lib/providers/errors'
 import {
   beginAttempt,
   exhaustAttempts,
@@ -124,6 +124,7 @@ export function PlayerFrame({
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
+  const [retryAllAt, setRetryAllAt] = useState(0)
   const showShortcutsRef = useRef(false)
   const shortcutsTriggerRef = useRef<HTMLButtonElement>(null)
   const shortcutsDialogRef = useRef<HTMLDivElement>(null)
@@ -297,7 +298,7 @@ export function PlayerFrame({
     subtitleLanguage: settings.subtitleLanguage,
     preferredProviderId: preferredProviderId ?? selectedProvider,
     nativeSources,
-  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources, settings.subtitleLanguage])
+  }), [mediaId, mediaType, season, episode, selectedProvider, preferredProviderId, nativeSources, settings.subtitleLanguage])
   const allSources = resolution.sources
   const activeSource = allSources.find((source) => source.providerId === selectedProvider) ?? allSources[0]
   const activeSrc = activeSource?.mode === 'external-embed' ? activeSource.url : null
@@ -880,16 +881,42 @@ export function PlayerFrame({
               </h2>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 {automaticFallbacksRef.current >= 2 && state !== 'offline'
-                  ? `Tried ${attemptedProviderIdsRef.current.length} servers — none responded.`
-                  : playerErrorMessage(errorCode)}
+                  ? playbackErrorCopyForPlayer('STREAM_UNAVAILABLE')
+                  : playbackErrorCopyForPlayer(errorCode)}
               </p>
               {automaticFallbacksRef.current >= 2 && state !== 'offline' && (
-                <ul className="mt-4 space-y-1 text-left text-[11px] text-white/60" aria-label="Server results">
-                  {candidateProviders.map((provider) => {
-                    const failed = attemptedProviderIdsRef.current.includes(provider.id)
-                    return <li key={provider.id} className="flex items-center justify-between gap-4"><span>{failed ? '✕' : '•'} {provider.name}</span><span>{dnsFailedProviderIds.has(provider.id) ? 'DNS failure' : failed ? 'did not respond' : 'not tried'}</span></li>
-                  })}
-                </ul>
+                <div role="alert" aria-live="assertive" className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left">
+                  <ul className="space-y-2 text-[11px] text-white/70" aria-label="Server results">
+                    {candidateProviders.map((provider) => {
+                      const failed = attemptedProviderIdsRef.current.includes(provider.id)
+                      const dnsFailed = dnsFailedProviderIds.has(provider.id)
+                      return <li key={provider.id} className="flex items-center justify-between gap-4"><span>{failed ? '×' : '·'} {provider.name}</span><span className={dnsFailed ? 'text-red-300' : failed ? 'text-amber-200' : 'text-white/45'}>{dnsFailed ? 'DNS failure' : failed ? 'did not respond' : 'not tried'}</span></li>
+                    })}
+                  </ul>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={retryAllAt > Date.now()}
+                      onClick={() => {
+                        if (retryAllAt > Date.now()) return
+                        setRetryAllAt(Date.now() + 10_000)
+                        reloadPlayer()
+                      }}
+                      className="rounded-full border border-primary/40 px-3 py-1.5 text-[11px] font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Retry all{retryAllAt > Date.now() ? ' (10s)' : ''}
+                    </button>
+                    <label className="sr-only" htmlFor="failed-server-switch">Switch server</label>
+                    <select
+                      id="failed-server-switch"
+                      value={selectedProvider}
+                      onChange={(event) => switchProvider(event.target.value)}
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] text-white"
+                    >
+                      {candidateProviders.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}
+                    </select>
+                  </div>
+                </div>
               )}
               <div className="mt-6 flex flex-wrap justify-center gap-2.5">
                 {candidateProviders.length > 1 && (

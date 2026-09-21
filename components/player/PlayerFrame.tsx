@@ -79,6 +79,7 @@ interface PlayerFrameProps {
   providerHealth?: ProviderHealthInfo[]
   nextEpisodeHref?: string
   prevEpisodeHref?: string
+  preferredProviderId?: string
 }
 
 type PlayerState = 'loading' | 'frame-loaded' | 'timeout-warning' | 'timeout' | 'error' | 'offline'
@@ -104,6 +105,7 @@ export function PlayerFrame({
   providerHealth = [],
   nextEpisodeHref,
   prevEpisodeHref,
+  preferredProviderId,
 }: PlayerFrameProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(PROVIDERS[0].id)
   const [state, setState] = useState<PlayerState>('loading')
@@ -130,6 +132,7 @@ export function PlayerFrame({
   const attemptIdRef = useRef(0)
   const attemptStateRef = useRef(initialAttemptState)
   const attemptedProviderIdsRef = useRef<string[]>([])
+  const automaticFallbacksRef = useRef(0)
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -193,7 +196,9 @@ export function PlayerFrame({
   useEffect(() => {
     const settings = store.getSettings()
     // Auto-select the first healthy provider if health data is available
-    if (healthState.length > 0) {
+    if (preferredProviderId && !healthState.some((h) => h.id === preferredProviderId && !h.dnsResolved)) {
+      setSelectedProvider(preferredProviderId)
+    } else if (healthState.length > 0) {
       const firstHealthy = healthState.find((h) => h.dnsResolved && (h.status === 'healthy' || h.status === 'degraded'))
       if (firstHealthy) {
         setSelectedProvider(firstHealthy.id)
@@ -288,7 +293,7 @@ export function PlayerFrame({
     season,
     episode,
     subtitleLanguage: settings.subtitleLanguage,
-    preferredProviderId: selectedProvider,
+    preferredProviderId: preferredProviderId ?? selectedProvider,
     nativeSources,
   }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources, settings.subtitleLanguage])
   const allSources = resolution.sources
@@ -437,6 +442,7 @@ export function PlayerFrame({
     setState('frame-loaded')
     persistPlaybackContext({ verificationState: 'frame-load-only' })
     reportPlayerEvent('player_frame_loaded', { providerId, mediaType, startupMs: Date.now() - startedAtRef.current, attemptIndex: attemptedProviderIdsRef.current.length, networkHint: networkHint() })
+    void fetch('/api/player/preference', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ providerId }) }).catch(() => {})
     if (process.env.NODE_ENV === 'development') {
       console.debug('[veyra] player ready', {
         startupMs: Date.now() - startedAtRef.current,
@@ -488,6 +494,9 @@ export function PlayerFrame({
     attemptIdRef.current = attemptStateRef.current.attemptId
     attemptedProviderIdsRef.current = attemptedProviderIdsRef.current.filter((id) => id !== providerId)
     setSelectedProvider(providerId)
+    if (automaticFallbacksRef.current > 0) {
+      reportPlayerEvent('player_auto_failover', { providerId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'provider-failed', networkHint: networkHint() })
+    }
     setRetryCount(0)
     setState('loading')
     persistPlaybackContext({ providerId, playbackMode: activeSource?.mode ?? 'external-embed', verificationState: 'not-started' })
@@ -496,6 +505,14 @@ export function PlayerFrame({
   }
 
   const failoverToNextProvider = () => {
+    if (automaticFallbacksRef.current >= 2) {
+      clearTimers()
+      attemptStateRef.current = exhaustAttempts(attemptStateRef.current)
+      setState('timeout')
+      setErrorCode('STREAM_UNAVAILABLE')
+      return
+    }
+    automaticFallbacksRef.current += 1
     const nextProvider = rankProviders({
       mediaType,
       attemptedProviderIds: attemptedProviderIdsRef.current,

@@ -18,6 +18,7 @@ import {
 } from '@/lib/tmdb'
 import { isStrictPositiveInteger } from '@/lib/player'
 import { getProviderHealthForClient } from '@/lib/provider-health'
+import { cookies } from 'next/headers'
 
 interface TVWatchProps {
   params: Promise<{
@@ -71,7 +72,11 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
   )
 
   // Server-side provider health check — exclude DNS-failed providers
-  const providerHealth = await getProviderHealthForClient().catch(() => [])
+  const [providerHealth, cookieStore] = await Promise.all([
+    getProviderHealthForClient().catch(() => []),
+    cookies(),
+  ])
+  const preferredProviderId = cookieStore.get('veyra_preferred_provider')?.value
 
   const episodeName = currentEpisode?.name || `Episode ${episodeNum}`
   const backdropUrl = show?.backdrop_path ? backdrop(show.backdrop_path, 'w1280') : undefined
@@ -129,6 +134,7 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             artwork={backdropUrl}
             backHref={`/tv/${id}`}
             providerHealth={providerHealth}
+            preferredProviderId={preferredProviderId}
             nextEpisodeHref={nextHref ?? undefined}
             prevEpisodeHref={prevHref ?? undefined}
           />

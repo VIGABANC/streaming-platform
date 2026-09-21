@@ -125,6 +125,8 @@ export interface PlaybackSource {
   mediaType: 'movie' | 'tv' | 'anime'
   url: string
   format?: 'mp4' | 'hls' | 'dash'
+  /** Optional subtitle tracks for native media playback. */
+  subtitles?: { url: string; lang: string; label?: string }[]
   origin: string
   availability: PlaybackAvailability
   verification: PlaybackVerification

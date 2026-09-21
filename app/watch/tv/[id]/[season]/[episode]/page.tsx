@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ChevronLeft, ChevronRight, Tv, Clock } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, ChevronLeft, ChevronRight, Tv, Clock, Play } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { PlayerFrame } from '@/components/player/PlayerFrame'
 import {
@@ -9,12 +10,14 @@ import {
   getSeason,
   titleOf,
   backdrop,
+  poster,
   formatRuntime,
   type TVDetail,
   type SeasonDetail,
   type Episode,
 } from '@/lib/tmdb'
 import { isStrictPositiveInteger } from '@/lib/player'
+import { getProviderHealthForClient } from '@/lib/provider-health'
 
 interface TVWatchProps {
   params: Promise<{
@@ -66,6 +69,9 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
   const currentEpisode: Episode | undefined = seasonData?.episodes?.find(
     (e) => e.episode_number === episodeNum,
   )
+
+  // Server-side provider health check — exclude DNS-failed providers
+  const providerHealth = await getProviderHealthForClient().catch(() => [])
 
   const episodeName = currentEpisode?.name || `Episode ${episodeNum}`
   const backdropUrl = show?.backdrop_path ? backdrop(show.backdrop_path, 'w1280') : undefined
@@ -122,6 +128,9 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             episodeLabel={`Season ${seasonNum}, Episode ${episodeNum} — ${episodeName}`}
             artwork={backdropUrl}
             backHref={`/tv/${id}`}
+            providerHealth={providerHealth}
+            nextEpisodeHref={nextHref ?? undefined}
+            prevEpisodeHref={prevHref ?? undefined}
           />
         </div>
 
@@ -206,24 +215,53 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {episodes.map((ep) => {
                 const isCurrent = ep.episode_number === episodeNum
+                const stillSrc = ep.still_path ? poster(ep.still_path, 'w300') : null
                 return (
                   <Link
                     key={ep.id}
                     href={`/watch/tv/${id}/${seasonNum}/${ep.episode_number}`}
-                    className={`rounded-xl p-3 border transition-all ${
+                    className={`group rounded-xl overflow-hidden border transition-all ${
                       isCurrent
                         ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
                         : 'border-white/5 bg-surface/30 hover:border-white/20 hover:bg-surface/70'
                     }`}
                   >
-                    <p className="text-xs font-semibold text-white truncate">
-                      {ep.episode_number}. {ep.name}
-                    </p>
-                    {ep.overview && (
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
-                        {ep.overview}
+                    {/* Thumbnail */}
+                    <div className="relative aspect-video w-full bg-surface overflow-hidden">
+                      {stillSrc ? (
+                        <Image
+                          src={stillSrc}
+                          alt={`Episode ${ep.episode_number}: ${ep.name}`}
+                          fill
+                          loading="lazy"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-surface">
+                          <span className="text-2xl font-bold text-white/20">E{ep.episode_number}</span>
+                        </div>
+                      )}
+                      {/* Play overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <Play size={20} fill="white" className="text-white" aria-hidden="true" />
+                      </div>
+                      {/* Episode number badge */}
+                      <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        E{ep.episode_number}
+                      </span>
+                    </div>
+                    {/* Info */}
+                    <div className="p-3">
+                      <p className="text-xs font-semibold text-white truncate">
+                        {ep.episode_number}. {ep.name}
                       </p>
-                    )}
+                      {ep.overview && (
+                        <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                          {ep.overview}
+                        </p>
+                      )}
+                    </div>
                   </Link>
                 )
               })}

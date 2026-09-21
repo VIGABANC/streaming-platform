@@ -9,9 +9,13 @@ test.describe('Anime playback boundary', () => {
 
   test('keeps anime playback unavailable without a verified episode provider', async ({ page }) => {
     await page.goto('/watch/anime/1/1')
-    await expect(page.getByRole('heading', { name: 'Playback unavailable for this media type' })).toBeVisible()
-    await expect(page.getByText('No iframe or playback claim is presented.')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Playback unavailable' })).toBeVisible()
+    await expect(page.getByText('No verified anime provider is configured.')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Watch legally on Crunchyroll' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Watch legally on Netflix' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'View episode list' })).toBeVisible()
     await expect(page.locator('iframe')).toHaveCount(0)
+    await expect(page.locator('video')).toHaveCount(0)
   })
 
   test('keeps the anime detail route reachable and truthful', async ({ page }) => {

@@ -25,6 +25,7 @@ import {
   warmPlayerConnection,
   playerErrorMessage,
   PROVIDERS,
+  CONSUMET_PROVIDER,
   getInitialProviderId,
   getInitialProviderIdForMode,
   rankProviders,
@@ -614,9 +615,12 @@ export function PlayerFrame({
 
   const isError = state === 'error' || state === 'timeout' || state === 'offline'
   const isDnsError = selectedProviderDnsFailed || noHealthyProviders
-  const activeProviderObj = PROVIDERS.find((p) => p.id === selectedProvider) ?? null
+  // The anime-only Consumet entry joins the UI registry so native anime sources
+  // resolve a server entry; movie/TV resolution still uses PROVIDERS alone.
+  const uiRegistry = useMemo(() => [...PROVIDERS, CONSUMET_PROVIDER], [])
+  const activeProviderObj = uiRegistry.find((p) => p.id === selectedProvider) ?? null
   const candidateProviders = allSources
-    .map((source) => PROVIDERS.find((provider) => provider.id === source.providerId))
+    .map((source) => uiRegistry.find((provider) => provider.id === source.providerId))
     .filter((provider): provider is typeof PROVIDERS[number] => Boolean(provider))
 
   const healthDotClass = (providerId: string): { dot: string; label: string } => {

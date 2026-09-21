@@ -302,6 +302,62 @@ export const PROVIDERS: StreamProvider[] = [
   },
 ]
 
+// ── Anime native provider (self-hosted Consumet) ──────────────────────────────
+// Deliberately NOT part of PROVIDERS: movie/TV source resolution never sees it,
+// and its health is probed separately (see provider-health.ts) because the
+// origin comes from CONSUMET_BASE_URL, not from this registry. The sentinel
+// origin is never used for network requests — playback sources carry the
+// CDN origin returned by the instance.
+export const CONSUMET_PROVIDER: StreamProvider = {
+  id: 'consumet',
+  name: 'Consumet',
+  badge: 'Self-hosted',
+  origin: 'https://consumet.invalid',
+  authorizationStatus: 'unverified',
+  supportedMediaTypes: ['anime'],
+  supportsEpisodes: true,
+  playbackMode: 'native-media',
+  supportedRegions: ['global'],
+  qualityCapability: 'documented-api',
+  subtitleCapability: 'documented-api',
+  audioTrackCapability: 'none',
+  documentedReadiness: 'documented-api',
+  timeoutPolicy: { warningMs: 8_000, deadlineMs: 8_000, maxRetries: 2 },
+  rateLimitPolicy: { maxAttemptsPerMinute: 30, retryAfterSeconds: 60 },
+  healthState: 'unknown',
+  cooldownState: 'closed',
+  lastErrorCategory: null,
+  supportsMovie: false,
+  supportsTV: false,
+  qualityControl: 'none',
+  observabilityTier: 'B',
+  trustEligible: false,
+  verification: {
+    providerId: 'consumet',
+    authorizationEvidence: [],
+    originChecks: [],
+    allowedEmbeddingContexts: ['native-media'],
+    lastVerifiedAt: null,
+    verificationMethod: 'manual-review',
+    riskNotes: ['Self-hosted Consumet instance configured by the operator via CONSUMET_BASE_URL. Playback sources are resolved server-side.'],
+    enabled: false,
+  },
+  capabilities: {
+    autoplay: true, subtitlePreference: true, audioLanguagePreference: false,
+    startTimestamp: true, customAccent: false, controls: true, readyEvents: true,
+    progressEvents: true, completionEvents: true, errorEvents: true, qualityControl: 'none',
+  },
+  movieUrl: () => {
+    throw new Error('CONSUMET_MOVIE_UNSUPPORTED')
+  },
+  tvUrl: () => {
+    throw new Error('CONSUMET_TV_UNSUPPORTED')
+  },
+  // Native sources are resolved server-side per episode (see lib/anime-playback.ts);
+  // there is no synchronous URL to build.
+  sourceBuilder: () => null,
+}
+
 /** Exact origins used by the registry. Security configuration must not drift from this list. */
 export const PLAYER_FRAME_ORIGINS = PROVIDERS.map((provider) => provider.origin)
 

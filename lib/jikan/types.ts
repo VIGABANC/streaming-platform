@@ -24,3 +24,7 @@ export interface JikanAnimeResponse {
 export interface JikanTopAnimeResponse {
   data?: Array<{ mal_id?: unknown; title?: unknown; images?: { jpg?: { image_url?: unknown } }; synopsis?: unknown; score?: unknown }>
 }
+
+export interface JikanEpisodesResponse {
+  data?: Array<{ mal_id?: unknown; title?: unknown; aired?: { from?: unknown } }>
+}

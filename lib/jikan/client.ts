@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import type { JikanAnimeResponse, JikanEnrichment } from './types'
-import type { JikanTopAnimeResponse } from './types'
+import type { JikanEpisodesResponse, JikanTopAnimeResponse } from './types'
 
 const JIKAN_API = 'https://api.jikan.moe/v4'
 export const JIKAN_REVALIDATE_SECONDS = 86400
@@ -123,6 +123,37 @@ export const getAnimeDetail = cache(async (
     }
   } catch {
     return null
+  }
+})
+
+export interface JikanEpisode {
+  number: number
+  title: string | null
+  aired: string | null
+}
+
+/** Metadata-only episode list for an anime. */
+export const getAnimeEpisodes = cache(async (
+  malId: number | string,
+): Promise<JikanEpisode[]> => {
+  const id = positiveInteger(malId)
+  if (id === null) return []
+
+  try {
+    const response = await fetchWithTimeout(`${JIKAN_API}/anime/${id}/episodes`)
+    if (!response.ok) return []
+
+    const payload = await response.json() as JikanEpisodesResponse
+    return (payload.data ?? []).flatMap((entry, index) => {
+      const number = typeof entry.mal_id === 'number' && Number.isFinite(entry.mal_id) && entry.mal_id > 0
+        ? entry.mal_id
+        : index + 1
+      const title = typeof entry.title === 'string' && entry.title.length > 0 ? entry.title : null
+      const aired = typeof entry.aired?.from === 'string' ? entry.aired.from : null
+      return [{ number, title, aired }]
+    })
+  } catch {
+    return []
   }
 })
 

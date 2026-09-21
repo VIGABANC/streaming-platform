@@ -12,6 +12,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - **Stack**: Next.js 16.3.3 (Turbopack) + Tailwind CSS 4 + TypeScript. Single-origin app, no separate backend or database.
 - **Run**: `docker compose -f docker-compose.base44.yml up -d` — uses `node:22` with source bind-mounted at `/app`, runs `npm install && npm run dev`.
-- **Secrets**: `TMDB_API_KEY` (required for content; app boots without it showing empty rails). Delivered via `/run/base44/app.env`. Optional: Supabase, AI providers, Telegram, GitHub — all gracefully skipped when absent.
+- **Secrets**: `TMDB_API_KEY` (required for content; app boots without it showing empty rails). Delivered via `/run/base44/app.env`. Optional: Supabase, AI providers, Telegram, GitHub — all gracefully skipped when absent. `CONSUMET_BASE_URL` (optional, self-hosted Consumet instance root URL) enables anime playback via native `<video>` on `/watch/anime/[id]/[episode]` only; unset keeps the honest "Playback unavailable" state. The anime watch route, anime detail route, and `/api/health/providers` are `force-dynamic` because they branch on this env + live health.
 - **Dev origin**: `allowedDevOrigins` in `next.config.mjs` references `BASE44_PUBLIC_HOST_SUFFIX` for the preview origin.
 - **Verify**: `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/` should return 200. Check `docker compose -f docker-compose.base44.yml logs --tail 20 web` for dev server status.

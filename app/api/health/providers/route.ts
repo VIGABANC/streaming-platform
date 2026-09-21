@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getProviderHealthForClient } from '@/lib/provider-health'
+import { getConsumetHealthForClient, getProviderHealthForClient } from '@/lib/provider-health'
 import { checkRateLimit, requestIdentity } from '@/lib/http/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -29,9 +29,14 @@ export async function GET(request: Request) {
         )
       }
     }
-    const results = await getProviderHealthForClient(force)
+    const [results, consumet] = await Promise.all([
+      getProviderHealthForClient(force),
+      getConsumetHealthForClient(force),
+    ])
     return NextResponse.json(
-      { providers: results, cached: true },
+      // `consumet` is `{ configured: false }` when CONSUMET_BASE_URL is unset —
+      // the self-hosted instance is never probed in that case.
+      { providers: results, consumet, cached: true },
       {
         status: 200,
         headers: {

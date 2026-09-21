@@ -218,6 +218,15 @@ export function NativeMediaPlayer({
         }}
       >
         <source src={source.url} />
+        {(source.subtitles ?? []).map((track, index) => (
+          <track
+            key={`${track.url}-${index}`}
+            kind="subtitles"
+            src={track.url}
+            srcLang={track.lang}
+            label={track.label ?? track.lang}
+          />
+        ))}
         Your browser does not support native video playback.
       </video>
 

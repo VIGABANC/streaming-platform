@@ -6,6 +6,7 @@
 import 'server-only'
 import { lookup } from 'node:dns/promises'
 import { PROVIDERS, type StreamProvider } from './player'
+import { getConsumetConfig } from './providers/consumet'
 
 export type ProviderHealthStatus =
   | 'healthy'
@@ -88,43 +89,41 @@ async function checkReachability(origin: string, signal: AbortSignal): Promise<{
   }
 }
 
-async function checkProvider(provider: StreamProvider): Promise<ProviderHealthResult> {
-  const now = new Date().toISOString()
+type OriginCheck = {
+  dnsResolved: boolean
+  resolvedIp: string | null
+  reachable: boolean
+  status: ProviderHealthStatus
+  latencyMs: number | null
+  error: ProviderErrorCode | null
+}
 
-  const { resolved, ip } = await checkDns(provider.origin)
+/** DNS + reachability probe for one origin. */
+async function checkOrigin(origin: string): Promise<OriginCheck> {
+  const { resolved, ip } = await checkDns(origin)
   if (!resolved) {
-    return {
-      id: provider.id,
-      name: provider.name,
-      origin: provider.origin,
-      dnsResolved: false,
-      resolvedIp: null,
-      reachable: false,
-      status: 'dns-failure',
-      latencyMs: null,
-      lastCheckedAt: now,
-      error: 'PROVIDER_DNS_FAILURE',
-    }
+    return { dnsResolved: false, resolvedIp: null, reachable: false, status: 'dns-failure', latencyMs: null, error: 'PROVIDER_DNS_FAILURE' }
   }
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 5_000)
   try {
-    const reachability = await checkReachability(provider.origin, controller.signal)
-    return {
-      id: provider.id,
-      name: provider.name,
-      origin: provider.origin,
-      dnsResolved: true,
-      resolvedIp: ip,
-      reachable: reachability.reachable,
-      status: reachability.status,
-      latencyMs: reachability.latencyMs,
-      lastCheckedAt: now,
-      error: reachability.error,
-    }
+    const reachability = await checkReachability(origin, controller.signal)
+    return { dnsResolved: true, resolvedIp: ip, ...reachability }
   } finally {
     clearTimeout(timeout)
+  }
+}
+
+async function checkProvider(provider: StreamProvider): Promise<ProviderHealthResult> {
+  const now = new Date().toISOString()
+  const check = await checkOrigin(provider.origin)
+  return {
+    id: provider.id,
+    name: provider.name,
+    origin: provider.origin,
+    ...check,
+    lastCheckedAt: now,
   }
 }
 
@@ -169,4 +168,75 @@ export async function getHealthyProviderIds(): Promise<Set<string>> {
 export async function getProviderHealthForClient(force = false): Promise<Omit<ProviderHealthResult, 'resolvedIp'>[]> {
   const results = await getProviderHealth(force)
   return results.map(({ resolvedIp: _resolvedIp, ...rest }) => rest)
+}
+
+// ── Consumet (self-hosted anime provider) ─────────────────────────────────────
+
+export interface ConsumetHealthResult {
+  /** False when CONSUMET_BASE_URL is unset — nothing is probed in that case. */
+  configured: boolean
+  id: string
+  name: string
+  origin: string | null
+  dnsResolved: boolean
+  resolvedIp: string | null
+  reachable: boolean
+  status: ProviderHealthStatus | null
+  latencyMs: number | null
+  lastCheckedAt: string
+  error: ProviderErrorCode | null
+}
+
+const CONSUMET_HEALTH_NAME = 'Consumet (self-hosted)'
+let consumetCache: { result: ConsumetHealthResult; expiresAt: number } | null = null
+
+export async function getConsumetHealth(force = false): Promise<ConsumetHealthResult> {
+  if (!force && consumetCache && Date.now() < consumetCache.expiresAt) {
+    return consumetCache.result
+  }
+
+  const config = getConsumetConfig()
+  const lastCheckedAt = new Date().toISOString()
+  let result: ConsumetHealthResult
+
+  if (!config) {
+    // Unset base URL: report the unconfigured state, never probe.
+    result = {
+      configured: false,
+      id: 'consumet',
+      name: CONSUMET_HEALTH_NAME,
+      origin: null,
+      dnsResolved: false,
+      resolvedIp: null,
+      reachable: false,
+      status: null,
+      latencyMs: null,
+      lastCheckedAt,
+      error: null,
+    }
+  } else {
+    const check = await checkOrigin(config.baseUrl)
+    result = {
+      configured: true,
+      id: 'consumet',
+      name: CONSUMET_HEALTH_NAME,
+      origin: config.baseUrl,
+      dnsResolved: check.dnsResolved,
+      resolvedIp: check.resolvedIp,
+      reachable: check.reachable,
+      status: check.status,
+      latencyMs: check.latencyMs,
+      lastCheckedAt,
+      error: check.error,
+    }
+    console.log(`[provider-health] consumet origin=${config.baseUrl} dns=${check.dnsResolved} reachable=${check.reachable} status=${check.status} latency=${check.latencyMs ?? 'N/A'}ms`)
+  }
+
+  consumetCache = { result, expiresAt: Date.now() + CACHE_TTL_MS }
+  return result
+}
+
+export async function getConsumetHealthForClient(force = false): Promise<Omit<ConsumetHealthResult, 'resolvedIp'>> {
+  const { resolvedIp: _resolvedIp, ...rest } = await getConsumetHealth(force)
+  return rest
 }

@@ -7,6 +7,11 @@
       "name": "TMDB_API_KEY",
       "description": "TMDB API key for movie/TV catalog browsing and search. Get a free key at https://www.themoviedb.org/settings/api",
       "requiredAtBoot": false
+    },
+    {
+      "name": "CONSUMET_BASE_URL",
+      "description": "Optional root URL of a self-hosted Consumet instance (e.g. https://consumet.your-domain.com). Enables anime playback on the anime watch route only; empty keeps the honest 'Playback unavailable' state. VEYRA never falls back to a public instance.",
+      "requiredAtBoot": false
     }
   ]
 }

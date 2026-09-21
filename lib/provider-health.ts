@@ -7,6 +7,7 @@ import 'server-only'
 import { lookup } from 'node:dns/promises'
 import { PROVIDERS, type StreamProvider } from './player'
 import { getConsumetConfig } from './providers/consumet'
+import { getConfiguredAnimeProviders, providerOrigin } from './providers/anime-registry'
 
 export type ProviderHealthStatus =
   | 'healthy'
@@ -168,6 +169,26 @@ export async function getHealthyProviderIds(): Promise<Set<string>> {
 export async function getProviderHealthForClient(force = false): Promise<Omit<ProviderHealthResult, 'resolvedIp'>[]> {
   const results = await getProviderHealth(force)
   return results.map(({ resolvedIp: _resolvedIp, ...rest }) => rest)
+}
+
+// ── Configured anime provider health ──────────────────────────────────────────
+
+export async function getAnimeProviderHealthForClient(force = false): Promise<Array<Omit<ProviderHealthResult, 'resolvedIp'>>> {
+  // Anime adapters share the same operator-configured origin when they use
+  // Consumet. Empty origins are intentionally omitted and never probed.
+  const providers = getConfiguredAnimeProviders()
+  const results = await Promise.all(providers.map(async (provider) => {
+    const origin = providerOrigin(provider)
+    if (!origin) return {
+      id: provider.id, name: provider.name, origin: '', dnsResolved: false,
+      resolvedIp: null, reachable: false, status: 'unverified' as const, latencyMs: null,
+      lastCheckedAt: new Date().toISOString(), error: null,
+    }
+    const check = await checkOrigin(origin)
+    return { id: provider.id, name: provider.name, origin, ...check, lastCheckedAt: new Date().toISOString() }
+  }))
+  void force
+  return results.map(({ resolvedIp: _resolvedIp, ...result }) => result)
 }
 
 // ── Consumet (self-hosted anime provider) ─────────────────────────────────────

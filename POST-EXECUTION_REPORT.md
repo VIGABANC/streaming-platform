@@ -3,28 +3,22 @@
 ## 1. Commands run + raw output
 
 ```text
-git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	modified:   next-env.d.ts
-
-no changes added to commit (use "git add" and/or "git commit -a")
-
 git branch --show-current
-main
-
-git branch -a
-* main
-  v0/player-reliability
-  remotes/origin/HEAD -> origin/main
-  remotes/origin/main
-  remotes/origin/v0/player-reliability
+v0/veyra-cinematic-player-implementation-66836c1a
 
 git log --oneline -10
+7bea4df feat: update type imports for Next.js dev environment
+0a6f634 Merge pull request #34 from VIGABANC/v0/player-reliability
+45d0ab0 Improve player failure recovery UX
+68b2d99 Improve playback fallback reliability
+03cd499 Add multi-provider anime orchestration
+7a01ad4 Fix Consumet health probe URL
+a451820 Improve player provider failover preferences
+b5a28c0 Merge pull request #33 from VIGABANC/fix-provider-dns
+e041fa8 Refactor anime playback and provider integration
+536d65b Implement health endpoint rate limiting and verification tests
+
+git log --oneline main | head -10
 0a6f634 Merge pull request #34 from VIGABANC/v0/player-reliability
 45d0ab0 Improve player failure recovery UX
 68b2d99 Improve playback fallback reliability
@@ -36,103 +30,230 @@ e041fa8 Refactor anime playback and provider integration
 536d65b Implement health endpoint rate limiting and verification tests
 f0ecf34 Restrict providers to external-embed only and update TMDB configuration
 
-git log main..HEAD --oneline
-
-
-git log main..v0/player-reliability --oneline
-
-
 git rev-parse HEAD
-0a6f634e2717c7fd072334ffcb88b179015f10d7
+7bea4dfcbae42353b4a17a8aa20a7abd8f8e512a
 
 git rev-parse main
 0a6f634e2717c7fd072334ffcb88b179015f10d7
 
-git rev-parse v0/player-reliability 2>&1 || echo "branch missing"
-45d0ab0fd6bce1f03da8e979a438778edd2180bf
-
-git cat-file -t 68b2d99 2>&1
+git cat-file -t 68b2d99
 commit
 
-git cat-file -t 45d0ab0 2>&1
+git cat-file -t 45d0ab0
 commit
 
-git ls-remote origin | head -20
-0a6f634e2717c7fd072334ffcb88b179015f10d7	HEAD
-ffc38a273cedacc9268c2f6ed182f5805a8162ea	refs/heads/base44/setup-e7c699d6
-0821abdde781c03c5f39998d0500c593ad1e865f	refs/heads/codex/veyra-community-ux
-6f2cd041ed7badc8b3e91d37b238cd6b27bd17e5	refs/heads/codex/veyra-e2e-hardening
-3b13b12fc15a850ada4fa54d6fc3bcae30dfc53b	refs/heads/codex/veyra-integration
-3d70bcde1f836ecc29d445157f78da5476c281a6	refs/heads/codex/veyra-player-integration
-3497e3769c48943bc29ba04f3771da3b19a9b043	refs/heads/codex/veyra-player-optimization
-8e2d31cecf4b6ae36a4762598fa589b057002397	refs/heads/codex/veyra-production-remediation
-3f454ad57f3442fa4eb5608f883307b9d4b4c071	refs/heads/codex/veyra-telegram-bots
-34bbb250f8a08ea0ba9f426ff39a62e4fe99bcfc	refs/heads/codex/veyra-telegram-feedback
-e041fa8363446fdd98cd2e44a007bbcc220db502	refs/heads/fix-provider-dns
-ec21bbb56c6d791cbaa03d8d2398aa2eb842322b	refs/heads/fix/ai-structured-output-contract
-150eba644b146faacbe2541049cb529167f8f52c	refs/heads/fix/release-readiness-blockers
-044209e1eb7454f56531b8a1e0c08a23309aa53b	refs/heads/fix/release-readiness-blockers-a381
-0a6f634e2717c7fd072334ffcb88b179015f10d7	refs/heads/main
-01c88503af3e68da7ce96bf8fc7439dc4e3bbc16	refs/heads/v0/eview-ebd1d199
-94fa68dc3acfb40ac821c622b0c7ed5e8df5317a	refs/heads/v0/version-control-workflow-fa80bfb7
-040761a53a8a3297b8647c8e4f75376f0edcab81	refs/heads/v0/veyra-full-stack-audit
+ls -la lib/providers/
+total 40
+anime-health-store.ts
+anime-orchestrator.ts
+anime-registry.ts
+consumet.ts
+embed-health.ts
+embed-registry.ts
+errors.ts
 
-git diff --stat
- next-env.d.ts | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-git diff --stat main..HEAD
-
-
-ls -la app/ components/ lib/providers/ 2>&1
-[ inspected directories; relevant provider files present ]
-
-head -5 app/page.tsx 2>&1
-import { headers } from 'next/headers'
-import { CinematicHero } from '@/components/landing/CinematicHero'
-import { LandingNav } from '@/components/landing/LandingNav'
-import { LandingFooter } from '@/components/landing/LandingFooter'
-import { HomeCatalog } from '@/components/landing/HomeCatalog'
+head -5 app/watch/anime/*/page.tsx 2>&1 || find app -path '*anime*' -name '*.tsx'
+head: cannot open 'app/watch/anime/*/page.tsx' for reading: No such file or directory
+app/anime/[id]/page.tsx
+app/anime/page.tsx
+app/watch/anime/[id]/[episode]/page.tsx
 ```
 
-## 2. Answers to A–F
+```text
+curl -sS -i http://localhost:3000/api/health/providers
+HTTP/1.1 200 OK
+content-type: application/json
+{"providers":[...],"anime":[...],"consumet":{"configured":true,"id":"consumet","name":"Consumet (self-hosted)","origin":"http://localhost:3000","dnsResolved":true,"reachable":true,"status":"healthy","latencyMs":248,...},"cached":true}
+```
 
-A. Yes. Commit `68b2d99` is reachable as a commit object and is in the `main` history.
+```text
+curl -sS http://localhost:3000/watch/anime/52991/1 | grep -oE 'Playback available|Episode not available|Provider unavailable|Playback unavailable|Sandbox is not allowed' | sort | uniq -c
+      2 Episode not available
+```
 
-B. Yes. Commit `45d0ab0` is reachable as a commit object and is in the `main` history.
+```text
+CONSUMET_BASE_URL/anime/mal/info?id=52991
+HTTP/1.1 404 Not Found
+Content-Type: text/html; charset=utf-8
+```
 
-C. HEAD is on `main`, not `v0/player-reliability`.
+The configured Consumet base URL resolves to the local application origin (`http://localhost:3000`), not a running Consumet API. The health probe therefore reports the local origin as reachable, but the required Consumet info endpoint returns the app's 404 page.
 
-D. No. `app/page.tsx` does not contain `Your v0 generation will show here`.
+## 2. Phase 2 — Anime playback evidence
 
-E. Yes. `lib/providers/embed-registry.ts` and `lib/providers/embed-health.ts` both exist.
+### 2.1 `/anime/52991`
 
-F. The work is intact and merged into `main`. The feature branch also exists locally and remotely, but `main` already contains the relevant commits through merge commit `0a6f634`.
+Passed. Browser snapshot contained:
 
-## 3. Diagnosis: what happened to the code
+```text
+heading "Sousou no Frieren" [level=1]
+StaticText "TV"
+StaticText "Finished Airing"
+StaticText "28"
+StaticText " episodes"
+StaticText "9.3"
+StaticText " community score"
+paragraph "During their decade-long quest..."
+heading "Playback available" [level=2]
+paragraph "Episodes stream from the configured self-hosted Consumet instance."
+link "Watch episode 1"
+```
 
-The earlier report conflated the active checkout with the source feature branch. The checkout is now `main`, and `main` is synchronized with `origin/main` at merge commit `0a6f634`. The player reliability commits `68b2d99` and `45d0ab0` are present in the `main` ancestry, while `v0/player-reliability` remains available at `45d0ab0`. The preview placeholder concern is not reflected in the checked-out source: `app/page.tsx` contains the Veyra landing implementation, not the scaffold placeholder. There is one unrelated/uncommitted generated-file change in `next-env.d.ts`.
+Screenshot: `/tmp/agent-browser/anime-metadata.png`
 
-## 4. Recommended next action
+### 2.2 `/watch/anime/52991/1`
 
-Preserve the existing `next-env.d.ts` worktree change unless it is confirmed generated noise, then refresh/restart the preview from the current `main` checkout. If the preview still shows the scaffold placeholder, inspect preview routing/project linkage rather than recovering the player commits.
+The route loaded, but it did not render the requested playback-available state. Browser snapshot contained:
 
-## 5. Verdict
+```text
+heading "Episode not available on this provider" [level=1]
+paragraph "The configured provider has no source for this episode. No player is presented."
+paragraph "Sousou no Frieren · Episode 1"
+link "View episode list"
+```
 
-**work intact on main**
+Screenshot: `/tmp/agent-browser/anime-watch-state.png`
 
-This report intentionally contains no playback claim: no real-browser playback or live-provider verification was performed in this diagnostic-only pass.
+### 2.3 Click “Watch episode 1”
+
+The click completed and navigated to `/watch/anime/52991/1`.
+
+Result:
+
+```text
+A <video> element did not appear.
+No iframe appeared.
+No manifest request was made.
+No frame or play-button overlay appeared.
+No subtitle selector appeared.
+No blank black player box appeared.
+No "Sandbox is not allowed" message appeared.
+No raw provider error appeared.
+```
+
+This is because the server-side resolver returned `episode-unavailable` before mounting `PlayerFrame`.
+
+### 2.4 Root cause
+
+`resolveAnimePlayback()` calls:
+
+```text
+/anime/mal/info?id=52991
+```
+
+The configured base URL is the local Next.js app origin. That request returns HTTP 404 and the app HTML document, not a Consumet API response. Consequently, no episode ID is available and no `.m3u8` URL can be requested.
+
+## 3. Phase 3 — Fix status
+
+No HLS proxy or Referer fix was appropriate in this pass. The failure occurs before source resolution: the configured Consumet API endpoint is not reachable at the configured base URL.
+
+The correct operational fix is to point `CONSUMET_BASE_URL` at a running self-hosted Consumet instance exposing `/anime/mal/info` and `/anime/mal/watch`, then repeat Phase 2. No provider token or Referer was exposed to the client.
+
+## 4. Gates
+
+```text
+pnpm lint
+> eslint .
+exit 0
+```
+
+```text
+pnpm typecheck
+> tsc --noEmit
+exit 0
+```
+
+```text
+pnpm test
+Test Files  37 passed (37)
+Tests  180 passed (180)
+Start at 08:16:34
+Duration 2.57s
+exit 0
+```
+
+```text
+pnpm build
+[Next.js route summary]
+ƒ /watch/anime/[id]/[episode]
+ƒ /watch/movie/[id]
+ƒ /watch/tv/[id]/[season]/[episode]
+ƒ Proxy (Middleware)
+exit 0
+```
+
+## 5. Playback verification verdict
+
+**NOT VERIFIED — BLOCKED BY CONFIGURATION**
+
+The app's anime metadata and honest unavailable-state behavior are verified. Native video playback is not verified because the configured Consumet base URL points to the local app and returns 404 for the Consumet info endpoint. Therefore there is no episode source, no `.m3u8` manifest, and no video element to inspect.
+
+## 6. Screenshots
+
+1. Anime metadata page: `/tmp/agent-browser/anime-metadata.png` — captured.
+2. Anime watch route unavailable state: `/tmp/agent-browser/anime-watch-state.png` — captured.
+3. Video element with frame/play overlay: impossible because the route returned `episode-unavailable` before mounting the player.
+4. DevTools Network filtered to `.m3u8`: impossible because no manifest request was initiated.
+5. Subtitle selector: impossible because no Consumet source/subtitle payload was returned.
+
+## 7. Browser/runtime issues
+
+No browser error demonstrated an iframe sandbox problem. The observed route correctly avoided rendering an iframe and correctly avoided claiming playback when no provider episode source existed.
+
+## 8. Files inspected
+
+```text
+app/watch/anime/[id]/[episode]/page.tsx
+components/player/PlayerFrame.tsx
+lib/anime-playback.ts
+lib/providers/consumet.ts
+lib/providers/anime-orchestrator.ts
+lib/provider-health.ts
+lib/providers/anime-registry.ts
+```
+
+## 9. Outstanding action
+
+Configure `CONSUMET_BASE_URL` with the URL of the actual self-hosted Consumet deployment. Verify that:
+
+```text
+GET /anime/mal/info?id=52991
+GET /anime/mal/watch/{episodeId}
+```
+
+return JSON from Consumet. Then rerun Phase 2 and capture the manifest status, content type, first ten body lines, video element, playback overlay/frame, and subtitles.
+
+## 10. Final verdict
+
+**Code gates pass. Anime metadata and honest failure state pass. End-to-end anime playback remains unverified because Consumet is configured but not actually running/reachable at the configured API base URL.**
+
+The current evidence does not support a “ready to merge” playback claim.
 
 ## Verification limitations
 
-The required browser playback flow, Consumet health endpoint response, manifest request, screenshots, lint, typecheck, test, and build were not run in this diagnostic-only pass. They remain unproven here.
+The requested manifest 200 OK, native `<video>` rendering, subtitle rendering, and playback screenshot could not be produced because the upstream Consumet info request returned HTTP 404. This is an environment/configuration blocker, not an HLS authorization failure.
 
 ## Red flags / blockers
 
-- `next-env.d.ts` has an uncommitted worktree modification.
-- Preview behavior was not tested in this pass.
-- No merge blocker was found for the existence or reachability of the reported player commits.
+- `CONSUMET_BASE_URL` resolves to `http://localhost:3000`, the Next.js app origin.
+- `GET /anime/mal/info?id=52991` returns HTTP 404 HTML from the Next.js app.
+- `/api/health/providers` reports Consumet healthy because the health probe checks origin reachability, not the actual anime info contract.
+- No `.m3u8` request was made.
+- No native video playback evidence exists.
 
 ## Final verdict
 
-**work intact on main**
+**diagnostic-only for playback; provider configuration must be corrected before end-to-end verification.**
+
+> Note: the current checkout is `v0/veyra-cinematic-player-implementation-66836c1a`, while `main` remains at `0a6f634`. The earlier player reliability commits `68b2d99` and `45d0ab0` are present in `main` history and are intact.
+
+## Evidence files
+
+- `/tmp/agent-browser/anime-metadata.png`
+- `/tmp/agent-browser/anime-watch-state.png`
+- `/tmp/veyra-lint.log`
+- `/tmp/veyra-typecheck.log`
+- `/tmp/veyra-test.log`
+- `/tmp/veyra-build.log`
+- `/vercel/share/v0-project/POST-EXECUTION_REPORT.md`
+```

@@ -102,12 +102,24 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                     {cachedPlayback?.status === 'ready' ? `Playback available — Episode 1` : !consumetHealth.configured || !consumetHealth.reachable ? 'Playback unavailable' : 'Playback availability varies by episode'}
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {!consumetHealth.configured || !consumetHealth.reachable ? 'No verified anime provider is configured.' : cachedPlayback?.status === 'ready' ? 'Streams provided by a self-hosted Consumet instance.' : 'Source availability is checked when you open an episode.'}
+                    {!consumetHealth.configured
+                      ? 'No anime provider is configured.'
+                      : consumetHealth.status === 'self-reference'
+                        ? 'The configured Consumet URL points back to VEYRA. A separate reachable Consumet instance is required.'
+                        : !consumetHealth.reachable
+                          ? 'The configured anime provider could not be verified.'
+                          : cachedPlayback?.status === 'ready'
+                            ? 'Streams provided by a self-hosted Consumet instance.'
+                            : 'Source availability is checked when you open an episode.'}
                   </p>
                   {cachedPlayback?.status === 'ready' && <p className="mt-1 text-xs leading-5 text-white/45">Streams provided by a self-hosted Consumet instance. VEYRA does not host or verify this content.</p>}
-                  <Link href={cachedPlayback?.status === 'ready' ? `/watch/anime/${id}/1` : `#episodes`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">
-                    {cachedPlayback?.status === 'ready' ? 'Watch episode 1' : !consumetHealth.configured || !consumetHealth.reachable ? 'View episode list' : 'Browse episodes'}
-                  </Link>
+                  {cachedPlayback?.status === 'ready' ? (
+                    <Link href={`/watch/anime/${id}/1`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">Watch episode 1</Link>
+                  ) : episodes.length > 0 ? (
+                    <Link href="#episodes" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">View episode list</Link>
+                  ) : (
+                    <span className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/10 px-4 text-xs font-semibold text-white/45">Episode list unavailable</span>
+                  )}
                 </div>
               </div>
             </div>

@@ -19,19 +19,20 @@ git branch --show-current
 v0/veyra-cinematic-player-implementation-66836c1a
 
 git log --oneline -5
+ef9e3ba Add honest anime availability and provider fallback
 f6cec7a Fix Consumet health probing and unavailable playback states
 296fc8b Document anime playback verification blocker
 7bea4df feat: update type imports for Next.js dev environment
 0a6f634 Merge pull request #34 from VIGABANC/v0/player-reliability
-45d0ab0 Improve player failure recovery UX
 
 git log main..HEAD --oneline
+ef9e3ba Add honest anime availability and provider fallback
 f6cec7a Fix Consumet health probing and unavailable playback states
 296fc8b Document anime playback verification blocker
 7bea4df feat: update type imports for Next.js dev environment
 
 git rev-parse HEAD
-f6cec7a92a51905ba8172911efdc1a64025e981b
+ef9e3ba39d69dc81f0fc5b6c67f0f7db38e45a2c
 ```
 
 ## 3. Files changed
@@ -39,15 +40,17 @@ f6cec7a92a51905ba8172911efdc1a64025e981b
 ```text
 git diff --stat main..HEAD
  .env.example                            |   5 +
- POST-EXECUTION_REPORT.md                | 259 ++++++++++++++++++++++++++++++++
+ POST-EXECUTION_REPORT.md                | 156 ++++++++++++++++++++++++++++++++
+ app/anime/[id]/page.tsx                 |  43 ++++-----
  app/api/health/providers/route.ts       |   2 +-
- app/anime/[id]/page.tsx                 |  43 ++++++----------
- app/watch/anime/[id]/[episode]/page.tsx |  15 +++--
+ app/watch/anime/[id]/[episode]/page.tsx |  15 ++-
  components/player/PlayerFrame.tsx       |   2 +-
- lib/anime-playback.ts                   |  77 ++++++++++++++---------------
- lib/provider-health.ts                  |  76 +++++++++++-----
- lib/providers/anime-registry.ts         |  31 ++++++---
- tests/unit/consumet.test.ts             |  30 +++++---
+ lib/anime-playback.ts                   |  77 +++++++++-------
+ lib/provider-health.ts                  |  96 +++++++++++++++-----
+ lib/providers/anime-registry.ts         |  31 ++++---
+ tests/unit/consumet.test.ts             |  32 +++----
+
+Total: 10 files changed, 343 insertions(+), 116 deletions(-)
 ```
 
 ## 4. Gates

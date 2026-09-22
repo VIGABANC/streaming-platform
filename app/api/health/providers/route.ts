@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     }
     const [results, consumet, anime] = await Promise.all([
       getProviderHealthForClient(force),
-      getConsumetHealthForClient(force),
+      getConsumetHealthForClient(force, new URL(request.url).origin),
       getAnimeProviderHealthForClient(force),
     ])
     return NextResponse.json(

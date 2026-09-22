@@ -61,7 +61,7 @@ export interface ProviderHealthInfo {
   origin: string
   dnsResolved: boolean
   reachable: boolean
-  status: 'healthy' | 'degraded' | 'dns-failure' | 'unreachable' | 'timeout' | 'rate-limited' | 'unverified'
+  status: 'healthy' | 'degraded' | 'dns-failure' | 'unreachable' | 'timeout' | 'rate-limited' | 'unverified' | 'self-reference' | 'not-configured'
   latencyMs: number | null
   lastCheckedAt: string
   error: string | null

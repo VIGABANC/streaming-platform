@@ -120,9 +120,9 @@ export default async function AnimeWatchPage({ params }: AnimeWatchPageProps) {
         ) : playback?.status === 'provider-unavailable' ? (
           <div className="rounded-2xl border border-white/10 bg-black p-8 text-center">
             <CircleOff size={36} className="mx-auto mb-4 text-primary" aria-hidden="true" />
-            <h1 className="text-lg font-bold text-white font-display">Provider unavailable</h1>
+            <h1 className="text-lg font-bold text-white font-display">Playback unavailable</h1>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              The configured anime provider could not be reached. No player is presented for a provider that cannot be verified.
+              No verified anime provider is configured. Configure a self-hosted Consumet instance to enable anime playback.
             </p>
             <p className="mt-3 text-xs text-white/45">{title} · Episode {episodeNumber}</p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">{episodeListLink}</div>
@@ -149,7 +149,7 @@ export default async function AnimeWatchPage({ params }: AnimeWatchPageProps) {
             <CircleOff size={36} className="mx-auto mb-4 text-primary" aria-hidden="true" />
             <h1 className="text-lg font-bold text-white font-display">Playback unavailable</h1>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              No verified anime provider is configured. No iframe or playback claim is presented.
+              No verified anime provider is configured. Configure a self-hosted Consumet instance to enable anime playback.
             </p>
             <p className="mt-3 text-xs text-white/45">{title} · Episode {episodeNumber}</p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">

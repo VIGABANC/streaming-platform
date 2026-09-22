@@ -17,6 +17,8 @@ export type ProviderHealthStatus =
   | 'timeout'
   | 'rate-limited'
   | 'unverified'
+  | 'self-reference'
+  | 'not-configured'
 
 export type ProviderErrorCode =
   | 'NO_PROVIDER_CONFIGURED'
@@ -116,6 +118,37 @@ async function checkOrigin(origin: string): Promise<OriginCheck> {
   }
 }
 
+async function checkConsumetEndpoint(origin: string): Promise<OriginCheck> {
+  const { resolved, ip } = await checkDns(origin)
+  if (!resolved) {
+    return { dnsResolved: false, resolvedIp: null, reachable: false, status: 'dns-failure', latencyMs: null, error: 'PROVIDER_DNS_FAILURE' }
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5_000)
+  const start = performance.now()
+  try {
+    const response = await fetch(`${origin.replace(/\/$/, '')}/anime/gogoanime/top-airing`, {
+      signal: controller.signal,
+      redirect: 'follow',
+      headers: { Accept: 'application/json', 'User-Agent': 'VEYRA-HealthCheck/1.0' },
+    })
+    const latencyMs = Math.round(performance.now() - start)
+    if (response.status === 429) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'rate-limited', latencyMs, error: 'PROVIDER_RATE_LIMITED' }
+    if (!response.ok) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'unreachable', latencyMs, error: 'PROVIDER_UNREACHABLE' }
+    const payload: unknown = await response.json()
+    const validShape = Array.isArray(payload) || Boolean(payload && typeof payload === 'object' && Object.keys(payload).length > 0)
+    if (!validShape) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'unreachable', latencyMs, error: 'PROVIDER_UNREACHABLE' }
+    return { dnsResolved: true, resolvedIp: ip, reachable: true, status: latencyMs > 3000 ? 'degraded' : 'healthy', latencyMs, error: null }
+  } catch (error) {
+    const latencyMs = Math.round(performance.now() - start)
+    if (error instanceof Error && error.name === 'AbortError') return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'timeout', latencyMs, error: 'PROVIDER_TIMEOUT' }
+    return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'unreachable', latencyMs, error: 'PROVIDER_UNREACHABLE' }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 async function checkProvider(provider: StreamProvider): Promise<ProviderHealthResult> {
   const now = new Date().toISOString()
   const check = await checkOrigin(provider.origin)
@@ -209,9 +242,13 @@ export interface ConsumetHealthResult {
 }
 
 const CONSUMET_HEALTH_NAME = 'Consumet (self-hosted)'
-let consumetCache: { result: ConsumetHealthResult; expiresAt: number } | null = null
+let consumetCache: { result: ConsumetHealthResult; expiresAt: number; appOrigin: string | null } | null = null
 
-export async function getConsumetHealth(force = false): Promise<ConsumetHealthResult> {
+export async function getConsumetHealth(force = false, requestOrigin?: string): Promise<ConsumetHealthResult> {
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || requestOrigin || null
+  if (!force && consumetCache && Date.now() < consumetCache.expiresAt && consumetCache.appOrigin === appOrigin) {
+    return consumetCache.result
+  }
   if (!force && consumetCache && Date.now() < consumetCache.expiresAt) {
     return consumetCache.result
   }
@@ -230,16 +267,25 @@ export async function getConsumetHealth(force = false): Promise<ConsumetHealthRe
       dnsResolved: false,
       resolvedIp: null,
       reachable: false,
-      status: null,
+      status: 'not-configured',
       latencyMs: null,
       lastCheckedAt,
       error: null,
     }
   } else {
-    // Probe the instance root as a concrete URL. Keeping the trailing slash
-    // also makes the request unambiguous for strict HTTP servers while the
-    // public origin remains normalized in the response.
-    const check = await checkOrigin(`${config.baseUrl}/`)
+    let check: OriginCheck
+    let selfReference = false
+    try {
+      selfReference = Boolean(appOrigin && new URL(config.baseUrl).origin === new URL(appOrigin).origin)
+    } catch {
+      selfReference = false
+    }
+    if (selfReference) {
+      console.warn(`[provider-health] ${generateRequestId()} CONSUMET_BASE_URL points at the app's own origin — refusing to probe. Configure a real Consumet instance.`)
+      check = { dnsResolved: false, resolvedIp: null, reachable: false, status: 'self-reference', latencyMs: null, error: 'PROVIDER_UNREACHABLE' }
+    } else {
+      check = await checkConsumetEndpoint(config.baseUrl)
+    }
     result = {
       configured: true,
       id: 'consumet',
@@ -256,11 +302,11 @@ export async function getConsumetHealth(force = false): Promise<ConsumetHealthRe
     console.log(`[provider-health] consumet origin=${config.baseUrl} dns=${check.dnsResolved} reachable=${check.reachable} status=${check.status} latency=${check.latencyMs ?? 'N/A'}ms`)
   }
 
-  consumetCache = { result, expiresAt: Date.now() + CACHE_TTL_MS }
+  consumetCache = { result, expiresAt: Date.now() + CACHE_TTL_MS, appOrigin }
   return result
 }
 
-export async function getConsumetHealthForClient(force = false): Promise<Omit<ConsumetHealthResult, 'resolvedIp'>> {
-  const { resolvedIp: _resolvedIp, ...rest } = await getConsumetHealth(force)
+export async function getConsumetHealthForClient(force = false, requestOrigin?: string): Promise<Omit<ConsumetHealthResult, 'resolvedIp'>> {
+  const { resolvedIp: _resolvedIp, ...rest } = await getConsumetHealth(force, requestOrigin)
   return rest
 }

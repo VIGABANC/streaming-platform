@@ -6,7 +6,8 @@ import { notFound } from 'next/navigation'
 import { Shell } from '@/components/layout/Shell'
 import { getAnimeDetail, getAnimeEpisodes } from '@/lib/jikan/client'
 import { isStrictPositiveInteger } from '@/lib/player'
-import { isConsumetConfigured } from '@/lib/providers/consumet'
+import { getConsumetHealth } from '@/lib/provider-health'
+import { getCachedAnimePlayback } from '@/lib/anime-playback'
 import { serializeJsonLd } from '@/lib/seo/json-ld'
 
 // The playback card reflects the server-side Consumet configuration — it must
@@ -34,7 +35,8 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
     getAnimeDetail(id),
     getAnimeEpisodes(id).catch(() => []),
   ])
-  const consumetConfigured = isConsumetConfigured()
+  const consumetHealth = await getConsumetHealth()
+  const cachedPlayback = getCachedAnimePlayback(Number(id), 1)
   const title = anime?.title || `Anime ${id}`
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -92,30 +94,23 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
               </p>
             )}
 
-            {consumetConfigured ? (
-              <div className="mt-8 rounded-xl border border-white/10 bg-surface/50 p-5">
-                <div className="flex items-start gap-3">
-                  <PlayCircle size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-                  <div>
-                    <h2 className="font-semibold text-white">Playback available</h2>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">Episodes stream from the configured self-hosted Consumet instance.</p>
-                    <p className="mt-1 text-xs leading-5 text-white/45">Streams provided by a self-hosted Consumet instance. VEYRA does not host or verify this content.</p>
-                    <Link href={`/watch/anime/${id}/1`} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Watch episode 1</Link>
-                  </div>
+            <div className="mt-8 rounded-xl border border-white/10 bg-surface/50 p-5">
+              <div className="flex items-start gap-3">
+                {cachedPlayback?.status === 'ready' ? <PlayCircle size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" /> : <CircleOff size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />}
+                <div>
+                  <h2 className="font-semibold text-white">
+                    {cachedPlayback?.status === 'ready' ? `Playback available — Episode 1` : !consumetHealth.configured || !consumetHealth.reachable ? 'Playback unavailable' : 'Playback availability varies by episode'}
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {!consumetHealth.configured || !consumetHealth.reachable ? 'No verified anime provider is configured.' : cachedPlayback?.status === 'ready' ? 'Streams provided by a self-hosted Consumet instance.' : 'Source availability is checked when you open an episode.'}
+                  </p>
+                  {cachedPlayback?.status === 'ready' && <p className="mt-1 text-xs leading-5 text-white/45">Streams provided by a self-hosted Consumet instance. VEYRA does not host or verify this content.</p>}
+                  <Link href={cachedPlayback?.status === 'ready' ? `/watch/anime/${id}/1` : `#episodes`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">
+                    {cachedPlayback?.status === 'ready' ? 'Watch episode 1' : !consumetHealth.configured || !consumetHealth.reachable ? 'View episode list' : 'Browse episodes'}
+                  </Link>
                 </div>
               </div>
-            ) : (
-              <div className="mt-8 rounded-xl border border-white/10 bg-surface/50 p-5">
-                <div className="flex items-start gap-3">
-                  <CircleOff size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-                  <div>
-                    <h2 className="font-semibold text-white">Playback unavailable</h2>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">No verified anime provider is configured. No iframe or playback claim is presented.</p>
-                    <Link href={`/watch/anime/${id}/1`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">View episode availability</Link>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
 
             {episodes.length > 0 && (
               <section id="episodes" aria-labelledby="episodes-title" className="mt-8 rounded-xl border border-white/10 bg-surface/50 p-5">

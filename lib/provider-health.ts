@@ -136,9 +136,15 @@ async function checkConsumetEndpoint(origin: string): Promise<OriginCheck> {
     const latencyMs = Math.round(performance.now() - start)
     if (response.status === 429) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'rate-limited', latencyMs, error: 'PROVIDER_RATE_LIMITED' }
     if (!response.ok) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'unreachable', latencyMs, error: 'PROVIDER_UNREACHABLE' }
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.toLowerCase().includes('application/json')) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'unreachable', latencyMs, error: 'PROVIDER_UNREACHABLE' }
     const payload: unknown = await response.json()
-    const validShape = Array.isArray(payload) || Boolean(payload && typeof payload === 'object' && Object.keys(payload).length > 0)
-    if (!validShape) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'unreachable', latencyMs, error: 'PROVIDER_UNREACHABLE' }
+    const entries = Array.isArray(payload)
+      ? payload
+      : payload && typeof payload === 'object' && Array.isArray((payload as { results?: unknown }).results)
+        ? (payload as { results: unknown[] }).results
+        : []
+    if (entries.length === 0) return { dnsResolved: true, resolvedIp: ip, reachable: false, status: 'unreachable', latencyMs, error: 'PROVIDER_UNREACHABLE' }
     return { dnsResolved: true, resolvedIp: ip, reachable: true, status: latencyMs > 3000 ? 'degraded' : 'healthy', latencyMs, error: null }
   } catch (error) {
     const latencyMs = Math.round(performance.now() - start)
@@ -207,21 +213,19 @@ export async function getProviderHealthForClient(force = false): Promise<Omit<Pr
 // ── Configured anime provider health ──────────────────────────────────────────
 
 export async function getAnimeProviderHealthForClient(force = false): Promise<Array<Omit<ProviderHealthResult, 'resolvedIp'>>> {
-  // Anime adapters share the same operator-configured origin when they use
-  // Consumet. Empty origins are intentionally omitted and never probed.
   const providers = getConfiguredAnimeProviders()
-  const results = await Promise.all(providers.map(async (provider) => {
-    const origin = providerOrigin(provider)
-    if (!origin) return {
-      id: provider.id, name: provider.name, origin: '', dnsResolved: false,
-      resolvedIp: null, reachable: false, status: 'unverified' as const, latencyMs: null,
-      lastCheckedAt: new Date().toISOString(), error: null,
-    }
-    const check = await checkOrigin(origin)
-    return { id: provider.id, name: provider.name, origin, ...check, lastCheckedAt: new Date().toISOString() }
+  const consumet = await getConsumetHealth(force)
+  return providers.map((provider) => ({
+    id: provider.id,
+    name: provider.name,
+    origin: providerOrigin(provider) || '',
+    dnsResolved: consumet.dnsResolved,
+    reachable: consumet.reachable,
+    status: consumet.status || 'unverified',
+    latencyMs: consumet.latencyMs,
+    lastCheckedAt: consumet.lastCheckedAt,
+    error: consumet.error,
   }))
-  void force
-  return results.map(({ resolvedIp: _resolvedIp, ...result }) => result)
 }
 
 // ── Consumet (self-hosted anime provider) ─────────────────────────────────────

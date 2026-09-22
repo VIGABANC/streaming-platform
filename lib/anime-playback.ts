@@ -7,13 +7,11 @@
 
 import 'server-only'
 import {
-  getAnimeInfo,
-  getEpisodeSources,
-  ConsumetError,
   type ConsumetEpisode,
   type ConsumetSource,
   type ConsumetSubtitle,
 } from './providers/consumet'
+import { fetchFromAllProviders } from './providers/anime-orchestrator'
 import { getConsumetHealth, type ConsumetHealthResult } from './provider-health'
 import type { PlaybackSource } from './player'
 
@@ -23,13 +21,21 @@ export type AnimePlaybackStatus =
   | 'episode-unavailable'
   | 'ready'
 
+export interface AnimeProviderAttempt {
+  providerId: string
+  providerName: string
+  status: 'success' | 'failure'
+  sourceCount: number
+  latencyMs: number
+  error?: string
+}
+
 export interface AnimePlaybackResolution {
   status: AnimePlaybackStatus
   health: ConsumetHealthResult
-  /** Native playback source — present only in the 'ready' state. */
   source?: PlaybackSource
-  /** Consumet episode list — present only in the 'ready' state. */
   episodes?: ConsumetEpisode[]
+  attempts?: AnimeProviderAttempt[]
 }
 
 const CONSUMET_PROVIDER_ID = 'consumet'
@@ -77,50 +83,51 @@ function pickPlaybackSource(episodeId: string, sources: ConsumetSource[], subtit
   return null
 }
 
-function isFetchError(error: unknown): error is ConsumetError {
-  return error instanceof ConsumetError && error.code === 'CONSUMET_REQUEST_FAILED'
-}
-
 /**
  * Resolves anime playback for one Jikan/MAL episode. Never falls back to a
  * public instance or to movie/TV providers — the honest unavailable states
  * are returned instead.
  */
+const resolutionCache = new Map<string, { value: AnimePlaybackResolution; expiresAt: number }>()
+
+export function getCachedAnimePlayback(malId: number, episodeNumber: number): AnimePlaybackResolution | null {
+  const cached = resolutionCache.get(`${malId}:${episodeNumber}`)
+  return cached && cached.expiresAt > Date.now() ? cached.value : null
+}
+
 export async function resolveAnimePlayback(options: {
   malId: number
   episodeNumber: number
   forceHealth?: boolean
 }): Promise<AnimePlaybackResolution> {
+  const cacheKey = `${options.malId}:${options.episodeNumber}`
+  const cached = resolutionCache.get(cacheKey)
+  if (!options.forceHealth && cached && cached.expiresAt > Date.now()) return cached.value
+
   const health = await getConsumetHealth(options.forceHealth ?? false)
   if (!health.configured) return { status: 'unconfigured', health }
-  if (health.status !== 'healthy' && health.status !== 'degraded') {
-    return { status: 'provider-unavailable', health }
+  if (health.status !== 'healthy' && health.status !== 'degraded') return { status: 'provider-unavailable', health }
+
+  const results = await fetchFromAllProviders(options.malId, options.episodeNumber)
+  const attempts: AnimeProviderAttempt[] = results.map((result) => ({
+    providerId: result.providerId, providerName: result.providerName, status: result.status,
+    sourceCount: result.sources.length, latencyMs: result.latencyMs, error: result.error,
+  }))
+  const winner = results.find((result) => result.status === 'success' && result.sources.length > 0)
+  if (!winner) {
+    const value = { status: 'episode-unavailable' as const, health, attempts }
+    resolutionCache.set(cacheKey, { value, expiresAt: Date.now() + 300_000 })
+    return value
   }
 
-  let episodes: ConsumetEpisode[]
-  try {
-    episodes = await getAnimeInfo({ malId: options.malId })
-  } catch (error) {
-    if (error instanceof ConsumetError && error.code === 'CONSUMET_NOT_FOUND') {
-      return { status: 'episode-unavailable', health }
-    }
-    if (isFetchError(error)) console.error('[anime-playback] consumet info request failed:', error.code)
-    return { status: 'provider-unavailable', health }
+  const candidateSources: ConsumetSource[] = winner.sources.map((source) => ({ url: source.url, quality: source.quality, isM3U8: source.isM3U8 }))
+  const source = pickPlaybackSource(`${winner.providerId}:${options.malId}:${options.episodeNumber}`, candidateSources, winner.subtitles.map((subtitle) => ({ url: subtitle.url, lang: subtitle.lang })))
+  if (!source) {
+    const value = { status: 'episode-unavailable' as const, health, attempts }
+    resolutionCache.set(cacheKey, { value, expiresAt: Date.now() + 300_000 })
+    return value
   }
-
-  const episode = episodes.find((entry) => entry.number === options.episodeNumber)
-  if (!episode) return { status: 'episode-unavailable', health }
-
-  try {
-    const result = await getEpisodeSources(episode.id, { malId: options.malId })
-    const source = pickPlaybackSource(episode.id, result.sources, result.subtitles)
-    if (!source) return { status: 'episode-unavailable', health }
-    return { status: 'ready', source, episodes, health }
-  } catch (error) {
-    if (error instanceof ConsumetError && error.code === 'CONSUMET_NOT_FOUND') {
-      return { status: 'episode-unavailable', health }
-    }
-    if (isFetchError(error)) console.error('[anime-playback] consumet watch request failed:', error.code)
-    return { status: 'provider-unavailable', health }
-  }
+  const value = { status: 'ready' as const, source, health, attempts }
+  resolutionCache.set(cacheKey, { value, expiresAt: Date.now() + 300_000 })
+  return value
 }

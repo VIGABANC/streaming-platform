@@ -31,7 +31,7 @@ beforeEach(() => {
   fetchMock.mockReset()
   dnsLookupMock.mockReset()
   dnsLookupMock.mockResolvedValue([{ address: '203.0.113.7', family: 4 }])
-  fetchMock.mockImplementation(async () => new Response(null, { status: 200 }))
+  fetchMock.mockImplementation(async () => json({ results: [{ id: 'probe' }] }))
   vi.stubGlobal('fetch', fetchMock)
 })
 
@@ -81,13 +81,13 @@ describe('anime playback resolution', () => {
     process.env.CONSUMET_BASE_URL = 'https://consumet.example.test'
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      if (url.endsWith('/anime/mal/info?id=1')) {
+      if (url.includes('/anime/mal/info?id=1')) {
         return json({ episodes: [
           { id: 'ep-1', number: 1, title: 'Episode 1' },
           { id: 'ep-2', number: 2, title: 'Episode 2' },
         ] })
       }
-      if (url.endsWith('/anime/mal/watch/ep-1')) {
+      if (url.includes('/anime/mal/watch/ep-1')) {
         return json({
           headers: { Referer: 'https://gogo.example.test' },
           sources: [
@@ -97,7 +97,7 @@ describe('anime playback resolution', () => {
           subtitles: [{ url: 'https://cdn.example.test/ep-1.vtt', lang: 'english' }],
         })
       }
-      return new Response(null, { status: 200 })
+      return json({ results: [{ id: 'probe' }] })
     })
 
     const { resolveAnimePlayback } = await import('@/lib/anime-playback')
@@ -145,8 +145,8 @@ describe('anime playback resolution', () => {
     process.env.CONSUMET_BASE_URL = 'https://consumet.example.test'
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      if (url === 'https://consumet.example.test') throw new Error('network down')
-      return new Response(null, { status: 200 })
+      if (url === 'https://consumet.example.test/anime/gogoanime/top-airing') throw new Error('network down')
+      return json({ results: [{ id: 'probe' }] })
     })
 
     const { resolveAnimePlayback } = await import('@/lib/anime-playback')
@@ -160,10 +160,10 @@ describe('anime playback resolution', () => {
     process.env.CONSUMET_BASE_URL = 'https://consumet.example.test'
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      if (url.endsWith('/anime/mal/info?id=1')) {
+      if (url.includes('/anime/mal/info?id=1')) {
         return json({ episodes: [{ id: 'ep-1', number: 1 }] })
       }
-      return new Response(null, { status: 200 })
+      return json({ results: [{ id: 'probe' }] })
     })
 
     const { resolveAnimePlayback } = await import('@/lib/anime-playback')
@@ -174,8 +174,8 @@ describe('anime playback resolution', () => {
     // 404 from the instance: the anime is not present on this provider.
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      if (url.endsWith('/anime/mal/info?id=1')) return new Response('Not found', { status: 404 })
-      return new Response(null, { status: 200 })
+      if (url.includes('/anime/mal/info?id=1')) return new Response('Not found', { status: 404 })
+      return json({ results: [{ id: 'probe' }] })
     })
     const notFound = await resolveAnimePlayback({ malId: 1, episodeNumber: 1, forceHealth: true })
     expect(notFound.status).toBe('episode-unavailable')
@@ -185,11 +185,11 @@ describe('anime playback resolution', () => {
     process.env.CONSUMET_BASE_URL = 'https://consumet.example.test'
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      if (url.endsWith('/anime/mal/info?id=1')) return json({ episodes: [{ id: 'ep-1', number: 1 }] })
-      if (url.endsWith('/anime/mal/watch/ep-1')) {
+      if (url.includes('/anime/mal/info?id=1')) return json({ episodes: [{ id: 'ep-1', number: 1 }] })
+      if (url.includes('/anime/mal/watch/ep-1')) {
         return json({ sources: [{ url: 'https://cdn.example.test/ep-1.mp4', isM3U8: false }], subtitles: [] })
       }
-      return new Response(null, { status: 200 })
+      return json({ results: [{ id: 'probe' }] })
     })
 
     const { resolveAnimePlayback } = await import('@/lib/anime-playback')
@@ -205,11 +205,11 @@ describe('anime playback resolution', () => {
     process.env.CONSUMET_BASE_URL = 'https://consumet.example.test'
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      if (url.endsWith('/anime/mal/info?id=1')) return json({ episodes: [{ id: 'ep-1', number: 1 }] })
-      if (url.endsWith('/anime/mal/watch/ep-1')) {
+      if (url.includes('/anime/mal/info?id=1')) return json({ episodes: [{ id: 'ep-1', number: 1 }] })
+      if (url.includes('/anime/mal/watch/ep-1')) {
         return json({ sources: [{ url: 'http://cdn.example.test/ep-1.mp4', isM3U8: false }], subtitles: [] })
       }
-      return new Response(null, { status: 200 })
+      return json({ results: [{ id: 'probe' }] })
     })
 
     const { resolveAnimePlayback } = await import('@/lib/anime-playback')

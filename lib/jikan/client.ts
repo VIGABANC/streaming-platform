@@ -135,13 +135,13 @@ export interface JikanEpisode {
 /** Metadata-only episode list for an anime. */
 export const getAnimeEpisodes = cache(async (
   malId: number | string,
-): Promise<JikanEpisode[]> => {
+): Promise<JikanEpisode[] | null> => {
   const id = positiveInteger(malId)
-  if (id === null) return []
+  if (id === null) return null
 
   try {
     const response = await fetchWithTimeout(`${JIKAN_API}/anime/${id}/episodes`)
-    if (!response.ok) return []
+    if (!response.ok) return null
 
     const payload = await response.json() as JikanEpisodesResponse
     return (payload.data ?? []).flatMap((entry, index) => {

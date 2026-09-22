@@ -33,9 +33,12 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
 
   const [anime, episodes] = await Promise.all([
     getAnimeDetail(id),
-    getAnimeEpisodes(id).catch(() => []),
+    getAnimeEpisodes(id),
   ])
   const consumetHealth = await getConsumetHealth()
+  const episodeMetadataUnavailable = episodes === null && !anime?.episodes
+  const episodeRows = episodes ?? (anime?.episodes ? Array.from({ length: anime.episodes }, (_, index) => ({ number: index + 1, title: null, aired: null })) : [])
+  const playbackUnavailable = consumetHealth.status !== 'healthy' && consumetHealth.status !== 'degraded'
   const cachedPlayback = getCachedAnimePlayback(Number(id), 1)
   const title = anime?.title || `Anime ${id}`
   const jsonLd = {
@@ -115,27 +118,34 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                   {cachedPlayback?.status === 'ready' && <p className="mt-1 text-xs leading-5 text-white/45">Streams provided by a self-hosted Consumet instance. VEYRA does not host or verify this content.</p>}
                   {cachedPlayback?.status === 'ready' ? (
                     <Link href={`/watch/anime/${id}/1`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">Watch episode 1</Link>
-                  ) : episodes.length > 0 ? (
+                  ) : episodeMetadataUnavailable ? (
+                    <span className="mt-4 inline-flex min-h-11 items-center rounded-full border border-amber-400/20 px-4 text-xs font-semibold text-amber-100/70">Episode metadata temporarily unavailable. Please try again.</span>
+                  ) : episodeRows.length > 0 ? (
                     <Link href="#episodes" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">View episode list</Link>
-                  ) : (
-                    <span className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/10 px-4 text-xs font-semibold text-white/45">Episode list unavailable</span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
 
-            {episodes.length > 0 && (
+            {episodeMetadataUnavailable ? (
+              <p role="alert" className="mt-8 rounded-xl border border-amber-400/20 bg-amber-400/5 p-5 text-sm leading-6 text-amber-100/80">
+                Episode metadata temporarily unavailable. Please try again.
+              </p>
+            ) : episodeRows.length > 0 && (
               <section id="episodes" aria-labelledby="episodes-title" className="mt-8 rounded-xl border border-white/10 bg-surface/50 p-5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h2 id="episodes-title" className="font-semibold text-white">Episode list</h2>
                   <span className="text-xs text-white/45">Metadata only</span>
                 </div>
                 <ul className="mt-4 divide-y divide-white/5">
-                  {episodes.map((episode) => (
+                  {episodeRows.map((episode) => (
                     <li key={episode.number}>
-                      <Link href={`/watch/anime/${id}/${episode.number}`} className="flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 text-sm hover:bg-white/5 transition-colors">
-                        <span className="w-10 shrink-0 text-xs font-bold text-primary">E{episode.number}</span>
-                        <span className="flex-1 truncate text-white/85">{episode.title || `Episode ${episode.number}`}</span>
+                      <Link href={`/watch/anime/${id}/${episode.number}`} className="flex min-h-16 items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-white/5">
+                        <span className="grid size-12 shrink-0 place-items-center rounded-md border border-white/10 bg-white/5 text-xs font-bold text-primary" aria-hidden="true">E{episode.number}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-white/85">{episode.title || `Episode ${episode.number}`}</span>
+                          {playbackUnavailable && <span className="mt-1 block text-xs text-white/40">Playback unavailable</span>}
+                        </span>
                         {episode.aired && <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{episode.aired.slice(0, 10)}</span>}
                       </Link>
                     </li>

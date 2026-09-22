@@ -19,6 +19,7 @@ git branch --show-current
 v0/veyra-cinematic-player-implementation-66836c1a
 
 git log --oneline -5
+d8ce63d Refresh execution report with final verification state
 ef9e3ba Add honest anime availability and provider fallback
 f6cec7a Fix Consumet health probing and unavailable playback states
 296fc8b Document anime playback verification blocker
@@ -32,7 +33,7 @@ f6cec7a Fix Consumet health probing and unavailable playback states
 7bea4df feat: update type imports for Next.js dev environment
 
 git rev-parse HEAD
-ef9e3ba39d69dc81f0fc5b6c67f0f7db38e45a2c
+d8ce63d3e2c91a74235144480eb8b4f3d206dad6
 ```
 
 ## 3. Files changed

@@ -8,6 +8,7 @@ import { getAnimeDetail, getAnimeEpisodes } from '@/lib/jikan/client'
 import { isStrictPositiveInteger } from '@/lib/player'
 import { getConsumetHealth } from '@/lib/provider-health'
 import { getCachedAnimePlayback } from '@/lib/anime-playback'
+import { getAnimePlaybackCta } from '@/lib/anime-detail'
 import { serializeJsonLd } from '@/lib/seo/json-ld'
 
 // The playback card reflects the server-side Consumet configuration — it must
@@ -40,6 +41,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   const episodeRows = episodes ?? (anime?.episodes ? Array.from({ length: anime.episodes }, (_, index) => ({ number: index + 1, title: null, aired: null })) : [])
   const playbackUnavailable = consumetHealth.status !== 'healthy' && consumetHealth.status !== 'degraded'
   const cachedPlayback = getCachedAnimePlayback(Number(id), 1)
+  const playbackCta = getAnimePlaybackCta(cachedPlayback?.status)
   const title = anime?.title || `Anime ${id}`
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -116,12 +118,17 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                             : 'Source availability is checked when you open an episode.'}
                   </p>
                   {cachedPlayback?.status === 'ready' && <p className="mt-1 text-xs leading-5 text-white/45">Streams provided by a self-hosted Consumet instance. VEYRA does not host or verify this content.</p>}
-                  {cachedPlayback?.status === 'ready' ? (
-                    <Link href={`/watch/anime/${id}/1`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">Watch episode 1</Link>
+                  {playbackCta.kind === 'watch' ? (
+                    <Link href={`/watch/anime/${id}/1`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">{playbackCta.label}</Link>
                   ) : episodeMetadataUnavailable ? (
                     <span className="mt-4 inline-flex min-h-11 items-center rounded-full border border-amber-400/20 px-4 text-xs font-semibold text-amber-100/70">Episode metadata temporarily unavailable. Please try again.</span>
                   ) : episodeRows.length > 0 ? (
-                    <Link href="#episodes" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">View episode list</Link>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <Link href="#episodes" className="inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-semibold text-white hover:border-primary hover:text-primary">View episode list</Link>
+                      <span className="text-xs text-white/45">Watch legally:</span>
+                      <a href={`https://www.crunchyroll.com/search?q=${encodeURIComponent(title)}`} target="_blank" rel="noopener noreferrer nofollow" className="text-xs font-semibold text-primary hover:text-white">Crunchyroll</a>
+                      <a href={`https://www.netflix.com/search?q=${encodeURIComponent(title)}`} target="_blank" rel="noopener noreferrer nofollow" className="text-xs font-semibold text-primary hover:text-white">Netflix</a>
+                    </div>
                   ) : null}
                 </div>
               </div>

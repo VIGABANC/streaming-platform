@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { getAnimeDetail, getAnimeEpisodes } from '@/lib/jikan/client'
+import { getAnimeEpisodeThumbnail, getAnimePlaybackCta } from '@/lib/anime-detail'
 
 afterEach(() => vi.unstubAllGlobals())
 const respond = (data: unknown) => vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ data }))))
@@ -30,4 +31,21 @@ it('keeps all metadata episodes when Consumet is unverified', async () => {
   }))))
 
   await expect(getAnimeEpisodes(52991)).resolves.toHaveLength(3)
+})
+
+it.each([undefined, 'unconfigured', 'provider-unavailable', 'episode-unavailable'])('shows metadata CTA when playback is %s', (status) => {
+  expect(getAnimePlaybackCta(status).label).toBe('View episode list')
+})
+
+it('shows watch CTA only for a ready playback source', () => {
+  expect(getAnimePlaybackCta('ready')).toEqual({ kind: 'watch', label: 'Watch episode 1' })
+})
+
+it('renders anime episode thumbnails with cover fallback and stable aspect ratio', () => {
+  expect(getAnimeEpisodeThumbnail(1, 'https://cdn.example.test/frieren.jpg')).toMatchObject({
+    src: 'https://cdn.example.test/frieren.jpg',
+    alt: 'Episode 1 thumbnail',
+    wrapperClass: 'aspect-video',
+  })
+  expect(getAnimeEpisodeThumbnail(2, null)).toMatchObject({ src: null, placeholder: 'E2', wrapperClass: 'aspect-video' })
 })

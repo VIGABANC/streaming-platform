@@ -111,4 +111,4 @@ Follow-up: configure a separate reachable self-hosted Consumet instance to enabl
 
 ## End
 
-Ready to merge with follow-ups
+GO — publish the honest anime-metadata-only state

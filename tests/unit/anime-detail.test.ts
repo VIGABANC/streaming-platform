@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { getAnimeDetail, getAnimeEpisodes } from '@/lib/jikan/client'
 import { getAnimeEpisodeThumbnail, getAnimePlaybackCta } from '@/lib/anime-detail'
+import { getAnimeEpisodeThumbnailState } from '@/components/anime/AnimeEpisodeList'
 
 afterEach(() => vi.unstubAllGlobals())
 const respond = (data: unknown) => vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ data }))))
@@ -48,4 +49,19 @@ it('renders anime episode thumbnails with cover fallback and stable aspect ratio
     wrapperClass: 'aspect-video',
   })
   expect(getAnimeEpisodeThumbnail(2, null)).toMatchObject({ src: null, placeholder: 'E2', wrapperClass: 'aspect-video' })
+})
+
+it('uses a placeholder when an anime episode thumbnail fails to load', () => {
+  expect(getAnimeEpisodeThumbnailState(1, 'https://cdn.example.test/frieren.jpg', false)).toEqual({
+    src: 'https://cdn.example.test/frieren.jpg',
+    placeholder: null,
+  })
+  expect(getAnimeEpisodeThumbnailState(1, 'https://cdn.example.test/frieren.jpg', true)).toEqual({
+    src: null,
+    placeholder: 'E1',
+  })
+  expect(getAnimeEpisodeThumbnailState(2, null, false)).toEqual({
+    src: null,
+    placeholder: 'E2',
+  })
 })

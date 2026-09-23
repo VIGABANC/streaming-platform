@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, CircleOff, PlayCircle } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { Shell } from '@/components/layout/Shell'
+import { AnimeEpisodeList } from '@/components/anime/AnimeEpisodeList'
 import { getAnimeDetail, getAnimeEpisodes } from '@/lib/jikan/client'
 import { isStrictPositiveInteger } from '@/lib/player'
 import { getConsumetHealth } from '@/lib/provider-health'
@@ -139,26 +140,12 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                 Episode metadata temporarily unavailable. Please try again.
               </p>
             ) : episodeRows.length > 0 && (
-              <section id="episodes" aria-labelledby="episodes-title" className="mt-8 rounded-xl border border-white/10 bg-surface/50 p-5">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 id="episodes-title" className="font-semibold text-white">Episode list</h2>
-                  <span className="text-xs text-white/45">Metadata only</span>
-                </div>
-                <ul className="mt-4 divide-y divide-white/5">
-                  {episodeRows.map((episode) => (
-                    <li key={episode.number}>
-                      <Link href={`/watch/anime/${id}/${episode.number}`} className="flex min-h-16 items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-white/5">
-                        <span className="grid size-12 shrink-0 place-items-center rounded-md border border-white/10 bg-white/5 text-xs font-bold text-primary" aria-hidden="true">E{episode.number}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-white/85">{episode.title || `Episode ${episode.number}`}</span>
-                          {playbackUnavailable && <span className="mt-1 block text-xs text-white/40">Playback unavailable</span>}
-                        </span>
-                        {episode.aired && <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{episode.aired.slice(0, 10)}</span>}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <AnimeEpisodeList
+                animeId={id}
+                episodes={episodeRows}
+                coverImageUrl={anime?.image || null}
+                playbackUnavailable={playbackUnavailable}
+              />
             )}
           </div>
         </div>

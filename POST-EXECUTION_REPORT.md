@@ -7,7 +7,7 @@
 | Anime episode metadata decoupled from Consumet playback | ✅ | `/anime/52991` renders metadata-backed rows while playback is unavailable |
 | Frieren renders all 28 episodes | ✅ | Browser snapshot shows 28 episode rows |
 | Episode titles, air dates, thumbnails, and playback status | ✅ | Rows render Jikan titles/dates, cover-art fallback thumbnails, and `Playback unavailable` |
-| Thumbnail fallback behavior | ✅ | Episode image → cover image → `E#` placeholder, with `onError` fallback |
+| Thumbnail fallback behavior | ⚠️ | Code implements episode image → cover image → `E#` placeholder with `onError` fallback; current shared screenshot does not prove the image branch visually |
 | Honest unavailable playback route | ✅ | `/watch/anime/[id]/[episode]` remains the playback-unavailable state |
 | Removed `Episode list unavailable` copy | ✅ | Source search has no live usage |
 | Unit regression coverage | ✅ | 12 anime-detail tests pass, including cover and error fallback state |
@@ -17,11 +17,11 @@
 
 ```text
 git log --oneline -5
+23bccaa Add anime episode cover thumbnails
 8a63a2c Decouple anime episodes from playback status
 da7a5b4 Record pre-publish audit blockers
 04d833e Decouple anime episodes from playback health
 ca3e087 Merge pull request #35 from VIGABANC/v0/veyra-cinematic-player-implementation-66836c1a
-ef29329 Clarify unavailable anime provider status
 ```
 
 ## Files changed
@@ -105,7 +105,7 @@ The full accessibility snapshot contains all 28 episode rows. The episode links 
 
 ## Verdict
 
-Ready to merge with follow-ups
+GO — publish the honest anime-metadata-only state
 
 Follow-up: configure a separate reachable self-hosted Consumet instance to enable playback. Metadata browsing and episode navigation are complete and independent of provider health.
 

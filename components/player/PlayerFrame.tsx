@@ -199,7 +199,9 @@ export function PlayerFrame({
   useEffect(() => {
     const settings = store.getSettings()
     // Auto-select the first healthy provider if health data is available
-    if (preferredProviderId && !healthState.some((h) => h.id === preferredProviderId && !h.dnsResolved)) {
+    const preferredHealth = healthState.find((h) => h.id === preferredProviderId)
+    const preferredIsUsable = preferredProviderId && (!preferredHealth || (preferredHealth.dnsResolved && (preferredHealth.status === 'healthy' || preferredHealth.status === 'degraded')))
+    if (preferredIsUsable) {
       setSelectedProvider(preferredProviderId)
     } else if (healthState.length > 0) {
       const firstHealthy = healthState.find((h) => h.dnsResolved && (h.status === 'healthy' || h.status === 'degraded'))
@@ -521,6 +523,7 @@ export function PlayerFrame({
     }
     automaticFallbacksRef.current += 1
     const nextProvider = rankProviders({
+      providers: PROVIDERS.filter((provider) => !dnsFailedProviderIds.has(provider.id)),
       mediaType,
       attemptedProviderIds: attemptedProviderIdsRef.current,
       health: readProviderHealth(),

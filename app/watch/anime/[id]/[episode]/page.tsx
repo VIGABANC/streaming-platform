@@ -111,6 +111,7 @@ export default async function AnimeWatchPage({ params }: AnimeWatchPageProps) {
                 providerHealth={toPlayerHealth(playback.health)}
                 nextEpisodeHref={nextHref}
                 prevEpisodeHref={prevHref}
+                seriesId={id}
               />
             </div>
             <p className="mt-3 text-xs leading-5 text-white/45">

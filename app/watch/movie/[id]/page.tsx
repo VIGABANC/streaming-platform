@@ -17,10 +17,12 @@ import {
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
 import { getProviderHealthForClient } from '@/lib/provider-health'
+import { autoSelectProvider, providerIdByIndex } from '@/lib/auto-select'
 import { cookies } from 'next/headers'
 
 interface WatchMoviePageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ forceProvider?: string }>
 }
 
 export async function generateMetadata({ params }: WatchMoviePageProps): Promise<Metadata> {
@@ -39,8 +41,9 @@ export async function generateMetadata({ params }: WatchMoviePageProps): Promise
   }
 }
 
-export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
+export default async function WatchMoviePage({ params, searchParams }: WatchMoviePageProps) {
   const { id } = await params
+  const { forceProvider } = await searchParams
   let movie: MovieDetail | null = null
 
   try {
@@ -59,6 +62,15 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
     cookies(),
   ])
   const preferredProviderId = cookieStore.get('veyra_preferred_provider')?.value
+
+  // Server-side auto-selection: healthy first → latency ascending → preferred
+  const autoSelectedProviderId = autoSelectProvider(providerHealth, preferredProviderId)
+
+  // Dev-only forceProvider override — rejected in production
+  const forcedProviderId =
+    process.env.NODE_ENV !== 'production' && forceProvider != null
+      ? providerIdByIndex(Number(forceProvider))
+      : null
 
   const similarTitles: (Media & { media_type: MediaType })[] = (
     movie?.recommendations?.results ?? movie?.similar?.results ?? []
@@ -92,6 +104,7 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
             backHref={`/movie/${id}`}
             providerHealth={providerHealth}
             preferredProviderId={preferredProviderId}
+            autoSelectedProviderId={forcedProviderId ?? autoSelectedProviderId}
           />
         </div>
 

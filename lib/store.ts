@@ -78,6 +78,12 @@ export interface UserSettings {
   subtitleLanguage: 'auto' | 'en' | 'ar' | 'fr' | 'de' | 'es' | 'ja' | 'ko'
   ambientLighting: boolean
   reducedMotion: boolean
+  /** Ambient glow mode: 'off' disables, 'on' always samples, 'auto' defers to prefers-reduced-motion. */
+  ambientGlow: 'off' | 'on' | 'auto'
+  /** Preferred subtitle language code, persisted per series in veyra_prefs_<seriesId>. */
+  preferredSubtitleLang: string | null
+  /** Preferred audio language code, persisted per series in veyra_prefs_<seriesId>. */
+  preferredAudioLang: string | null
 }
 
 export interface WatchStats {
@@ -201,6 +207,9 @@ const DEFAULT_SETTINGS: UserSettings = {
   subtitleLanguage: 'auto',
   ambientLighting: true,
   reducedMotion: false,
+  ambientGlow: 'auto',
+  preferredSubtitleLang: null,
+  preferredAudioLang: null,
 }
 
 class LocalStorageMediaStore implements UserMediaStore {

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { ArrowLeft, ChevronLeft, ChevronRight, Tv, Clock, Play } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { PlayerFrame } from '@/components/player/PlayerFrame'
+import type { SeasonInfo } from '@/components/player/EpisodeDrawer'
 import {
   getTVDetail,
   getSeason,
@@ -18,6 +19,7 @@ import {
 } from '@/lib/tmdb'
 import { isStrictPositiveInteger } from '@/lib/player'
 import { getProviderHealthForClient } from '@/lib/provider-health'
+import { autoSelectProvider, providerIdByIndex } from '@/lib/auto-select'
 import { cookies } from 'next/headers'
 
 interface TVWatchProps {
@@ -26,6 +28,7 @@ interface TVWatchProps {
     season: string
     episode: string
   }>
+  searchParams: Promise<{ forceProvider?: string }>
 }
 
 export async function generateMetadata({ params }: TVWatchProps): Promise<Metadata> {
@@ -44,8 +47,9 @@ export async function generateMetadata({ params }: TVWatchProps): Promise<Metada
   }
 }
 
-export default async function WatchTVPage({ params }: TVWatchProps) {
+export default async function WatchTVPage({ params, searchParams }: TVWatchProps) {
   const { id, season, episode } = await params
+  const { forceProvider } = await searchParams
   if (!isStrictPositiveInteger(id) || !isStrictPositiveInteger(season) || !isStrictPositiveInteger(episode)) {
     notFound()
   }
@@ -78,8 +82,36 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
   ])
   const preferredProviderId = cookieStore.get('veyra_preferred_provider')?.value
 
+  // Server-side auto-selection: healthy first → latency ascending → preferred
+  const autoSelectedProviderId = autoSelectProvider(providerHealth, preferredProviderId)
+
+  // Dev-only forceProvider override — rejected in production
+  const forcedProviderId =
+    process.env.NODE_ENV !== 'production' && forceProvider != null
+      ? providerIdByIndex(Number(forceProvider))
+      : null
+
   const episodeName = currentEpisode?.name || `Episode ${episodeNum}`
   const backdropUrl = show?.backdrop_path ? backdrop(show.backdrop_path, 'w1280') : undefined
+
+  // Build season info for the episode drawer — populate episodes for the
+  // current season; other seasons show their count in the selector.
+  const drawerSeasons: SeasonInfo[] = (show?.seasons ?? [])
+    .filter((s) => s.season_number > 0)
+    .map((s) => ({
+      seasonNumber: s.season_number,
+      name: s.name || `Season ${s.season_number}`,
+      episodeCount: s.episode_count,
+      episodes: s.season_number === seasonNum
+        ? episodes.map((ep) => ({
+            episodeNumber: ep.episode_number,
+            name: ep.name,
+            overview: ep.overview,
+            runtime: ep.runtime,
+            stillPath: ep.still_path,
+          }))
+        : [],
+    }))
 
   // Calculate Next / Previous Episode navigation
   const episodes = seasonData?.episodes ?? []
@@ -135,8 +167,12 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             backHref={`/tv/${id}`}
             providerHealth={providerHealth}
             preferredProviderId={preferredProviderId}
+            autoSelectedProviderId={forcedProviderId ?? autoSelectedProviderId}
             nextEpisodeHref={nextHref ?? undefined}
             prevEpisodeHref={prevHref ?? undefined}
+            seasons={drawerSeasons}
+            currentSeason={seasonNum}
+            seriesId={id}
           />
         </div>
 

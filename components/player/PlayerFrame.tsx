@@ -20,6 +20,7 @@ import {
   ChevronRight,
   HelpCircle,
   X,
+  ListVideo,
 } from 'lucide-react'
 import {
   warmPlayerConnection,
@@ -39,6 +40,9 @@ import {
 } from '@/lib/player'
 import { resolvePlaybackSources } from '@/lib/playback-resolver'
 import { NativeMediaPlayer } from '@/components/player/NativeMediaPlayer'
+import { AmbientGlow } from '@/components/player/AmbientGlow'
+import { EpisodeDrawer, type SeasonInfo, type EpisodeInfo } from '@/components/player/EpisodeDrawer'
+import { AudioSubtitleSwitcher } from '@/components/player/AudioSubtitleSwitcher'
 import { store } from '@/lib/store'
 import { reportPlayerEvent } from '@/lib/observability/client'
 import { getEmbedProviderConfig } from '@/lib/providers/embed-registry'
@@ -81,6 +85,10 @@ interface PlayerFrameProps {
   nextEpisodeHref?: string
   prevEpisodeHref?: string
   preferredProviderId?: string
+  autoSelectedProviderId?: string
+  seasons?: SeasonInfo[]
+  currentSeason?: number
+  seriesId?: string | number
 }
 
 type PlayerState = 'loading' | 'frame-loaded' | 'timeout-warning' | 'timeout' | 'error' | 'offline'
@@ -107,6 +115,10 @@ export function PlayerFrame({
   nextEpisodeHref,
   prevEpisodeHref,
   preferredProviderId,
+  autoSelectedProviderId,
+  seasons,
+  currentSeason,
+  seriesId,
 }: PlayerFrameProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(PROVIDERS[0].id)
   const [state, setState] = useState<PlayerState>('loading')
@@ -125,7 +137,10 @@ export function PlayerFrame({
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
   const [retryAllAt, setRetryAllAt] = useState(0)
+  const [episodeDrawerOpen, setEpisodeDrawerOpen] = useState(false)
+  const [ambientGlowMode, setAmbientGlowMode] = useState<'off' | 'on' | 'auto'>('auto')
   const showShortcutsRef = useRef(false)
+  const episodeDrawerTriggerRef = useRef<HTMLButtonElement>(null)
   const shortcutsTriggerRef = useRef<HTMLButtonElement>(null)
   const shortcutsDialogRef = useRef<HTMLDivElement>(null)
   const videoElementRef = useRef<HTMLVideoElement | null>(null)
@@ -196,26 +211,12 @@ export function PlayerFrame({
   const selectedProviderDnsFailed = dnsFailedProviderIds.has(selectedProvider)
   const noHealthyProviders = healthState.length > 0 && usableProviderIds.size === 0
 
+  // Server-side auto-selection: the server already ranked providers by
+  // healthy → latency → preferred. Use that result directly — no client-side
+  // re-ranking needed. Manual selection always wins and updates the cookie.
   useEffect(() => {
     const settings = store.getSettings()
-    // Auto-select the first healthy provider if health data is available
-    const preferredHealth = healthState.find((h) => h.id === preferredProviderId)
-    const preferredIsUsable = preferredProviderId && (!preferredHealth || (preferredHealth.dnsResolved && (preferredHealth.status === 'healthy' || preferredHealth.status === 'degraded')))
-    if (preferredIsUsable) {
-      setSelectedProvider(preferredProviderId)
-    } else if (healthState.length > 0) {
-      const firstHealthy = healthState.find((h) => h.dnsResolved && (h.status === 'healthy' || h.status === 'degraded'))
-      if (firstHealthy) {
-        setSelectedProvider(firstHealthy.id)
-      } else {
-        // Fall back to first DNS-resolved provider
-        const firstResolved = healthState.find((h) => h.dnsResolved)
-        if (firstResolved) setSelectedProvider(firstResolved.id)
-      }
-    } else {
-      const initialProviderId = getInitialProviderIdForMode(settings, { health: readProviderHealth(), mediaType })
-      setSelectedProvider(initialProviderId)
-    }
+    setSelectedProvider(autoSelectedProviderId ?? PROVIDERS[0].id)
     setIsCinemaMode(settings.ambientLighting)
     // Restore persisted theater mode preference
     if (window.localStorage.getItem(THEATER_MODE_KEY) === '1') setIsTheaterMode(true)
@@ -739,6 +740,16 @@ export function PlayerFrame({
           >
             {!activeSource ? 'Quality: Unavailable' : activeSource.mode === 'native-media' ? 'Quality: Native controls' : 'Quality: Provider controlled'}
           </span>
+          {state === 'timeout-warning' && (
+            <span
+              role="status"
+              aria-live="polite"
+              className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300"
+            >
+              <RefreshCw size={9} className="animate-pulse" />
+              Slow server — try another
+            </span>
+          )}
           <span
             role="status"
             aria-live="polite"
@@ -751,6 +762,14 @@ export function PlayerFrame({
                 ? 'Playback: Frame loaded; not independently verified'
                 : 'Playback: Provider controlled'}
           </span>
+          {/* Audio & subtitle switcher — for iframe embeds shows "Provider controlled" */}
+          {activeSource?.mode === 'external-embed' && (
+            <AudioSubtitleSwitcher
+              videoRef={videoElementRef}
+              isNative={false}
+              seriesId={seriesId}
+            />
+          )}
           <button
             type="button"
             aria-label={isCinemaMode ? 'Turn lights on' : 'Turn lights off'}
@@ -811,6 +830,20 @@ export function PlayerFrame({
               </div>
             )}
           </div>
+          {/* Ambient glow toggle: Off / On / Auto */}
+          <button
+            type="button"
+            aria-label={`Ambient glow: ${ambientGlowMode}`}
+            aria-pressed={ambientGlowMode !== 'off'}
+            onClick={() => setAmbientGlowMode((current) => current === 'off' ? 'on' : current === 'on' ? 'auto' : 'off')}
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
+              ambientGlowMode !== 'off' ? 'bg-accent/20 text-accent font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+            title="Ambient glow (Off / On / Auto)"
+          >
+            <Sparkles size={12} />
+            <span className="hidden sm:inline">Glow: {ambientGlowMode === 'off' ? 'Off' : ambientGlowMode === 'on' ? 'On' : 'Auto'}</span>
+          </button>
           <button
             type="button"
             aria-label={isTheaterMode ? 'Exit theater mode' : 'Enter theater mode'}
@@ -843,6 +876,20 @@ export function PlayerFrame({
               <ArrowLeft size={12} />
             </Link>
           )}
+          {seasons && seasons.length > 0 && (
+            <button
+              type="button"
+              ref={episodeDrawerTriggerRef}
+              aria-label="Open episode list"
+              aria-expanded={episodeDrawerOpen}
+              onClick={() => setEpisodeDrawerOpen(true)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              title="Episode list"
+            >
+              <ListVideo size={12} />
+              <span className="hidden sm:inline">Episodes</span>
+            </button>
+          )}
           {nextEpisodeHref && (
             <Link
               href={nextEpisodeHref}
@@ -858,10 +905,17 @@ export function PlayerFrame({
       {/* Main Video Frame */}
       <div
         ref={containerRef}
-        className={`${isTheaterMode ? 'min-h-0 flex-1 aspect-auto' : 'aspect-video'} relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl transition-all ${
+        className={`${isTheaterMode ? 'min-h-0 flex-1 aspect-auto' : 'aspect-video'} relative w-full overflow-hidden rounded-2xl bg-[#050505] shadow-2xl transition-all ${
           isCinemaMode ? 'ring-2 ring-primary/40 shadow-primary/10' : 'ring-1 ring-white/10'
         }`}
       >
+        {/* Ambient glow / backlight behind the video container */}
+        <AmbientGlow
+          videoRef={videoElementRef}
+          isNative={activeSource?.mode === 'native-media'}
+          posterUrl={artwork}
+          mode={ambientGlowMode}
+        />
         {/* Error / offline state */}
         {isError && (
           <div className="absolute inset-0 z-20 grid place-items-center bg-black/85 backdrop-blur-sm">
@@ -1117,6 +1171,7 @@ export function PlayerFrame({
           <NativeMediaPlayer
             source={activeSource}
             title={title}
+            seriesId={seriesId}
             onReady={() => {
               clearTimers()
               setState('frame-loaded')
@@ -1158,6 +1213,25 @@ export function PlayerFrame({
         )}
       </div>
       </div>
+
+      {/* Episode drawer — slide-out panel for series/anime navigation */}
+      {seasons && seasons.length > 0 && (
+        <EpisodeDrawer
+          open={episodeDrawerOpen}
+          onClose={() => setEpisodeDrawerOpen(false)}
+          seasons={seasons}
+          currentSeason={currentSeason ?? 1}
+          currentEpisode={Number(episode ?? 1)}
+          onEpisodeSelect={(season, ep) => {
+            setEpisodeDrawerOpen(false)
+            const path = mediaType === 'tv'
+              ? `/watch/tv/${mediaId}/${season}/${ep}`
+              : `/watch/anime/${mediaId}/${ep}`
+            router.replace(path, { scroll: false })
+          }}
+          triggerRef={episodeDrawerTriggerRef}
+        />
+      )}
     </>
   )
 }

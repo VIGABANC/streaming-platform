@@ -34,6 +34,9 @@ const DEFAULT_SETTINGS: UserSettings = {
   subtitleLanguage: 'auto',
   ambientLighting: true,
   reducedMotion: false,
+  ambientGlow: 'auto',
+  preferredSubtitleLang: null,
+  preferredAudioLang: null,
 }
 
 export function createEmptyLibrarySnapshot(): LibrarySnapshot {

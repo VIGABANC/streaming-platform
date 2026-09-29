@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Captions, Pause, Play, Volume2, VolumeX } from 'lucide-react'
+import { Captions, Pause, Play, Volume2, VolumeX, Rewind, FastForward } from 'lucide-react'
 import type { PlaybackSource } from '@/lib/player'
+import { AudioSubtitleSwitcher } from '@/components/player/AudioSubtitleSwitcher'
 
 const VOLUME_KEY = 'veyra-player-volume'
 const MUTED_KEY = 'veyra-player-muted'
@@ -41,6 +42,7 @@ interface NativeMediaPlayerProps {
   onError: () => void
   onProgress?: (positionSeconds: number, durationSeconds: number) => void
   registerVideo?: (element: HTMLVideoElement | null) => void
+  seriesId?: string | number
 }
 
 export function NativeMediaPlayer({
@@ -52,6 +54,7 @@ export function NativeMediaPlayer({
   onError,
   onProgress,
   registerVideo,
+  seriesId,
 }: NativeMediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   // True while the user just seeked to (or near) the end of the video —
@@ -266,15 +269,42 @@ export function NativeMediaPlayer({
         </div>
 
         <div className="flex items-center gap-2 text-white">
+          {/* -10s skip */}
+          <button
+            type="button"
+            onClick={() => {
+              const video = videoRef.current
+              if (video) video.currentTime = Math.max(0, video.currentTime - 10)
+            }}
+            aria-label="Skip back 10 seconds"
+            className="rounded-full p-1.5 hover:bg-white/10 transition-colors"
+            title="Skip back 10s (J)"
+          >
+            <Rewind size={16} />
+          </button>
+          {/* Center play/pause */}
           <button
             type="button"
             onClick={togglePlay}
             aria-label={isPlaying ? 'Pause' : 'Play'}
-            className="rounded-full p-1.5 hover:bg-white/10 transition-colors"
+            className="rounded-full p-2 hover:bg-white/10 transition-colors"
           >
-            {isPlaying ? <Pause size={16} fill="white" /> : <Play size={16} fill="white" />}
+            {isPlaying ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" />}
           </button>
-          <span className="text-[11px] font-medium tabular-nums text-white/90">
+          {/* +10s skip */}
+          <button
+            type="button"
+            onClick={() => {
+              const video = videoRef.current
+              if (video && Number.isFinite(video.duration)) video.currentTime = Math.min(video.duration, video.currentTime + 10)
+            }}
+            aria-label="Skip forward 10 seconds"
+            className="rounded-full p-1.5 hover:bg-white/10 transition-colors"
+            title="Skip forward 10s (L)"
+          >
+            <FastForward size={16} />
+          </button>
+          <span className="ml-1 text-[11px] font-medium tabular-nums text-white/90">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
 
@@ -301,17 +331,12 @@ export function NativeMediaPlayer({
             />
           </div>
 
-          {hasCaptions && (
-            <button
-              type="button"
-              onClick={toggleCaptions}
-              aria-label={captionsOn ? 'Turn captions off' : 'Turn captions on'}
-              aria-pressed={captionsOn}
-              className={`rounded-full p-1.5 transition-colors hover:bg-white/10 ${captionsOn ? 'text-primary' : 'text-white/70'}`}
-            >
-              <Captions size={16} />
-            </button>
-          )}
+          {/* Audio & subtitle switcher */}
+          <AudioSubtitleSwitcher
+            videoRef={videoRef}
+            isNative={true}
+            seriesId={seriesId}
+          />
         </div>
       </div>
     </div>

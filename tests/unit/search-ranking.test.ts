@@ -20,4 +20,12 @@ describe('deterministic search ranking', () => {
     ], { query: 'parasite', language: 'Korean', year: 2019, mediaType: 'movie' })
     expect(result[0].id).toBe(2)
   })
+
+  it('suppresses TMDB low-signal repeated-character false positives', () => {
+    const result = rankSearchResults([
+      movie({ id: 1, title: 'Zzzzzzz', vote_count: 0 }),
+      movie({ id: 2, title: 'Zorro', vote_count: 120 }),
+    ], { query: 'zzzzzz' })
+    expect(result.map((item) => item.id)).toEqual([2])
+  })
 })

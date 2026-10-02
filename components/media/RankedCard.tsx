@@ -64,6 +64,8 @@ export function RankedCard({ item, rank }: RankedCardProps) {
               src={imgSrc}
               alt={`${title} poster`}
               fill
+              priority={rank === 1}
+              loading={rank === 1 ? 'eager' : 'lazy'}
               sizes="(max-width: 640px) 144px, (max-width: 1024px) 176px, 208px"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />

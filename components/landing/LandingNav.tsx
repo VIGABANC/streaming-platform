@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import gsap from 'gsap'
-import { Menu, X } from 'lucide-react'
+import { Menu, Search, X } from 'lucide-react'
 import { Logo } from '@/components/brand/Logo'
 import { PUBLIC_NAV_ITEMS, isNavItemActive } from '@/components/navigation/public-nav'
 
@@ -54,6 +54,7 @@ export function LandingNav() {
       <Logo />
       <nav aria-label="Main navigation" className="hidden items-center gap-3 overflow-x-auto md:flex">
         {PUBLIC_NAV_ITEMS.map((link) => <Link key={link.href} href={link.href} aria-current={isNavItemActive(pathname, link.href) ? 'page' : undefined} className={linkClass}>{link.label}</Link>)}
+        <Link href="/search" aria-label="Open search" className="touch-target rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"><Search size={18} aria-hidden="true" /></Link>
         <Link href="/browse" className="ml-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-black transition hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Explore VEYRA</Link>
       </nav>
       <button ref={toggle} type="button" className="touch-target rounded text-white md:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={menuOpen} aria-controls="landing-mobile-menu">{menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>

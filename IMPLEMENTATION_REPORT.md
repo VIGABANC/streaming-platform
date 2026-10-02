@@ -179,6 +179,33 @@ CONSUMET_BASE_URL present: False
 
 The only remaining runtime blocker is Consumet/anime playback. The TMDB blocker is cleared locally, but the credential is intentionally not printed or committed.
 
+## 14. Final provider decision and playback matrix
+
+Decision: **Do not add VidFast or VidLink in this release.** They have no registry entries, no authorization/verification records, and no app playback contract. They are not silently filtered. Adding unverified third-party origins would require a separate security and provider-verification change.
+
+Decision: **Consumet remains metadata-only/unconfigured.** No service was started, so anime playback remains the honest unavailable state.
+
+Raw embed probes used Mozilla user-agent, HTTPS, 15-second timeout, response size, and body classification:
+
+```text
+movie 550 vidsrc-wiki HTTP 200 | Size 29771 | NOT_FOUND
+movie 550 2embed HTTP 200 | Size 8757 | PLAYABLE
+movie 155 vidsrc-wiki HTTP 200 | Size 29781 | NOT_FOUND
+movie 155 2embed HTTP 200 | Size 8767 | PLAYABLE
+movie 27205 vidsrc-wiki HTTP 200 | Size 29773 | NOT_FOUND
+movie 27205 2embed HTTP 200 | Size 8765 | PLAYABLE
+movie 24428 vidsrc-wiki HTTP 200 | Size 29778 | NOT_FOUND
+movie 24428 2embed HTTP 200 | Size 8771 | PLAYABLE
+movie 475557 vidsrc-wiki HTTP 200 | Size 29767 | NOT_FOUND
+movie 475557 2embed HTTP 200 | Size 8762 | PLAYABLE
+tv 1399 S1E1 vidsrc-wiki HTTP 200 | Size 29782 | NOT_FOUND
+tv 1399 S1E1 2embed HTTP 200 | Size 8074 | PLAYABLE
+```
+
+`PLAYABLE` here means the response exceeded 2,000 bytes and contained iframe/script/player markup, per the requested classification. It is embed-document evidence, not proof that a human can complete playback through every downstream player interaction. Full raw snippets are saved at `docs/evidence/playback-matrix.txt`.
+
+Working register from this probe: **2embed has embed markup for all five tested movies and Game of Thrones S1E1; vidsrc-wiki returned a not-found document for all six tested URLs.**
+
 The previously missing regression tests were added:
 
 - `tests/unit/csp-frame-src-drift.test.ts`

@@ -85,8 +85,6 @@ describe('Player Architecture & URL Builders', () => {
       const p3 = getTVEmbedUrl(1399, 1, 1, '2embed')
       expect(p3).toContain('2embed.cc')
 
-      const p4 = getTVEmbedUrl(1399, 1, 1, 'autoembed')
-      expect(p4).toContain('autoembed.cc')
     })
 
     it('encodes documented subtitle preferences only for the documented provider', () => {
@@ -125,7 +123,7 @@ describe('Player Architecture & URL Builders', () => {
 
     it('does not loop after every provider has been attempted', () => {
       const ranked = rankProviders({
-        attemptedProviderIds: ['vidsrc-wiki', 'vidsrc-xyz', '2embed', 'autoembed'],
+        attemptedProviderIds: ['vidsrc-wiki', 'vidsrc-xyz', '2embed'],
       })
       expect(ranked).toHaveLength(0)
     })

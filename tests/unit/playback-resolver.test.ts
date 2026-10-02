@@ -9,7 +9,7 @@ import { normalizeAuthorizedNativeSource } from '@/lib/native-media-adapter'
 
 describe('playback provider registry and resolver', () => {
   it('declares the complete provider contract without quality overclaims', () => {
-    expect(PROVIDERS).toHaveLength(4)
+    expect(PROVIDERS).toHaveLength(3)
     expect(PROVIDERS.every((provider) => provider.playbackMode === 'external-embed')).toBe(true)
     expect(PROVIDERS.every((provider) => provider.qualityCapability === 'provider-controlled')).toBe(true)
     expect(PROVIDERS.every((provider) => provider.documentedReadiness === 'none')).toBe(true)

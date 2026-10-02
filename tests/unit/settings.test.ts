@@ -3,7 +3,7 @@ import { DEFAULT_PROVIDER, getInitialProviderId } from '@/lib/player'
 
 describe('playback settings', () => {
   it('uses a saved supported provider', () => {
-    expect(getInitialProviderId('autoembed')).toBe('autoembed')
+    expect(getInitialProviderId('vidsrc-wiki')).toBe('vidsrc-wiki')
   })
 
   it('falls back when a saved provider is no longer supported', () => {

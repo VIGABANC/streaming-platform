@@ -17,6 +17,7 @@ import {
   warmPlayerConnection,
   playerErrorMessage,
   PROVIDERS,
+  DEFAULT_PROVIDER,
   getInitialProviderId,
   getInitialProviderIdForMode,
   rankProviders,
@@ -74,7 +75,7 @@ export function PlayerFrame({
   backHref = '/',
   nativeSources = EMPTY_SOURCES,
 }: PlayerFrameProps) {
-  const [selectedProvider, setSelectedProvider] = useState<string>(PROVIDERS[0].id)
+  const [selectedProvider, setSelectedProvider] = useState<string>(DEFAULT_PROVIDER)
   const [state, setState] = useState<PlayerState>('loading')
   const [retryCount, setRetryCount] = useState(0)
   const [errorCode, setErrorCode] = useState<PlayerErrorCode>('UNKNOWN')

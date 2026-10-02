@@ -58,24 +58,24 @@ describe('Player Architecture & URL Builders', () => {
   describe('getMovieEmbedUrl', () => {
     it('generates correct embed url for movie IDs', () => {
       const url = getMovieEmbedUrl(603)
-      expect(url).toContain('/movie/603')
+      expect(url).toContain('/embed/603')
       expect(url).toMatch(/^https?:\/\//)
     })
 
     it('handles string or number ID cleanly', () => {
-      expect(getMovieEmbedUrl('157336')).toContain('/movie/157336')
+      expect(getMovieEmbedUrl('157336')).toContain('/embed/157336')
     })
   })
 
   describe('getTVEmbedUrl', () => {
     it('generates correct embed url for show with season and episode', () => {
       const url = getTVEmbedUrl(1399, 1, 1)
-      expect(url).toContain('/tv/1399/1/1')
+      expect(url).toContain('/embedtv/1399&s=1&e=1')
     })
 
     it('handles string parameters', () => {
       const url = getTVEmbedUrl('1399', '2', '5')
-      expect(url).toContain('/tv/1399/2/5')
+      expect(url).toContain('/embedtv/1399&s=2&e=5')
     })
 
     it('supports alternative providers', () => {

@@ -296,7 +296,8 @@ export function parseDocumentedProviderEvent(
 }
 
 /** Default provider in the allowlisted provider registry. */
-export const DEFAULT_PROVIDER = PROVIDERS[0].id
+// 2embed is currently the only provider with verified embed markup in the live matrix.
+export const DEFAULT_PROVIDER = '2embed'
 
 export function isProviderEligible(provider: StreamProvider): boolean {
   return provider.trustEligible && isPlaybackProviderEligible(provider)
@@ -322,7 +323,7 @@ export function getInitialProviderId(savedProvider?: string): string {
 }
 
 export function getPlayerProvider(): string {
-  return PROVIDERS[0].origin
+  return PROVIDERS.find((provider) => provider.id === DEFAULT_PROVIDER)?.origin ?? PROVIDERS[0].origin
 }
 
 export function getPlayerOrigin(): string {
@@ -494,7 +495,7 @@ export function getInitialProviderIdForMode(
   return ranked[0]?.id ?? preferredProviderId
 }
 
-export function getMovieEmbedUrl(id: string | number, providerId: string = 'vidsrc-wiki', options?: ProviderUrlOptions): string {
+export function getMovieEmbedUrl(id: string | number, providerId: string = DEFAULT_PROVIDER, options?: ProviderUrlOptions): string {
   const safeId = positiveInteger(id, 'MEDIA_ID')
   const provider = PROVIDERS.find((p) => p.id === providerId) ?? PROVIDERS[0]
   return provider.movieUrl(safeId, options)
@@ -504,7 +505,7 @@ export function getTVEmbedUrl(
   id: string | number,
   season: string | number,
   episode: string | number,
-  providerId: string = 'vidsrc-wiki',
+  providerId: string = DEFAULT_PROVIDER,
   options?: ProviderUrlOptions,
 ): string {
   const safeId = positiveInteger(id, 'MEDIA_ID')

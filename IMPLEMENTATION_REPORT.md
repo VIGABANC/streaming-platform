@@ -206,6 +206,19 @@ tv 1399 S1E1 2embed HTTP 200 | Size 8074 | PLAYABLE
 
 Working register from this probe: **2embed has embed markup for all five tested movies and Game of Thrones S1E1; vidsrc-wiki returned a not-found document for all six tested URLs.**
 
+## 15. Playback-aware health correction
+
+The health endpoint now probes each provider's real movie embed URL for TMDB id 550 and requires player markup without a `not found`/`unavailable` marker. Live output:
+
+```text
+vidsrc-wiki reachable=false status=unreachable latencyMs=327
+vidsrc-xyz reachable=false status=dns-failure latencyMs=94
+2embed reachable=true status=healthy latencyMs=545
+consumet configured=false status=not-configured
+```
+
+The default provider was demoted from VidSrc to `2embed` in `lib/player.ts`; `getMovieEmbedUrl`, `getTVEmbedUrl`, `getPlayerProvider`, and the player’s initial selection now use the verified default. The full security header still contains `frame-ancestors 'none'` and no `unsafe-eval`. Forced refresh still returns `200` then `429` with `Retry-After: 5`.
+
 The previously missing regression tests were added:
 
 - `tests/unit/csp-frame-src-drift.test.ts`

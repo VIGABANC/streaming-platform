@@ -42,11 +42,11 @@ const verifiedProviders = PROVIDERS.map((provider) => ({
 }))
 
 describe('Player Architecture & URL Builders', () => {
-  it('uses an explicit opaque external engine until an authorized direct source exists', () => {
+  it('uses an explicit opaque external engine for registry-owned iframe playback', () => {
     expect(ExternalEmbedEngine.kind).toBe('external-embed')
     expect(ExternalEmbedEngine.ownsMediaControls).toBe(false)
     expect(ExternalEmbedEngine.canVerifyPlayback).toBe(false)
-    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidsrc-wiki' })).toBeNull()
+    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidsrc-wiki' })).toContain('/embed/movie/603/')
   })
 
   it('keeps native playback gated behind an explicitly authorized direct source', () => {
@@ -106,9 +106,9 @@ describe('Player Architecture & URL Builders', () => {
       expect(PROVIDERS.every((provider) => provider.capabilities.audioLanguagePreference === false)).toBe(true)
     })
 
-    it('treats trust eligibility as a hard gate', () => {
-      expect(isProviderEligible({ ...PROVIDERS[0], trustEligible: false })).toBe(false)
-      expect(isProviderEligible(PROVIDERS[0])).toBe(false)
+    it('allows registry-owned external embeds while keeping native trust gating', () => {
+      expect(isProviderEligible({ ...PROVIDERS[0], trustEligible: false })).toBe(true)
+      expect(isProviderEligible(PROVIDERS[0])).toBe(true)
       expect(isProviderEligible(verifiedProviders[0])).toBe(true)
     })
 
@@ -137,6 +137,10 @@ describe('Player Architecture & URL Builders', () => {
         },
       })
       expect(ranked[0].id).toBe('vidsrc-xyz')
+    })
+
+    it('demotes the known dead embed path below the verified default provider', () => {
+      expect(rankProviders().map((provider) => provider.id)[0]).toBe('2embed')
     })
 
     it('excludes an open circuit and allows it after cooldown', () => {

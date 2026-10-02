@@ -300,6 +300,14 @@ export function parseDocumentedProviderEvent(
 export const DEFAULT_PROVIDER = '2embed'
 
 export function isProviderEligible(provider: StreamProvider): boolean {
+  // External iframe providers are intentionally opaque: they do not expose
+  // VEYRA-verifiable native playback events or authorization records. Their
+  // eligibility is still constrained to registry-owned HTTPS origins and the
+  // CSP allowlist; native-media sources retain the stricter authorization
+  // gate in isPlaybackProviderEligible.
+  if (provider.playbackMode === 'external-embed') {
+    return provider.authorizationStatus !== 'prohibited' && provider.origin.startsWith('https://')
+  }
   return provider.trustEligible && isPlaybackProviderEligible(provider)
 }
 
@@ -473,7 +481,11 @@ export function rankProviders(options: {
       const reliability = health.successEWMA ?? (health.successes + 2) / (health.attempts + 4)
       const latency = health.startupLatencyEWMA ?? 10_000
       const latencyScore = 1 - Math.min(latency, 10_000) / 10_000
-      const preference = provider.id === options.preferredProviderId ? 0.05 : 0
+      const preference = provider.id === options.preferredProviderId
+        ? 0.05
+        : provider.id === DEFAULT_PROVIDER
+          ? 0.1
+          : 0
       const exploration = health.attempts === 0 ? 0.05 : 0
       const recentFailurePenalty = health.lastFailureAt && now - health.lastFailureAt < 5 * 60_000 ? 0.08 : 0
       const timeoutPenalty = (health.timeouts ?? 0) > 0 ? Math.min(0.1, (health.timeouts ?? 0) / Math.max(10, health.attempts) * 0.1) : 0

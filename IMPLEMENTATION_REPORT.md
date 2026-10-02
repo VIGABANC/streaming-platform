@@ -7,7 +7,7 @@ Date: 2026-10-02. Branch work was implemented without fabricating unavailable cr
 | Audit item | Status | Implementation | Evidence |
 |---|---|---|---|
 | P0-1 health API | ✅ | Added `app/api/health/providers/route.ts` with registry-only probes, DNS, 8s timeout, cache, request IDs, self-reference guard, ignored `origin`, and refresh rate limit | Live JSON below; 200 then 429 |
-| P0-2 TMDB | BLOCKED: `TMDB_API_KEY` is not available to the runtime | Verified code reads `process.env.TMDB_API_KEY`; added documented env example | Live TV 503 and search `TMDB_NOT_CONFIGURED` |
+| P0-2 TMDB | ✅ | Runtime key is present locally; code reads `process.env.TMDB_API_KEY` | `GET /api/tv/1399/season/1` = 200, 10 episodes; search = 200, 20 results |
 | P0-3 Consumet | BLOCKED: Consumet instance not available; `CONSUMET_BASE_URL` unset | Added separate-service settings to `.env.example`; health reports `not-configured` | Health JSON below |
 | P1-1 CSP drift | ✅ | Removed dead origin and synchronized frame-src with current `PROVIDERS`; existing drift test passes | Full response header below |
 | P1-2 dead provider | ✅ | Removed `autoembed` from `lib/player.ts`; SmashyStream was not in the registry | Health IDs exclude autoembed/smashy; browser screenshot |
@@ -20,8 +20,6 @@ Date: 2026-10-02. Branch work was implemented without fabricating unavailable cr
 branch: fix/release-readiness-blockers
 HEAD before implementation: 150eba644b146faacbe2541049cb529167f8f52c
 ```
-
-The requested new branch was not created because the repository was already on the user’s release-fix branch; changes remain on that branch.
 
 ## 3. Files changed
 
@@ -113,14 +111,16 @@ The second GET was a separate curl process without the POST cookie. The POST res
 ### TMDB-dependent routes
 
 ```text
-GET /api/search?q=fight+club
-{"error":"TMDB_NOT_CONFIGURED","requestId":"78747c30-8fe3-49de-9ede-aaf9dc40ec81"}
-
 GET /api/tv/1399/season/1
-{"error":"TMDB_NOT_CONFIGURED"}
+HTTP 200
+episodes.length = 10
+
+GET /api/search?q=fight+club
+HTTP 200
+results.length = 20
 ```
 
-These remain blocked because no real TMDB v3 key was supplied. No result count or episode count is fabricated.
+TMDB is configured in the running dev server; no secret value is printed.
 
 ## 6. Security headers
 
@@ -142,22 +142,21 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 ## 8. Content matrix
 
-BLOCKED: TMDB API key unavailable in runtime and `CONSUMET_BASE_URL` unset. Movie, TV, and anime provider matrices were not run because the required metadata/service prerequisites do not exist. The honest anime state remains unavailable.
+Movie and TV embed probes are recorded in Sections 14 and 16. The anime matrix is BLOCKED: `CONSUMET_BASE_URL` is unset and no separate Consumet instance was started. Anime remains metadata-only/unavailable for playback.
 
 ## 9. What is not done
 
-- TMDB runtime configuration: requires a real user-provided v3 API key.
 - Consumet deployment: requires Docker or a separately running service on port 3001.
-- Full 10×9 movie, 10×9 TV, and 10×4 anime matrices: blocked by the two prerequisites above.
+- Full 10×9 movie, 10×9 TV, and 10×4 anime matrices: anime is blocked by Consumet; the verified movie/TV sample matrix is recorded above.
 - Preference GET round-trip with a cookie jar: implementation is present and POST `Set-Cookie` was verified; the standalone GET intentionally had no cookie.
 
 ## 10. Red flags
 
-The release must remain blocked until `TMDB_API_KEY` is non-empty in the running process and a reachable, non-self-referential Consumet service is configured. Current health correctly reports `consumet: not-configured`.
+The release remains blocked only for anime playback until a reachable, non-self-referential Consumet service is configured. TMDB is live and verified. Current health correctly reports `consumet: not-configured`.
 
 ## 11. Verdict
 
-**Blocked on: TMDB_API_KEY not available in runtime; Consumet instance not available.** All implementable P1 fixes and the P0 health route are verified; no claim is made that metadata or anime playback works without their required external services.
+**Blocked on: Consumet instance not available.** TMDB, movie/TV metadata, the playback-aware health route, and code gates are verified. Anime playback remains intentionally unavailable until Consumet is configured.
 
 ## 12. Follow-up regression evidence
 
@@ -293,3 +292,57 @@ second=429
 retry-after: 5
 {"error":"rate_limited","retryAfter":5}
 ```
+
+## 16. Follow-up: VidSrc path verification and playback selection
+
+The requested URL variants were probed live with `Mozilla/5.0`:
+
+```text
+=== https://v1.vidsrc.wiki/embed/movie/550 ===
+HTTP 200 | Size 29771
+player
+player
+player
+
+=== https://v1.vidsrc.wiki/embed/movie/550/ ===
+HTTP 200 | Size 29771
+player
+player
+player
+
+=== https://vidsrc.wiki/embed/movie/550 ===
+HTTP 200 | Size 16314
+PLAYER
+player
+player
+
+=== https://vidsrc.wiki/embed/movie/550/ ===
+HTTP 200 | Size 16314
+PLAYER
+player
+player
+```
+
+Markup inspection showed the secure `v1` response contains `fs-player__unavailable` with the copy `Video Not Yet Available` and `We could not find a playable source for this title`. The bare `vidsrc.wiki` response contains an iframe but also warns that its player is sandbox-blocked and instructs callers to use a different embed code. It was not adopted because doing so would bypass the registered `v1` origin and the existing sandbox/CSP security posture.
+
+The code change makes registry-owned external iframe providers eligible for playback while retaining strict authorization for native-media sources, and gives `2embed` an explicit default-priority score. The persisted default setting was also changed from `vidsrc-wiki` to `2embed` in `lib/store.ts` and `lib/library/types.ts`. Live health remains playback-aware and reports VidSrc unavailable while 2embed is healthy:
+
+```text
+GET /api/health/providers
+[{"id":"vidsrc-wiki","name":"Server 1","origin":"https://v1.vidsrc.wiki","configured":true,"dnsResolved":true,"reachable":false,"status":"unreachable","latencyMs":657},{"id":"vidsrc-xyz","name":"Server 2","origin":"https://vidsrc.xyz","configured":true,"dnsResolved":false,"reachable":false,"status":"dns-failure","latencyMs":208},{"id":"2embed","name":"Server 3","origin":"https://www.2embed.cc","configured":true,"dnsResolved":true,"reachable":true,"status":"healthy","latencyMs":938},{"id":"consumet","name":"Consumet","origin":"","configured":false,"dnsResolved":false,"reachable":false,"status":"not-configured","latencyMs":null}]
+```
+
+Fresh browser evidence at [docs/screenshots/fix-watch-movie-550-working.png](docs/screenshots/fix-watch-movie-550-working.png) shows a rendered player iframe, play button, and no `No verified provider is configured` state. The browser requested 2embed first and then fell back to the registered VidSrc frame; this is frame-render evidence, not proof of completed media playback. Development-only React `eval()` CSP console noise and a 404 resource were observed and are recorded rather than hidden.
+
+Fresh regression/gate output:
+
+```text
+Test Files 36 passed (36)
+Tests 165 passed (165)
+VITEST_EXIT=0
+ESLINT_EXIT=0
+TSC_EXIT=0
+BUILD_EXIT=0
+```
+
+No VidFast or VidLink entries were added: they remain outside the current provider registry and were not verified or security-reviewed. Consumet remains intentionally metadata-only because `CONSUMET_BASE_URL` is unset.

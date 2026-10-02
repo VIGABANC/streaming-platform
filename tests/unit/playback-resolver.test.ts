@@ -16,13 +16,14 @@ describe('playback provider registry and resolver', () => {
     expect(PROVIDERS.every((provider) => provider.supportedRegions.includes('global'))).toBe(true)
   })
 
-  it('does not resolve unverified movie embeds as playable sources', () => {
+  it('resolves registry-owned external movie embeds without native authorization', () => {
     const request: PlaybackRequest = { mediaType: 'movie', mediaId: 603, region: 'US' }
     const result = resolvePlaybackSources(request)
 
-    expect(result.status).toBe('unavailable')
-    expect(result.sources).toEqual([])
-    expect(result.reason).toBe('no-source')
+    expect(result.status).toBe('success')
+    expect(result.sources).toHaveLength(3)
+    expect(result.sources.every((source) => source.mode === 'external-embed')).toBe(true)
+    expect(result.sources.every((source) => source.authorizationStatus === 'unverified')).toBe(true)
   })
 
   it('does not fabricate Anime sources when no provider supports Anime', () => {

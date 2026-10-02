@@ -158,3 +158,80 @@ The release must remain blocked until `TMDB_API_KEY` is non-empty in the running
 ## 11. Verdict
 
 **Blocked on: TMDB_API_KEY not available in runtime; Consumet instance not available.** All implementable P1 fixes and the P0 health route are verified; no claim is made that metadata or anime playback works without their required external services.
+
+## 12. Follow-up regression evidence
+
+The previously missing regression tests were added:
+
+- `tests/unit/csp-frame-src-drift.test.ts`
+- `tests/unit/registry-reachability.test.ts`
+
+Raw Vitest result:
+
+```text
+Test Files 36 passed (36)
+Tests 164 passed (164)
+Start at 16:13:55
+Duration 3.74s
+TEST_EXIT=0
+```
+
+Vitest file list:
+
+```text
+tests/unit/ai-config.test.ts
+tests/unit/ai-router.test.ts
+tests/unit/anime-detail.test.ts
+tests/unit/catalog.test.ts
+tests/unit/config.test.ts
+tests/unit/csp-frame-src-drift.test.ts
+tests/unit/deployment-check.test.ts
+tests/unit/episode-nav.test.ts
+tests/unit/feedback-normalize.test.ts
+tests/unit/feedback-service.test.ts
+tests/unit/github-renderer.test.ts
+tests/unit/jikan-watchmode.test.ts
+tests/unit/json-ld.test.ts
+tests/unit/landing-data.test.ts
+tests/unit/library-merge.test.ts
+tests/unit/library-session.test.ts
+tests/unit/library-sync.test.ts
+tests/unit/missing-availability.test.ts
+tests/unit/offline-worker.test.ts
+tests/unit/playback-resolver.test.ts
+tests/unit/playback-verification.test.ts
+tests/unit/player.test.ts
+tests/unit/playwright-config.test.ts
+tests/unit/pwa.test.ts
+tests/unit/rate-limit.test.ts
+tests/unit/registry-reachability.test.ts
+tests/unit/release-security.test.ts
+tests/unit/route-validation.test.ts
+tests/unit/search-intent.test.ts
+tests/unit/search-ranking.test.ts
+tests/unit/seo-routes.test.ts
+tests/unit/settings.test.ts
+tests/unit/store.test.ts
+tests/unit/telegram.test.ts
+tests/unit/tmdb.test.ts
+tests/integration/search.test.ts
+```
+
+Raw follow-up checks:
+
+```text
+rg -n -i "smashystream" lib app components
+NO_MATCHES
+
+GET /api/health/providers
+[{"id":"vidsrc-wiki","name":"Server 1","origin":"https://v1.vidsrc.wiki","configured":true,"dnsResolved":true,"reachable":true,"status":"healthy","latencyMs":868},{"id":"vidsrc-xyz","name":"Server 2","origin":"https://vidsrc.xyz","configured":true,"dnsResolved":false,"reachable":false,"status":"dns-failure","latencyMs":302},{"id":"2embed","name":"Server 3","origin":"https://www.2embed.cc","configured":true,"dnsResolved":true,"reachable":true,"status":"healthy","latencyMs":691},{"id":"consumet","name":"Consumet","origin":"","configured":false,"dnsResolved":false,"reachable":false,"status":"not-configured","latencyMs":null}]
+
+GET /api/health/providers?origin=https://evil.example
+=> same registry-only JSON; evil.example absent
+
+GET /api/health/providers?refresh=1
+first=200
+second=429
+retry-after: 5
+{"error":"rate_limited","retryAfter":5}
+```

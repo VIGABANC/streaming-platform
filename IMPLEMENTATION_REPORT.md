@@ -161,6 +161,24 @@ The release must remain blocked until `TMDB_API_KEY` is non-empty in the running
 
 ## 12. Follow-up regression evidence
 
+## 13. Provider registry reconciliation
+
+The follow-up check confirmed that `vidfast` and `vidlink` have **zero matches** in `lib/player.ts`, `lib/providers`, `app`, or `components`. They are not silently filtered by the health route; they are not part of VEYRA's current playback registry. The current registry intentionally contains `vidsrc-wiki`, `vidsrc-xyz`, and `2embed`; `autoembed` was removed after the DNS failure. Therefore VidFast/VidLink are not claimed as supported providers, and their origins are correctly absent from CSP. Adding them would require a separate provider-authorization and playback-verification change, not an env-var fix.
+
+After restarting the dev server with the now non-empty local TMDB key:
+
+```text
+GET /api/tv/1399/season/1
+=> JSON response with Game of Thrones Season 1 episode data; 10 episodes returned
+
+GET /api/search?q=fight+club
+=> JSON response with Fight Club result id 550 and total_results 81
+
+CONSUMET_BASE_URL present: False
+```
+
+The only remaining runtime blocker is Consumet/anime playback. The TMDB blocker is cleared locally, but the credential is intentionally not printed or committed.
+
 The previously missing regression tests were added:
 
 - `tests/unit/csp-frame-src-drift.test.ts`

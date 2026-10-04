@@ -338,7 +338,9 @@ export function parseDocumentedProviderEvent(
 /** Default provider in the allowlisted provider registry. */
 // Provider order follows the latest live embed sweep; health ranking may demote
 // a provider after a failed embed pre-check or runtime attempt.
-export const DEFAULT_PROVIDER = 'vidfast'
+// Prefer the provider verified to render in the current browser environment;
+// registry order remains the fallback priority when health data is available.
+export const DEFAULT_PROVIDER = '2embed'
 
 export function isProviderEligible(provider: StreamProvider): boolean {
   // External iframe providers are intentionally opaque: they do not expose
@@ -526,7 +528,7 @@ export function rankProviders(options: {
       const latencyScore = 1 - Math.min(latency, 10_000) / 10_000
       const preference = provider.id === options.preferredProviderId
         ? 0.05
-        : provider.id === DEFAULT_PROVIDER && !options.health?.[provider.id]
+        : provider.id === DEFAULT_PROVIDER && !options.health
           ? 0.02
           : 0
       const exploration = health.attempts === 0 ? 0.05 : 0

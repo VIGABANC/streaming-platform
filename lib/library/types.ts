@@ -29,7 +29,7 @@ const DEFAULT_PROFILE: UserProfile = {
 
 const DEFAULT_SETTINGS: UserSettings = {
   autoplayNext: true,
-  defaultServer: '2embed',
+  defaultServer: 'vidfast',
   streamQuality: 'auto',
   subtitleLanguage: 'auto',
   ambientLighting: true,

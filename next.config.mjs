@@ -27,7 +27,7 @@ const nextConfig = {
       "img-src 'self' https://image.tmdb.org data: blob:",
       "media-src 'self' blob:",
       `connect-src 'self' https://api.themoviedb.org https://va.vercel-scripts.com https://vitals.vercel-insights.com ${authOrigin}`.trim(),
-      "frame-src 'self' https://v1.vidsrc.wiki https://vidsrc.xyz https://www.2embed.cc https://www.youtube.com https://youtube.com",
+      "frame-src 'self' https://vidfast.pro https://vidlink.pro https://www.2embed.cc https://player.videasy.net https://nontongo.win https://www.youtube.com https://youtube.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -56,6 +56,7 @@ interface PlayerFrameProps {
   episodeLabel?: string
   backHref?: string
   nativeSources?: PlaybackSource[]
+  nextUp?: { href: string; label: string }
 }
 
 type PlayerState = 'loading' | 'frame-loaded' | 'timeout-warning' | 'timeout' | 'error' | 'offline'
@@ -74,6 +75,7 @@ export function PlayerFrame({
   episodeLabel,
   backHref = '/',
   nativeSources = EMPTY_SOURCES,
+  nextUp,
 }: PlayerFrameProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(DEFAULT_PROVIDER)
   const [state, setState] = useState<PlayerState>('loading')
@@ -376,6 +378,7 @@ export function PlayerFrame({
 
   const isError = state === 'error' || state === 'timeout' || state === 'offline'
   const activeProviderObj = PROVIDERS.find((p) => p.id === selectedProvider) ?? null
+  const providerHealth = readProviderHealth()
   const candidateProviders = allSources
     .map((source) => PROVIDERS.find((provider) => provider.id === source.providerId))
     .filter((provider): provider is typeof PROVIDERS[number] => Boolean(provider))
@@ -409,6 +412,7 @@ export function PlayerFrame({
                   }`}
                 >
                   {isActive && <Check size={11} />}
+                  <span aria-label={`${p.name} ${providerHealth[p.id]?.embedReachable === false ? 'embed unavailable' : 'health unknown or available'}`} className={`size-1.5 rounded-full ${providerHealth[p.id]?.embedReachable === false ? 'bg-red-400' : 'bg-emerald-400'}`} />
                   <span>{p.name.replace(/\(.*\)/, '').trim()}</span>
                   <span
                     className={`rounded px-1 py-0.2 text-[9px] uppercase font-bold tracking-tight ${
@@ -497,6 +501,16 @@ export function PlayerFrame({
           isCinemaMode ? 'ring-2 ring-primary/40 shadow-primary/10' : 'ring-1 ring-white/10'
         }`}
       >
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-4 bg-gradient-to-b from-black/80 via-black/35 to-transparent px-4 pb-12 pt-4 sm:px-6 sm:pt-5">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white drop-shadow-sm sm:text-base">{title}</p>
+            {episodeLabel && <p className="mt-0.5 truncate text-xs text-white/65">{episodeLabel}</p>}
+          </div>
+          <span className="shrink-0 rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white/60 backdrop-blur-sm">
+            {activeSource?.mode === 'native-media' ? 'VEYRA player' : activeSource ? 'Provider player' : 'Unavailable'}
+          </span>
+        </div>
+
         {/* Error / offline state */}
         {isError && (
           <div className="absolute inset-0 z-20 grid place-items-center bg-black/85 backdrop-blur-sm">
@@ -629,6 +643,7 @@ export function PlayerFrame({
               reportPlayerEvent('player_error', { providerId: activeSource.providerId, mediaType, attemptIndex: attemptedProviderIdsRef.current.length, errorCategory: 'network-failure', networkHint: networkHint() })
             }}
             onProgress={(positionSeconds, durationSeconds) => persistPlaybackContext({ positionSeconds, durationSeconds })}
+            nextUp={nextUp}
           />
         )}
 

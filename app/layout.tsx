@@ -53,8 +53,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} dark`}>
       <head>
         {/* Provider connection hints */}
-        <link rel="dns-prefetch" href="https://v1.vidsrc.wiki" />
-        <link rel="preconnect" href="https://v1.vidsrc.wiki" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://vidfast.pro" />
+        <link rel="preconnect" href="https://vidfast.pro" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         {/* PWA */}

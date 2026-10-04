@@ -9,7 +9,7 @@ import { normalizeAuthorizedNativeSource } from '@/lib/native-media-adapter'
 
 describe('playback provider registry and resolver', () => {
   it('declares the complete provider contract without quality overclaims', () => {
-    expect(PROVIDERS).toHaveLength(3)
+    expect(PROVIDERS).toHaveLength(5)
     expect(PROVIDERS.every((provider) => provider.playbackMode === 'external-embed')).toBe(true)
     expect(PROVIDERS.every((provider) => provider.qualityCapability === 'provider-controlled')).toBe(true)
     expect(PROVIDERS.every((provider) => provider.documentedReadiness === 'none')).toBe(true)
@@ -21,7 +21,7 @@ describe('playback provider registry and resolver', () => {
     const result = resolvePlaybackSources(request)
 
     expect(result.status).toBe('success')
-    expect(result.sources).toHaveLength(3)
+    expect(result.sources).toHaveLength(5)
     expect(result.sources.every((source) => source.mode === 'external-embed')).toBe(true)
     expect(result.sources.every((source) => source.authorizationStatus === 'unverified')).toBe(true)
   })
@@ -35,9 +35,9 @@ describe('playback provider registry and resolver', () => {
   })
 
   it('rejects unsafe or mismatched provider URLs', () => {
-    expect(() => validatePlaybackUrl('http://v1.vidsrc.wiki/embed/movie/603', PROVIDERS[0])).toThrow('HTTPS')
-    expect(() => validatePlaybackUrl('https://evil.example/embed/movie/603', PROVIDERS[0])).toThrow('ORIGIN')
-    expect(() => validatePlaybackUrl('https://v1.vidsrc.wiki/embed/movie/603', PROVIDERS[0])).not.toThrow()
+    expect(() => validatePlaybackUrl('http://vidfast.pro/movie/603', PROVIDERS[0])).toThrow('HTTPS')
+    expect(() => validatePlaybackUrl('https://evil.example/movie/603', PROVIDERS[0])).toThrow('ORIGIN')
+    expect(() => validatePlaybackUrl('https://vidfast.pro/movie/603', PROVIDERS[0])).not.toThrow()
   })
 
   it('rejects malformed playback identities before source construction', () => {

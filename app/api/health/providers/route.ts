@@ -1,55 +1,11 @@
+import dns from 'node:dns/promises'
 import { NextResponse } from 'next/server'
-import { getAnimeProviderHealthForClient, getConsumetHealthForClient, getProviderHealthForClient } from '@/lib/provider-health'
-import { checkRateLimit, requestIdentity } from '@/lib/http/rate-limit'
-
-export const dynamic = 'force-dynamic'
-export const revalidate = 60
-
-// Forced refreshes bypass the 60s result cache, so they are rate limited
-// per client IP to keep clients from using the endpoint as a probe relay.
-const REFRESH_POLICY = { limit: 1, windowMs: 5_000 }
-
-// The only accepted input is the `refresh=1` flag, which bypasses the 60s
-// result cache. Probe targets always come from the hardcoded provider
-// registry — no request input can influence which origins are probed.
-export async function GET(request: Request) {
-  try {
-    const force = new URL(request.url).searchParams.get('refresh') === '1'
-    if (force) {
-      const decision = checkRateLimit(`health-refresh:${requestIdentity(request)}`, REFRESH_POLICY)
-      if (!decision.allowed) {
-        return NextResponse.json(
-          { error: 'Too many forced refreshes. Try again shortly.' },
-          {
-            status: 429,
-            headers: {
-              'Retry-After': String(decision.retryAfterSeconds ?? 5),
-            },
-          },
-        )
-      }
-    }
-    const [results, consumet, anime] = await Promise.all([
-      getProviderHealthForClient(force),
-      getConsumetHealthForClient(force, new URL(request.url).origin),
-      getAnimeProviderHealthForClient(force),
-    ])
-    return NextResponse.json(
-      // `consumet` is `{ configured: false }` when CONSUMET_BASE_URL is unset —
-      // the self-hosted instance is never probed in that case.
-      { providers: results, anime, consumet, cached: true },
-      {
-        status: 200,
-        headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
-        },
-      },
-    )
-  } catch (error) {
-    console.error('[health/providers] error:', error)
-    return NextResponse.json(
-      { error: 'Health check failed', providers: [] },
-      { status: 503 },
-    )
-  }
-}
+import { PROVIDERS } from '@/lib/player'
+type HealthStatus = 'healthy' | 'slow' | 'unreachable' | 'embed-unavailable' | 'dns-failure' | 'self-reference' | 'not-configured'
+type ProviderHealth = { id: string; name: string; origin: string; configured: boolean; dnsResolved: boolean; reachable: boolean; status: HealthStatus; latencyMs: number | null; lastCheckedAt: string }
+const CACHE_MS = 60_000; const REFRESH_MS = 5_000; let cache: { expiresAt: number; value: ProviderHealth[] } | null = null; const refreshes = new Map<string, number>()
+const requestId = () => globalThis.crypto?.randomUUID?.() ?? `veyra-${Date.now().toString(36)}`
+const originOf = (value: string | undefined) => { try { return value ? new URL(value).origin : null } catch { return null } }
+const appOrigin = (request: Request) => originOf(process.env.NEXT_PUBLIC_APP_URL) ?? new URL(request.url).origin
+async function probe(id: string, name: string, origin: string, testUrl: string, request: Request): Promise<ProviderHealth> { const started = performance.now(); const now = new Date().toISOString(); if (origin === appOrigin(request)) return { id, name, origin, configured: false, dnsResolved: false, reachable: false, status: 'self-reference', latencyMs: 0, lastCheckedAt: now }; try { await dns.lookup(new URL(origin).hostname) } catch { return { id, name, origin, configured: true, dnsResolved: false, reachable: false, status: 'dns-failure', latencyMs: Math.round(performance.now() - started), lastCheckedAt: now } }; const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 8_000); try { const response = await fetch(testUrl, { signal: controller.signal, redirect: 'follow', cache: 'no-store' }); const body = await response.text(); const latencyMs = Math.round(performance.now() - started); const playable = response.status === 200 && Buffer.byteLength(body) > 2_000 && /<iframe|<script|player/i.test(body) && !/not found|unavailable/i.test(body); return { id, name, origin, configured: true, dnsResolved: true, reachable: playable, status: playable ? latencyMs > 2_000 ? 'slow' : 'healthy' : 'embed-unavailable', latencyMs, lastCheckedAt: now } } catch { return { id, name, origin, configured: true, dnsResolved: true, reachable: false, status: 'unreachable', latencyMs: Math.round(performance.now() - started), lastCheckedAt: now } } finally { clearTimeout(timer) } }
+export async function GET(request: Request) { const id = requestId(); const url = new URL(request.url); const forced = url.searchParams.get('refresh') === '1'; if (forced) { const key = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local'; const previous = refreshes.get(key) ?? 0; if (Date.now() - previous < REFRESH_MS) return NextResponse.json({ error: 'rate_limited', retryAfter: 5 }, { status: 429, headers: { 'Retry-After': '5', 'X-Request-Id': id } }); refreshes.set(key, Date.now()) }; if (!forced && cache && cache.expiresAt > Date.now()) return NextResponse.json(cache.value, { headers: { 'X-Request-Id': id, 'Cache-Control': 'public, max-age=60' } }); const probes = PROVIDERS.map((provider) => probe(provider.id, provider.name, provider.origin, provider.movieUrl(550), request)); const consumetOrigin = originOf(process.env.CONSUMET_BASE_URL); probes.push(consumetOrigin ? probe('consumet', 'Consumet', consumetOrigin, `${consumetOrigin}/anime/gogoanime/top-airing`, request) : Promise.resolve({ id: 'consumet', name: 'Consumet', origin: '', configured: false, dnsResolved: false, reachable: false, status: 'not-configured' as const, latencyMs: null, lastCheckedAt: new Date().toISOString() })); const value = await Promise.all(probes); cache = { expiresAt: Date.now() + CACHE_MS, value }; console.info('[veyra] provider health probe', { requestId: id, count: value.length }); return NextResponse.json(value, { headers: { 'X-Request-Id': id, 'Cache-Control': 'public, max-age=60' } }) }

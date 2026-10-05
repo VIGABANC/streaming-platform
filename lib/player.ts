@@ -153,10 +153,10 @@ function externalSourceBuilder(
 
 export const PROVIDERS: StreamProvider[] = [
   {
-    id: 'vidsrc-wiki',
-    name: 'Server 1',
+    id: 'vidfast',
+    name: 'VidFast',
     badge: 'Configured',
-    origin: 'https://v1.vidsrc.wiki',
+    origin: 'https://vidfast.pro',
     authorizationStatus: 'unverified',
     supportedMediaTypes: ['movie', 'tv'],
     supportsEpisodes: true,
@@ -176,24 +176,24 @@ export const PROVIDERS: StreamProvider[] = [
     qualityControl: 'none',
     observabilityTier: 'C',
     trustEligible: false,
-    verification: unverifiedExternalVerification('vidsrc-wiki'),
+    verification: unverifiedExternalVerification('vidfast'),
     capabilities: {
       autoplay: true, subtitlePreference: true, audioLanguagePreference: false,
       startTimestamp: true, customAccent: true, controls: true, readyEvents: false,
       progressEvents: false, completionEvents: false, errorEvents: false, qualityControl: 'none',
     },
-    movieUrl: (id, options) => appendProviderOptions(`https://v1.vidsrc.wiki/embed/movie/${id}/`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
-    tvUrl: (id, season, episode, options) => appendProviderOptions(`https://v1.vidsrc.wiki/embed/tv/${id}/${season}/${episode}/`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
+    movieUrl: (id, options) => appendProviderOptions(`https://vidfast.pro/movie/${id}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
+    tvUrl: (id, season, episode, options) => appendProviderOptions(`https://vidfast.pro/tv/${id}/${season}/${episode}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
     sourceBuilder: externalSourceBuilder(
-      (id, options) => appendProviderOptions(`https://v1.vidsrc.wiki/embed/movie/${id}/`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
-      (id, season, episode, options) => appendProviderOptions(`https://v1.vidsrc.wiki/embed/tv/${id}/${season}/${episode}/`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
+      (id, options) => appendProviderOptions(`https://vidfast.pro/movie/${id}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
+      (id, season, episode, options) => appendProviderOptions(`https://vidfast.pro/tv/${id}/${season}/${episode}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
     ),
   },
   {
-    id: 'vidsrc-xyz',
-    name: 'Server 2',
+    id: 'vidlink',
+    name: 'VidLink',
     badge: 'Configured',
-    origin: 'https://vidsrc.xyz',
+    origin: 'https://vidlink.pro',
     authorizationStatus: 'unverified',
     supportedMediaTypes: ['movie', 'tv'],
     supportsEpisodes: true,
@@ -213,22 +213,22 @@ export const PROVIDERS: StreamProvider[] = [
     qualityControl: 'none',
     observabilityTier: 'C',
     trustEligible: false,
-    verification: unverifiedExternalVerification('vidsrc-xyz'),
+    verification: unverifiedExternalVerification('vidlink'),
     capabilities: {
       autoplay: false, subtitlePreference: false, audioLanguagePreference: false,
       startTimestamp: false, customAccent: false, controls: false, readyEvents: false,
       progressEvents: false, completionEvents: false, errorEvents: false, qualityControl: 'none',
     },
-    movieUrl: (id) => `https://vidsrc.xyz/embed/movie/${id}`,
-    tvUrl: (id, season, episode) => `https://vidsrc.xyz/embed/tv/${id}/${season}-${episode}`,
+    movieUrl: (id) => `https://vidlink.pro/movie/${id}`,
+    tvUrl: (id, season, episode) => `https://vidlink.pro/tv/${id}/${season}/${episode}`,
     sourceBuilder: externalSourceBuilder(
-      (id) => `https://vidsrc.xyz/embed/movie/${id}`,
-      (id, season, episode) => `https://vidsrc.xyz/embed/tv/${id}/${season}-${episode}`,
+      (id) => `https://vidlink.pro/movie/${id}`,
+      (id, season, episode) => `https://vidlink.pro/tv/${id}/${season}/${episode}`,
     ),
   },
   {
     id: '2embed',
-    name: 'Server 3',
+    name: '2Embed',
     badge: 'Configured',
     origin: 'https://www.2embed.cc',
     authorizationStatus: 'unverified',
@@ -264,41 +264,44 @@ export const PROVIDERS: StreamProvider[] = [
     ),
   },
   {
-    id: 'autoembed',
-    name: 'Server 4',
+    id: 'videasy',
+    name: 'Videasy',
     badge: 'Configured',
-    origin: 'https://player.autoembed.cc',
+    origin: 'https://player.videasy.net',
     authorizationStatus: 'unverified',
     supportedMediaTypes: ['movie', 'tv'],
     supportsEpisodes: true,
     playbackMode: 'external-embed',
     supportedRegions: ['global'],
-    qualityCapability: 'provider-controlled',
-    subtitleCapability: 'provider-ui',
-    audioTrackCapability: 'none',
-    documentedReadiness: 'none',
-    timeoutPolicy: EXTERNAL_TIMEOUT_POLICY,
-    rateLimitPolicy: EXTERNAL_RATE_LIMIT_POLICY,
-    healthState: 'unknown',
-    cooldownState: 'closed',
-    lastErrorCategory: null,
-    supportsMovie: true,
-    supportsTV: true,
-    qualityControl: 'none',
-    observabilityTier: 'C',
-    trustEligible: false,
-    verification: unverifiedExternalVerification('autoembed'),
-    capabilities: {
-      autoplay: false, subtitlePreference: false, audioLanguagePreference: false,
-      startTimestamp: false, customAccent: false, controls: false, readyEvents: false,
-      progressEvents: false, completionEvents: false, errorEvents: false, qualityControl: 'none',
-    },
-    movieUrl: (id) => `https://player.autoembed.cc/embed/movie/${id}`,
-    tvUrl: (id, season, episode) => `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`,
-    sourceBuilder: externalSourceBuilder(
-      (id) => `https://player.autoembed.cc/embed/movie/${id}`,
-      (id, season, episode) => `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`,
-    ),
+    qualityCapability: 'provider-controlled', subtitleCapability: 'provider-ui', audioTrackCapability: 'none',
+    documentedReadiness: 'none', timeoutPolicy: EXTERNAL_TIMEOUT_POLICY, rateLimitPolicy: EXTERNAL_RATE_LIMIT_POLICY,
+    healthState: 'unknown', cooldownState: 'closed', lastErrorCategory: null, supportsMovie: true, supportsTV: true,
+    qualityControl: 'none', observabilityTier: 'C', trustEligible: false,
+    verification: unverifiedExternalVerification('videasy'),
+    capabilities: { autoplay: false, subtitlePreference: false, audioLanguagePreference: false, startTimestamp: false, customAccent: false, controls: false, readyEvents: false, progressEvents: false, completionEvents: false, errorEvents: false, qualityControl: 'none' },
+    movieUrl: (id) => `https://player.videasy.net/movie/${id}`,
+    tvUrl: (id, season, episode) => `https://player.videasy.net/tv/${id}/${season}/${episode}`,
+    sourceBuilder: externalSourceBuilder((id) => `https://player.videasy.net/movie/${id}`, (id, season, episode) => `https://player.videasy.net/tv/${id}/${season}/${episode}`),
+  },
+  {
+    id: 'nontongo',
+    name: 'Nontongo',
+    badge: 'Configured',
+    origin: 'https://nontongo.win',
+    authorizationStatus: 'unverified',
+    supportedMediaTypes: ['movie', 'tv'],
+    supportsEpisodes: true,
+    playbackMode: 'external-embed',
+    supportedRegions: ['global'],
+    qualityCapability: 'provider-controlled', subtitleCapability: 'provider-ui', audioTrackCapability: 'none',
+    documentedReadiness: 'none', timeoutPolicy: EXTERNAL_TIMEOUT_POLICY, rateLimitPolicy: EXTERNAL_RATE_LIMIT_POLICY,
+    healthState: 'unknown', cooldownState: 'closed', lastErrorCategory: null, supportsMovie: true, supportsTV: true,
+    qualityControl: 'none', observabilityTier: 'C', trustEligible: false,
+    verification: unverifiedExternalVerification('nontongo'),
+    capabilities: { autoplay: false, subtitlePreference: false, audioLanguagePreference: false, startTimestamp: false, customAccent: false, controls: false, readyEvents: false, progressEvents: false, completionEvents: false, errorEvents: false, qualityControl: 'none' },
+    movieUrl: (id) => `https://nontongo.win/embed/movie/${id}`,
+    tvUrl: (id, season, episode) => `https://nontongo.win/embed/tv/${id}/${season}/${episode}`,
+    sourceBuilder: externalSourceBuilder((id) => `https://nontongo.win/embed/movie/${id}`, (id, season, episode) => `https://nontongo.win/embed/tv/${id}/${season}/${episode}`),
   },
 ]
 
@@ -389,9 +392,21 @@ export function parseDocumentedProviderEvent(
 }
 
 /** Default provider in the allowlisted provider registry. */
-export const DEFAULT_PROVIDER = PROVIDERS[0].id
+// Provider order follows the latest live embed sweep; health ranking may demote
+// a provider after a failed embed pre-check or runtime attempt.
+// Prefer the provider verified to render in the current browser environment;
+// registry order remains the fallback priority when health data is available.
+export const DEFAULT_PROVIDER = '2embed'
 
 export function isProviderEligible(provider: StreamProvider): boolean {
+  // External iframe providers are intentionally opaque: they do not expose
+  // VEYRA-verifiable native playback events or authorization records. Their
+  // eligibility is still constrained to registry-owned HTTPS origins and the
+  // CSP allowlist; native-media sources retain the stricter authorization
+  // gate in isPlaybackProviderEligible.
+  if (provider.playbackMode === 'external-embed') {
+    return provider.authorizationStatus !== 'prohibited' && provider.origin.startsWith('https://')
+  }
   return provider.trustEligible && isPlaybackProviderEligible(provider)
 }
 
@@ -415,14 +430,14 @@ export function getInitialProviderId(savedProvider?: string): string {
 }
 
 export function getPlayerProvider(): string {
-  return PROVIDERS[0].origin
+  return PROVIDERS.find((provider) => provider.id === DEFAULT_PROVIDER)?.origin ?? PROVIDERS[0].origin
 }
 
 export function getPlayerOrigin(): string {
   try {
     return new URL(getPlayerProvider()).origin
   } catch {
-    return 'https://v1.vidsrc.wiki'
+    return 'https://vidfast.pro'
   }
 }
 
@@ -457,6 +472,7 @@ export interface ProviderHealth {
   cooldownUntil?: number
   circuit?: 'CLOSED' | 'OPEN' | 'HALF_OPEN'
   lastErrorCategory?: PlayerErrorCategory | null
+  embedReachable?: boolean
 }
 
 export const PLAYER_HEALTH_STORAGE_KEY = 'veyra-player-health-v1'
@@ -545,7 +561,7 @@ export function recordProviderFailure(providerId: string, reason: 'timeout' | 'e
 
 export function rankProviders(options: {
   providers?: StreamProvider[]
-  health?: Record<string, ProviderHealth>
+  health?: Record<string, Partial<ProviderHealth>>
   attemptedProviderIds?: string[]
   preferredProviderId?: string
   mediaType?: PlaybackMediaType
@@ -558,18 +574,24 @@ export function rankProviders(options: {
     .filter((provider) => isProviderEligible(provider) || provider.authorizationStatus === 'unverified')
     .filter((provider) => !options.mediaType || provider.supportedMediaTypes.includes(options.mediaType))
     .filter((provider) => !attempted.has(provider.id))
-    .filter((provider) => isProviderAvailable(options.health?.[provider.id] ?? emptyProviderHealth(provider.id), now))
+    .filter((provider) => isProviderAvailable({ ...emptyProviderHealth(provider.id), ...(options.health?.[provider.id] ?? {}) }, now))
     .map((provider, index) => {
-      const health = options.health?.[provider.id] ?? emptyProviderHealth(provider.id)
+      const health = { ...emptyProviderHealth(provider.id), ...(options.health?.[provider.id] ?? {}) }
+      const suppliedHealth = options.health?.[provider.id]
       // The prior prevents one lucky attempt from outranking a well-sampled provider.
-      const reliability = health.successEWMA ?? (health.successes + 2) / (health.attempts + 4)
-      const latency = health.startupLatencyEWMA ?? 10_000
+      const reliability = suppliedHealth?.successEWMA ?? (suppliedHealth ? (health.successes + 2) / (health.attempts + 4) : (health.successEWMA ?? 0.5))
+      const latency = suppliedHealth?.startupLatencyEWMA ?? health.startupLatencyEWMA ?? 10_000
       const latencyScore = 1 - Math.min(latency, 10_000) / 10_000
-      const preference = provider.id === options.preferredProviderId ? 0.05 : 0
+      const preference = provider.id === options.preferredProviderId
+        ? 0.05
+        : provider.id === DEFAULT_PROVIDER && !options.health
+          ? 0.02
+          : 0
       const exploration = health.attempts === 0 ? 0.05 : 0
       const recentFailurePenalty = health.lastFailureAt && now - health.lastFailureAt < 5 * 60_000 ? 0.08 : 0
       const timeoutPenalty = (health.timeouts ?? 0) > 0 ? Math.min(0.1, (health.timeouts ?? 0) / Math.max(10, health.attempts) * 0.1) : 0
-      return { provider, score: reliability * 0.55 + latencyScore * 0.25 + preference + exploration - recentFailurePenalty - timeoutPenalty - index * 0.0001 }
+      const embedPenalty = options.health?.[provider.id]?.embedReachable === false ? 0.8 : 0
+      return { provider, score: reliability * 0.65 + latencyScore * 0.15 + preference + exploration - recentFailurePenalty - timeoutPenalty - embedPenalty - index * 0.0001 }
     })
     .sort((a, b) => b.score - a.score)
     .map(({ provider }) => provider)
@@ -587,7 +609,7 @@ export function getInitialProviderIdForMode(
   return ranked[0]?.id ?? preferredProviderId
 }
 
-export function getMovieEmbedUrl(id: string | number, providerId: string = 'vidsrc-wiki', options?: ProviderUrlOptions): string {
+export function getMovieEmbedUrl(id: string | number, providerId: string = DEFAULT_PROVIDER, options?: ProviderUrlOptions): string {
   const safeId = positiveInteger(id, 'MEDIA_ID')
   const provider = PROVIDERS.find((p) => p.id === providerId) ?? PROVIDERS[0]
   return provider.movieUrl(safeId, options)
@@ -597,7 +619,7 @@ export function getTVEmbedUrl(
   id: string | number,
   season: string | number,
   episode: string | number,
-  providerId: string = 'vidsrc-wiki',
+  providerId: string = DEFAULT_PROVIDER,
   options?: ProviderUrlOptions,
 ): string {
   const safeId = positiveInteger(id, 'MEDIA_ID')
@@ -669,3 +691,5 @@ export const playerErrorMessages: Record<PlayerErrorCode, string> = {
 export function playerErrorMessage(code: PlayerErrorCode): string {
   return playerErrorMessages[code] ?? playerErrorMessages.UNKNOWN
 }
+
+

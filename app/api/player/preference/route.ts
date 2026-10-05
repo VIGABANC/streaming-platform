@@ -1,31 +1,7 @@
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { PROVIDERS } from '@/lib/player'
-
-const COOKIE_NAME = 'veyra_preferred_provider'
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json() as { providerId?: unknown }
-    const providerId = typeof body.providerId === 'string' ? body.providerId : ''
-    if (!PROVIDERS.some((provider) => provider.id === providerId)) {
-      return NextResponse.json({ error: 'Invalid provider' }, { status: 400 })
-    }
-    const response = NextResponse.json({ ok: true })
-    response.cookies.set(COOKIE_NAME, providerId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-    })
-    return response
-  } catch {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
-  }
-}
-
-export async function GET() {
-  const preferredProviderId = (await cookies()).get(COOKIE_NAME)?.value ?? null
-  return NextResponse.json({ preferredProviderId }, { headers: { 'cache-control': 'no-store' } })
-}
+import { checkRateLimit, requestIdentity } from '@/lib/http/rate-limit'
+const COOKIE = 'veyra_preferred_provider'; const valid = (id: unknown): id is string => typeof id === 'string' && PROVIDERS.some((provider) => provider.id === id)
+export async function GET() { const id = (await cookies()).get(COOKIE)?.value; return NextResponse.json({ providerId: valid(id) ? id : null }) }
+export async function POST(request: Request) { const limit = checkRateLimit(requestIdentity(request), { limit: 10, windowMs: 60_000 }); if (!limit.allowed) return NextResponse.json({ error: 'RATE_LIMITED' }, { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds ?? 60) } }); try { const body = await request.json(); if (!valid(body?.providerId)) return NextResponse.json({ error: 'INVALID_PROVIDER' }, { status: 400 }); const response = NextResponse.json({ ok: true }); response.cookies.set(COOKIE, body.providerId, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60, path: '/' }); return response } catch { return NextResponse.json({ error: 'INVALID_JSON' }, { status: 400 }) } }

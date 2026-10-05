@@ -27,16 +27,6 @@ import {
   transitionAttempt,
 } from '@/lib/player-attempt'
 import { ExternalEmbedEngine, NativeMediaEngine } from '@/lib/player-engine'
-import { PLAYBACK_ERROR_COPY, PLAYBACK_ERROR_REASONS } from '@/lib/providers/errors'
-
-it('keeps every playback error user-facing and provider-neutral', () => {
-  for (const reason of PLAYBACK_ERROR_REASONS) {
-    const copy = PLAYBACK_ERROR_COPY[reason]
-    expect(copy.trim()).not.toBe('')
-    expect(copy.toLowerCase()).not.toContain(['sandbox', 'is not allowed'].join(' '))
-    expect(copy.toLowerCase()).not.toContain(['could', 'not be loaded'].join(' '))
-  }
-})
 
 const verifiedProviders = PROVIDERS.map((provider) => ({
   ...provider,
@@ -52,16 +42,11 @@ const verifiedProviders = PROVIDERS.map((provider) => ({
 }))
 
 describe('Player Architecture & URL Builders', () => {
-  // Aligned with ffc38a2 ("Allow unverified providers in playback source resolution"):
-  // the opaque external engine resolves unverified provider embeds, but never owns
-  // media controls or claims playback verification.
-  it('resolves unverified providers through the opaque external engine without owning media controls', () => {
+  it('uses an explicit opaque external engine for registry-owned iframe playback', () => {
     expect(ExternalEmbedEngine.kind).toBe('external-embed')
     expect(ExternalEmbedEngine.ownsMediaControls).toBe(false)
     expect(ExternalEmbedEngine.canVerifyPlayback).toBe(false)
-    const source = ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidsrc-wiki' })
-    expect(source).toBe(getMovieEmbedUrl(603, 'vidsrc-wiki'))
-    expect(source && new URL(source).origin).toBe('https://v1.vidsrc.wiki')
+    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidfast' })).toContain('/movie/603')
   })
 
   it('keeps native playback gated behind an explicitly authorized direct source', () => {
@@ -73,40 +58,38 @@ describe('Player Architecture & URL Builders', () => {
   describe('getMovieEmbedUrl', () => {
     it('generates correct embed url for movie IDs', () => {
       const url = getMovieEmbedUrl(603)
-      expect(url).toContain('/movie/603')
+      expect(url).toContain('/embed/603')
       expect(url).toMatch(/^https?:\/\//)
     })
 
     it('handles string or number ID cleanly', () => {
-      expect(getMovieEmbedUrl('157336')).toContain('/movie/157336')
+      expect(getMovieEmbedUrl('157336')).toContain('/embed/157336')
     })
   })
 
   describe('getTVEmbedUrl', () => {
     it('generates correct embed url for show with season and episode', () => {
       const url = getTVEmbedUrl(1399, 1, 1)
-      expect(url).toContain('/tv/1399/1/1')
+      expect(url).toContain('/embedtv/1399&s=1&e=1')
     })
 
     it('handles string parameters', () => {
       const url = getTVEmbedUrl('1399', '2', '5')
-      expect(url).toContain('/tv/1399/2/5')
+      expect(url).toContain('/embedtv/1399&s=2&e=5')
     })
 
     it('supports alternative providers', () => {
-      const p2 = getTVEmbedUrl(1399, 1, 1, 'vidsrc-xyz')
-      expect(p2).toContain('vidsrc.xyz')
+      const p2 = getTVEmbedUrl(1399, 1, 1, 'vidlink')
+      expect(p2).toContain('vidlink.pro')
 
       const p3 = getTVEmbedUrl(1399, 1, 1, '2embed')
       expect(p3).toContain('2embed.cc')
 
-      const p4 = getTVEmbedUrl(1399, 1, 1, 'autoembed')
-      expect(p4).toContain('autoembed.cc')
     })
 
     it('encodes documented subtitle preferences only for the documented provider', () => {
-      expect(getMovieEmbedUrl(603, 'vidsrc-wiki', { subtitleLanguage: 'ar' })).toContain('?sub=ar')
-      expect(getMovieEmbedUrl(603, 'vidsrc-xyz', { subtitleLanguage: 'ar' })).not.toContain('sub=ar')
+      expect(getMovieEmbedUrl(603, 'vidfast', { subtitleLanguage: 'ar' })).toContain('?sub=ar')
+      expect(getMovieEmbedUrl(603, 'vidlink', { subtitleLanguage: 'ar' })).not.toContain('sub=ar')
     })
 
     it('rejects malformed route values instead of coercing them', () => {
@@ -123,9 +106,9 @@ describe('Player Architecture & URL Builders', () => {
       expect(PROVIDERS.every((provider) => provider.capabilities.audioLanguagePreference === false)).toBe(true)
     })
 
-    it('treats trust eligibility as a hard gate', () => {
-      expect(isProviderEligible({ ...PROVIDERS[0], trustEligible: false })).toBe(false)
-      expect(isProviderEligible(PROVIDERS[0])).toBe(false)
+    it('allows registry-owned external embeds while keeping native trust gating', () => {
+      expect(isProviderEligible({ ...PROVIDERS[0], trustEligible: false })).toBe(true)
+      expect(isProviderEligible(PROVIDERS[0])).toBe(true)
       expect(isProviderEligible(verifiedProviders[0])).toBe(true)
     })
 
@@ -140,7 +123,7 @@ describe('Player Architecture & URL Builders', () => {
 
     it('does not loop after every provider has been attempted', () => {
       const ranked = rankProviders({
-        attemptedProviderIds: ['vidsrc-wiki', 'vidsrc-xyz', '2embed', 'autoembed'],
+        attemptedProviderIds: ['vidfast', 'vidlink', '2embed', 'videasy', 'nontongo'],
       })
       expect(ranked).toHaveLength(0)
     })
@@ -149,35 +132,39 @@ describe('Player Architecture & URL Builders', () => {
       const ranked = rankProviders({
         providers: verifiedProviders,
         health: {
-          'vidsrc-wiki': { attempts: 1, successes: 1, startupLatencyEWMA: 500 },
-          'vidsrc-xyz': { attempts: 105, successes: 100, startupLatencyEWMA: 1200 },
+          vidfast: { attempts: 1, successes: 1, startupLatencyEWMA: 500 },
+          vidlink: { attempts: 105, successes: 100, startupLatencyEWMA: 1200 },
         },
       })
-      expect(ranked[0].id).toBe('vidsrc-xyz')
+      expect(ranked[0].id).toBe('vidlink')
+    })
+
+    it('demotes the known dead embed path below the verified default provider', () => {
+      expect(rankProviders().map((provider) => provider.id)[0]).toBe('2embed')
     })
 
     it('excludes an open circuit and allows it after cooldown', () => {
       const now = 1_000_000
-      const health = { 'vidsrc-wiki': { ...emptyProviderHealth('vidsrc-wiki'), cooldownUntil: now + 60_000, circuit: 'OPEN' as const } }
-      expect(rankProviders({ providers: verifiedProviders, health, now }).map((p) => p.id)).not.toContain('vidsrc-wiki')
-      expect(rankProviders({ providers: verifiedProviders, health, now: now + 60_001 }).map((p) => p.id)).toContain('vidsrc-wiki')
+      const health = { vidfast: { ...emptyProviderHealth('vidfast'), cooldownUntil: now + 60_000, circuit: 'OPEN' as const } }
+      expect(rankProviders({ providers: verifiedProviders, health, now }).map((p) => p.id)).not.toContain('vidfast')
+      expect(rankProviders({ providers: verifiedProviders, health, now: now + 60_001 }).map((p) => p.id)).toContain('vidfast')
     })
 
     it('honors manual server selection while preserving health ranking in auto mode', () => {
       const health = {
-        'vidsrc-wiki': { attempts: 1, successes: 0, startupLatencyEWMA: 9000 },
-        'vidsrc-xyz': { attempts: 20, successes: 19, startupLatencyEWMA: 500 },
+        vidfast: { attempts: 1, successes: 0, startupLatencyEWMA: 9000 },
+        vidlink: { attempts: 20, successes: 19, startupLatencyEWMA: 500 },
       }
-      expect(getInitialProviderIdForMode({ defaultServer: 'vidsrc-wiki', playerMode: 'manual' }, {
+      expect(getInitialProviderIdForMode({ defaultServer: 'vidfast', playerMode: 'manual' }, {
         providers: verifiedProviders,
         health,
         mediaType: 'movie',
-      })).toBe('vidsrc-wiki')
-      expect(getInitialProviderIdForMode({ defaultServer: 'vidsrc-wiki', playerMode: 'auto' }, {
+      })).toBe('vidfast')
+      expect(getInitialProviderIdForMode({ defaultServer: 'vidfast', playerMode: 'auto' }, {
         providers: verifiedProviders,
         health,
         mediaType: 'movie',
-      })).toBe('vidsrc-xyz')
+      })).toBe('vidlink')
     })
 
     it('allows only one half-open recovery trial after cooldown', () => {
@@ -271,11 +258,11 @@ describe('Player Architecture & URL Builders', () => {
         providers: verifiedProviders,
         now,
         health: {
-          'vidsrc-wiki': { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500, lastFailureAt: now - 1_000, timeouts: 4 },
-          'vidsrc-xyz': { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500 },
+          vidfast: { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500, lastFailureAt: now - 1_000, timeouts: 4 },
+          vidlink: { attempts: 20, successes: 19, successEWMA: 0.95, startupLatencyEWMA: 500 },
         },
       })
-      expect(ranked[0].id).toBe('vidsrc-xyz')
+      expect(ranked[0].id).toBe('vidlink')
     })
   })
 

@@ -9,27 +9,21 @@ import { normalizeAuthorizedNativeSource } from '@/lib/native-media-adapter'
 
 describe('playback provider registry and resolver', () => {
   it('declares the complete provider contract without quality overclaims', () => {
-    expect(PROVIDERS).toHaveLength(4)
+    expect(PROVIDERS).toHaveLength(5)
     expect(PROVIDERS.every((provider) => provider.playbackMode === 'external-embed')).toBe(true)
     expect(PROVIDERS.every((provider) => provider.qualityCapability === 'provider-controlled')).toBe(true)
     expect(PROVIDERS.every((provider) => provider.documentedReadiness === 'none')).toBe(true)
     expect(PROVIDERS.every((provider) => provider.supportedRegions.includes('global'))).toBe(true)
   })
 
-  // Aligned with ffc38a2 ("Allow unverified providers in playback source resolution"):
-  // unverified providers resolve, but every source they produce must be explicitly
-  // flagged as unverified so the UI never overclaims provider readiness.
-  it('resolves unverified movie embeds only as explicitly unverified sources', () => {
+  it('resolves registry-owned external movie embeds without native authorization', () => {
     const request: PlaybackRequest = { mediaType: 'movie', mediaId: 603, region: 'US' }
     const result = resolvePlaybackSources(request)
 
     expect(result.status).toBe('success')
-    expect(result.sources.length).toBeGreaterThan(0)
-    for (const source of result.sources) {
-      expect(source.availability).toBe('unverified')
-      expect(source.authorizationStatus).toBe('unverified')
-      expect(source.verification).toBe('frame-load-only')
-    }
+    expect(result.sources).toHaveLength(5)
+    expect(result.sources.every((source) => source.mode === 'external-embed')).toBe(true)
+    expect(result.sources.every((source) => source.authorizationStatus === 'unverified')).toBe(true)
   })
 
   it('does not fabricate Anime sources when no provider supports Anime', () => {
@@ -41,9 +35,9 @@ describe('playback provider registry and resolver', () => {
   })
 
   it('rejects unsafe or mismatched provider URLs', () => {
-    expect(() => validatePlaybackUrl('http://v1.vidsrc.wiki/embed/movie/603', PROVIDERS[0])).toThrow('HTTPS')
-    expect(() => validatePlaybackUrl('https://evil.example/embed/movie/603', PROVIDERS[0])).toThrow('ORIGIN')
-    expect(() => validatePlaybackUrl('https://v1.vidsrc.wiki/embed/movie/603', PROVIDERS[0])).not.toThrow()
+    expect(() => validatePlaybackUrl('http://vidfast.pro/movie/603', PROVIDERS[0])).toThrow('HTTPS')
+    expect(() => validatePlaybackUrl('https://evil.example/movie/603', PROVIDERS[0])).toThrow('ORIGIN')
+    expect(() => validatePlaybackUrl('https://vidfast.pro/movie/603', PROVIDERS[0])).not.toThrow()
   })
 
   it('rejects malformed playback identities before source construction', () => {

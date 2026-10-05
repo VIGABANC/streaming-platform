@@ -1,0 +1,6 @@
+[
+  {"id":"vidsrc-wiki","name":"Server 1","origin":"https://v1.vidsrc.wiki","configured":true,"dnsResolved":true,"reachable":false,"status":"unreachable","latencyMs":701,"lastCheckedAt":"2026-10-02T20:50:43.523Z"},
+  {"id":"vidsrc-xyz","name":"Server 2","origin":"https://vidsrc.xyz","configured":true,"dnsResolved":false,"reachable":false,"status":"dns-failure","latencyMs":10,"lastCheckedAt":"2026-10-02T20:50:43.526Z"},
+  {"id":"2embed","name":"Server 3","origin":"https://www.2embed.cc","configured":true,"dnsResolved":true,"reachable":true,"status":"healthy","latencyMs":505,"lastCheckedAt":"2026-10-02T20:50:43.526Z"},
+  {"id":"consumet","name":"Consumet","origin":"","configured":false,"dnsResolved":false,"reachable":false,"status":"not-configured","latencyMs":null,"lastCheckedAt":"2026-10-02T20:50:43.527Z"}
+]

@@ -53,8 +53,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
         {/* Provider connection hints */}
-        <link rel="dns-prefetch" href="https://v1.vidsrc.wiki" />
-        <link rel="preconnect" href="https://v1.vidsrc.wiki" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://vidfast.pro" />
+        <link rel="preconnect" href="https://vidfast.pro" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         {/* PWA */}

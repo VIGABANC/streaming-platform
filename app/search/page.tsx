@@ -183,7 +183,6 @@ function SearchContent() {
             placeholder="Type a movie title, series name, or franchise... (Press '/' to focus)"
             aria-label="Search movies and series"
             className="h-12 flex-1 bg-transparent px-3 text-sm text-white placeholder:text-muted-foreground/70 outline-none"
-            autoFocus
           />
           {q ? (
             <button

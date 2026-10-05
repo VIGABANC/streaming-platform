@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url)
-  const query = url.searchParams.get('query')?.trim() ?? ''
+  const query = (url.searchParams.get('query') ?? url.searchParams.get('q'))?.trim() ?? ''
 
   if (!query) {
     return NextResponse.json({ results: [] })

@@ -30,8 +30,13 @@ function score(item: Media, intent: SearchIntent): number {
 }
 
 export function rankSearchResults(results: Media[], intent: SearchIntent): Media[] {
-  return results
+  const ranked = results
     .map((item, index) => ({ item, score: score(item, intent), index }))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(({ item }) => item)
+
+  const query = normalized(intent.query)
+  const isGibberish = query.length >= 4 && /^(.)\1+$/.test(query.replace(/\s+/g, ''))
+  if (!isGibberish) return ranked
+  return ranked.filter((item) => (item.vote_count ?? 0) >= 5)
 }

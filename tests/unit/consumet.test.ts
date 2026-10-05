@@ -58,7 +58,7 @@ describe('consumet configuration', () => {
   it('never adds Consumet to the movie/TV provider registry', async () => {
     const { PROVIDERS, CONSUMET_PROVIDER } = await import('@/lib/player')
 
-    expect(PROVIDERS).toHaveLength(4)
+    expect(PROVIDERS).toHaveLength(5)
     expect(PROVIDERS.some((provider) => provider.supportedMediaTypes.includes('anime'))).toBe(false)
     expect(PROVIDERS.map((provider) => provider.id)).not.toContain('consumet')
     expect(CONSUMET_PROVIDER.supportedMediaTypes).toEqual(['anime'])

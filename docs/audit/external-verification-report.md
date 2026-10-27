@@ -2,17 +2,18 @@
 
 **Audit date:** 2026-10-27 (Africa/Casablanca)
 **Release classification:** **BLOCKED**
-**Local worktree:** `462f17df832efa406b4feda12480f5d102606064` on
-`feat/provider-registry-refresh`, uncommitted
+**Current branch:** `fix/veyra-release-verification`
+**Current pushed HEAD:** `2ca6584` (`docs: record local auth and preview verification evidence`)
+**Pull request:** [#38](https://github.com/VIGABANC/streaming-platform/pull/38), draft
 **Remote branch tip observed:** `2f250e07b9080eda1e500fe8a1c8e44729584562`
 **Remote `main`:** `e211575a448087d25b6488fe5cfff6de891272ae`
 
-Local preparation branch `fix/veyra-release-verification` was created without
-discarding or staging the existing dirty worktree. The worktree contains 76
-pre-existing modified/untracked entries, including generated arena/log and
-browser-evidence artifacts. A repository-wide credential-pattern scan emitted
-no credential values; generic matches in auth UI, configuration names, and
-reports require normal diff review but are not evidence of committed secrets.
+The reviewed release-verification changes were committed and pushed from the
+previously dirty worktree. Generated arena/log and browser-evidence artifacts
+were excluded from the commits. A repository-wide credential-pattern scan
+emitted no credential values; generic matches in auth UI, configuration names,
+and reports require normal diff review but are not evidence of committed
+secrets.
 
 This report is a current-state blocker audit. It does not promote local tests,
 HTTP 200 responses, iframe markup, protected deployment pages, or historical CI

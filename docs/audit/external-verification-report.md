@@ -35,10 +35,10 @@ results into external verification.
 | Requirement | Current evidence | Status | Required resolution |
 |---|---|---|---|
 | Authorized movie/TV/anime playback | Five opaque external providers remain `unverified`; native origin allowlist is empty; `npm run test:live` skipped both opt-in tests | BLOCKED_EXTERNAL | Provide an authorized/licensed test source and verify real `playing`, `timeupdate`, audio, progress, buffering, and failure events for each released media type |
-| Supabase authentication and isolation | Local Docker stack, migrations, and two-user snapshot isolation probe passed; pgTAP reports `NOTESTS`; hosted project/browser session-expiry coverage remains unverified | BLOCKED_EXTERNAL | Add/execute durable pgTAP coverage, verify browser refresh/session expiry and all user-owned tables, then repeat against the intended hosted project |
-| Protected Preview deployment | Vercel CLI exists but reports its token invalid; connector/API access remains unavailable | BLOCKED_EXTERNAL | Provide valid project-scoped Preview access or an approved automation bypass; record exact deployment URL and SHA |
-| Fresh GitHub CI for current worktree | Local worktree is uncommitted; remote branch tip is `2f250e0`; its `Verify VEYRA` run `37376378957` failed at desktop E2E and skipped later gates | BLOCKED_EXTERNAL | Push the intended commit or authorize CI for its exact SHA, then record fresh check URLs and conclusions |
-| Maintainer approval | No approval evidence exists for the current uncommitted tree | BLOCKED_EXTERNAL | Independent maintainer reviews the diff, external evidence, and release checklist |
+| Supabase authentication and isolation | Local Docker stack, migrations, two-user session probe, and 8-test pgTAP suite passed; hosted project/browser session-expiry coverage remains unverified | BLOCKED_EXTERNAL | Verify browser refresh/session expiry and all user-owned tables, then repeat against the intended hosted project |
+| Protected Preview deployment | New Preview for commit `4a81b34` is reachable at the recorded URL, but API paths returned HTML instead of JSON and deployed E2E began failing | BLOCKED_EXTERNAL | Fix/verify Preview routing and environment configuration, then rerun complete deployed desktop/mobile checks |
+| Fresh GitHub CI for current worktree | Commit `4a81b34` is pushed and PR #38 is open; combined status currently reports only Vercel success, with no fresh `Verify VEYRA` result yet | BLOCKED_EXTERNAL | Confirm the workflow runs against exact SHA and record all check URLs/conclusions |
+| Maintainer approval | Draft PR #38 exists; no independent approval evidence exists | BLOCKED_EXTERNAL | Independent maintainer reviews the diff, external evidence, and release checklist |
 
 ## Playback verification report
 
@@ -100,11 +100,19 @@ Remaining test cases with disposable users A and B:
 
 ## Deployment verification report
 
-The Vercel CLI is installed, but the configured token is invalid. A direct
-request to the historical Preview URL recorded in the older certification
-report returned HTTP 410 on this audit date. The current local worktree has no
-deployment identity. Historical or public Vercel/GitHub status metadata is not
-treated as verification for this uncommitted tree.
+The Vercel CLI remains logged out, but the authenticated GitHub/Vercel
+integration created Preview deployment
+`https://streaming-platform-git-fix-v-92569e-zahidossama2-1958s-projects.vercel.app`
+for commit `4a81b3471a885ab51d3e820af1ade0a27fe5e308`. The deployment root and
+page routes returned HTTP 200 HTML. However, direct checks of `/api/search`,
+`/api/health/providers`, and the other expected API paths also returned HTML
+`text/html` rather than JSON, and the deployed Playwright run began failing on
+the anime and discovery flows. The run was stopped after the first failures;
+this is deployment evidence, not a passing deployed E2E result.
+
+The historical Preview URL recorded in the older certification report still
+returns HTTP 410. The new Preview is therefore reachable but not verified for
+production behavior or correct API routing.
 
 Required Preview evidence:
 

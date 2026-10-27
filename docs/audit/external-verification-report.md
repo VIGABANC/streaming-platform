@@ -3,7 +3,7 @@
 **Audit date:** 2026-10-27 (Africa/Casablanca)
 **Release classification:** **BLOCKED**
 **Current branch:** `fix/veyra-release-verification`
-**Current pushed HEAD:** `2ca6584` (`docs: record local auth and preview verification evidence`)
+**Current pushed HEAD:** `93182a8` (`docs: update current release verification state`)
 **Pull request:** [#38](https://github.com/VIGABANC/streaming-platform/pull/38), draft
 **Remote branch tip observed:** `2f250e07b9080eda1e500fe8a1c8e44729584562`
 **Remote `main`:** `e211575a448087d25b6488fe5cfff6de891272ae`
@@ -52,6 +52,24 @@ provider markup as playback.
 No current evidence proves `playing`, `timeupdate`, audio output, progress,
 buffering behavior, subtitles, or playback failure events from an authorized
 source. No DRM, provider security, or access restriction was bypassed.
+
+### Manual browser verification (2026-10-27)
+
+The local app was exercised as a real user in a browser against the three
+release playback routes:
+
+| Route | Observed result | Classification |
+|---|---|---|
+| `/watch/movie/550` | Fight Club rendered with a `2Embed UNVERIFIED` iframe, `Connecting to 2Embed…`, and `A frame load does not verify playback`. No native player controls or visible progress were observed. | Not verified |
+| `/watch/tv/1399/1/1` | Game of Thrones S1 E1 rendered with a `2Embed UNVERIFIED` iframe, `Connecting to 2Embed…`, and provider-controlled playback. No native player controls or visible progress were observed. | Not verified |
+| `/watch/anime/52991/1` | The page showed `Playback unavailable for this media type` and `No iframe or playback claim is presented.` | Correct unavailable state; not verified |
+
+The movie and TV frames exposed third-party content, including an ad-linked
+destination, so no suspicious provider control was clicked. The exact Vercel
+Preview URL redirected to Vercel login because deployment protection is active;
+no credentials were entered and no protection bypass was attempted. This run
+adds evidence for guarded unavailable/unverified states but does not establish
+authorized playback for any media type.
 
 Required test sequence after an authorized source is supplied:
 

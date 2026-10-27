@@ -3,7 +3,8 @@
 **Audit date:** 2026-10-27 (Africa/Casablanca)
 **Release classification:** **BLOCKED**
 **Current branch:** `fix/veyra-release-verification`
-**Current pushed HEAD:** `93182a8` (`docs: update current release verification state`)
+**Verification baseline HEAD:** `93182a8` (`docs: update current release verification state`)
+**Manual evidence commit:** `cc6103e` (`docs: record manual playback verification`)
 **Pull request:** [#38](https://github.com/VIGABANC/streaming-platform/pull/38), draft
 **Remote branch tip observed:** `2f250e07b9080eda1e500fe8a1c8e44729584562`
 **Remote `main`:** `e211575a448087d25b6488fe5cfff6de891272ae`

@@ -1,6 +1,7 @@
 import {
   isStrictPositiveInteger,
   PROVIDERS,
+  readProviderHealth,
   rankProviders,
   validatePlaybackUrl,
   type PlaybackRequest,
@@ -52,6 +53,7 @@ export function resolvePlaybackSources(request: PlaybackRequest): PlaybackResolu
     mediaType: request.mediaType,
     attemptedProviderIds: request.attemptedProviderIds,
     preferredProviderId: request.preferredProviderId,
+    health: request.providerHealth ?? readProviderHealth(),
   })
   const sources: PlaybackSource[] = (request.nativeSources ?? []).filter((source) => {
     if (source.mode !== 'native-media' || source.authorizationStatus !== 'authorized' || source.availability !== 'available' || source.mediaType !== request.mediaType || !source.format) return false

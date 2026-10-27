@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { Calendar, Star, Tv, ChevronRight, Layers } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { MediaRail } from '@/components/media/MediaRail'
@@ -25,6 +26,7 @@ import {
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
 import { serializeJsonLd } from '@/lib/seo/json-ld'
+import { isStrictPositiveInteger } from '@/lib/player'
 
 interface TVPageProps {
   params: Promise<{ id: string }>
@@ -56,6 +58,7 @@ export async function generateMetadata({ params }: TVPageProps): Promise<Metadat
 
 export default async function TVDetailPage({ params }: TVPageProps) {
   const { id } = await params
+  if (!isStrictPositiveInteger(id)) notFound()
   let show: TVDetail | null = null
 
   try {

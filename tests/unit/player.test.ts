@@ -14,6 +14,7 @@ import {
   recordProviderFailure,
   recordProviderSuccess,
   type PlayerErrorCode,
+  type PlaybackSource,
   parseDocumentedProviderEvent,
 } from '@/lib/player'
 import {
@@ -47,6 +48,26 @@ describe('Player Architecture & URL Builders', () => {
     expect(ExternalEmbedEngine.ownsMediaControls).toBe(false)
     expect(ExternalEmbedEngine.canVerifyPlayback).toBe(false)
     expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidfast' })).toContain('/movie/603')
+
+    const source = {
+      id: 'vidfast:movie:603',
+      providerId: 'vidfast',
+      providerName: 'VidFast',
+      mode: 'external-embed',
+      mediaType: 'movie',
+      url: 'https://vidfast.pro/movie/603',
+      origin: 'https://vidfast.pro',
+      availability: 'unverified',
+      verification: 'frame-load-only',
+      authorizationStatus: 'unverified',
+      qualityCapability: 'provider-controlled',
+      subtitleCapability: 'provider-ui',
+      audioTrackCapability: 'none',
+      documentedReadiness: 'none',
+    } as const
+    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidfast', source })).toBe(source.url)
+    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidlink', source })).toBeNull()
+    expect(ExternalEmbedEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'vidfast', source: { ...source, url: 'https://evil.example/movie/603' } })).toBeNull()
   })
 
   it('keeps native playback gated behind an explicitly authorized direct source', () => {
@@ -54,6 +75,28 @@ describe('Player Architecture & URL Builders', () => {
     expect(NativeMediaEngine.ownsMediaControls).toBe(true)
     expect(NativeMediaEngine.canVerifyPlayback).toBe(true)
     expect(NativeMediaEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'native' })).toBeNull()
+
+    const source = {
+      id: 'candidate:603',
+      providerId: 'candidate',
+      providerName: 'Candidate',
+      mode: 'native-media',
+      mediaType: 'movie',
+      url: 'https://media.example.test/movie/603.m3u8',
+      origin: 'https://media.example.test',
+      format: 'hls',
+      availability: 'available',
+      verification: 'native-events',
+      authorizationStatus: 'authorized',
+      qualityCapability: 'native',
+      subtitleCapability: 'native',
+      audioTrackCapability: 'native',
+      documentedReadiness: 'documented-api',
+    } as PlaybackSource
+
+    expect(NativeMediaEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'candidate', source: { ...source, mode: 'external-embed' } })).toBeNull()
+    expect(NativeMediaEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'candidate', source: { ...source, authorizationStatus: 'unverified' } })).toBeNull()
+    expect(NativeMediaEngine.getSource({ mediaType: 'movie', mediaId: 603, providerId: 'candidate', source })).toBe(source.url)
   })
   describe('getMovieEmbedUrl', () => {
     it('generates correct embed url for movie IDs', () => {
@@ -87,8 +130,8 @@ describe('Player Architecture & URL Builders', () => {
 
     })
 
-    it('encodes documented subtitle preferences only for the documented provider', () => {
-      expect(getMovieEmbedUrl(603, 'vidfast', { subtitleLanguage: 'ar' })).toContain('?sub=ar')
+    it('does not forward unsupported preferences to opaque unverified providers', () => {
+      expect(getMovieEmbedUrl(603, 'vidfast', { subtitleLanguage: 'ar' })).not.toContain('?sub=ar')
       expect(getMovieEmbedUrl(603, 'vidlink', { subtitleLanguage: 'ar' })).not.toContain('sub=ar')
     })
 

@@ -105,6 +105,7 @@ test.describe('Landing Page — The Night Signal QA Verification', () => {
     await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
     const mobileDrawer = page.locator('#landing-mobile-menu')
     await expect(mobileDrawer).toBeVisible()
+    await expect(mobileDrawer.locator('a[href="/search"]')).toHaveAttribute('href', '/search')
 
     // Close via escape key
     await page.keyboard.press('Escape')

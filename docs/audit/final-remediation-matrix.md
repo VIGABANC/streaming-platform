@@ -26,4 +26,19 @@ Phase 2 remediation checkpoint: deterministic verification is green in the curre
 
 No item in this matrix authorizes enabling an unverified provider, weakening the verification gate, or claiming playback from iframe load.
 
+## 2026-10-27 current worktree addendum
+
+| ID | Subsystem | Severity | Finding | Root cause | Evidence | Fix / regression | Status |
+|---|---|---:|---|---|---|---|---|
+| FM-11 | Player hydration | S2 | Persisted provider-health ranking caused a server/client provider-list mismatch on the movie watch route | `resolvePlaybackSources` read browser `localStorage` during render, while the server used the default registry order | Headed development browser reported a React hydration mismatch on `/watch/movie/550` with reordered provider health | Pass an explicit provider-health snapshot from `PlayerFrame`, load persisted health in an effect, and cover the order contract plus browser console gate | VERIFIED |
+
+Current worktree evidence: HEAD `462f17df832efa406b4feda12480f5d102606064`; `origin/main` `e211575a448087d25b6488fe5cfff6de891272ae`; merge-base `150eba644b146faacbe2541049cb529167f8f52c`; 9 commits unique to HEAD and 31 commits unique to `origin/main`. The fix is uncommitted alongside pre-existing user changes. Fresh gates: typecheck, lint, build, audit (0 vulnerabilities), Vitest 38/176, Chromium 125/125, Mobile Chrome 125/125.
+
+FM-06 clarification for the current worktree: the registry may expose an
+opaque external frame for observational provider behavior, but it does not
+produce an authorized or independently verified playback source. The current
+headed browser visibly labels all five providers `UNVERIFIED`, reports that a
+frame load does not verify playback, and exposed provider-owned advertising was
+not clicked. This remains an external limitation, not a VEYRA playback pass.
+
 

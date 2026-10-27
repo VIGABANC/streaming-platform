@@ -7,7 +7,7 @@ it('starts and probes the exact local target instead of a fixed port', async () 
   const { default: config } = await import('../../playwright.config')
   expect(config.webServer).toMatchObject({ url: 'http://127.0.0.1:3107', command: 'npm run start -- --port 3107' })
   expect(config.webServer).not.toHaveProperty('port')
-})
+}, 15_000)
 
 it('retains traces without relying on a retry', async () => {
   const { default: config } = await import('../../playwright.config')

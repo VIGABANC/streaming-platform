@@ -42,3 +42,18 @@ Deployment Protection are outside the application boundary. These results are
 classified as `LIVE_PROVIDER_PLAYBACK_UNVERIFIED`, `EXTERNAL_FAILURE`,
 `TIMEOUT`, or `BLOCKED_BY_ENVIRONMENT` when observed; they are never upgraded
 to success.
+
+## 2026-10-27 current worktree addendum
+
+The historical counts and provider list above are superseded for the current
+worktree. The source registry contains five opaque external providers:
+`vidfast`, `vidlink`, `2embed`, `videasy`, and `nontongo`. They remain visibly
+`UNVERIFIED`; a live frame may be rendered for observational behavior, but the
+shell reports provider-controlled playback and never promotes frame load to
+playback success.
+
+Current evidence: Vitest 38 files / 176 tests, Chromium 125/125, Mobile Chrome
+125/125, typecheck, lint, build, and dependency audit all pass. The provider
+boundary has direct E2E coverage in `tests/e2e/player.spec.ts`; the engine also
+revalidates registry identity and HTTPS origin before accepting a caller-owned
+external source. Authorized provider playback remains an external limitation.

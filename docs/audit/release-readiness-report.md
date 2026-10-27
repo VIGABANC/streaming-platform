@@ -46,3 +46,30 @@ Review the complete diff, run the production audit command, and run the final
 code review. Then create one focused repair commit, push
 `fix/release-readiness-blockers`, verify new CI and Preview evidence by exact
 SHA, and merge only when the application-controlled gates are green.
+
+## 2026-10-27 current worktree addendum
+
+This addendum supersedes the older Goal 3 counts and deployment claims above
+for the current uncommitted worktree. The current source commit is
+`462f17df832efa406b4feda12480f5d102606064`; `origin/main` is
+`e211575a448087d25b6488fe5cfff6de891272ae`; the merge-base is
+`150eba644b146faacbe2541049cb529167f8f52c`.
+
+- Local gates: typecheck PASS, lint PASS, Vitest 38 files / 176 tests PASS,
+  build PASS, and production dependency audit PASS with 0 vulnerabilities.
+- Deterministic browser gates: Chromium 125/125 and Mobile Chrome 125/125 on
+  a fresh production server. The stale-listener-contaminated attempt is
+  excluded from totals.
+- The current registry exposes five opaque external providers. The headed
+  browser observed an external 2Embed document, but every server is labeled
+  `UNVERIFIED` and the shell states that frame load does not verify playback.
+  This is not authorized playback evidence.
+- The working tree contains pre-existing user changes plus the hydration repair
+  and copy clarification. Provider-health probes now reject redirects, covered
+  by `tests/unit/provider-health-route.test.ts`. No release SHA, CI identity,
+  Preview identity, or PR is claimed for these uncommitted files.
+
+Current recommendation remains **VERIFIED WITH EXTERNAL LIMITATIONS**. Do not
+merge or declare production-ready until independent maintainer approval, fresh
+CI/Preview identity, authenticated Supabase checks, and authorized provider
+playback evidence exist.

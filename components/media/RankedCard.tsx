@@ -56,7 +56,6 @@ export function RankedCard({ item, rank }: RankedCardProps) {
       <div className="relative z-10 w-36 sm:w-44 lg:w-52 shrink-0">
         <Link
           href={href}
-          aria-label={`#${rank}: ${title}`}
           className="card-hover-glow block overflow-hidden rounded-xl bg-[#0A0D14] shadow-xl outline-none ring-1 ring-white/10 focus-visible:ring-2 focus-visible:ring-primary"
         >
           <div className="relative aspect-[2/3] overflow-hidden">

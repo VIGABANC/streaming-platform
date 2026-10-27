@@ -16,7 +16,11 @@ const FinalCTA = dynamic(() => import('./FinalCTA').then((module) => module.Fina
 
 export function DeferredHomeSections({ data }: { data: LandingData }) {
   const sentinel = useRef<HTMLDivElement>(null)
-  const [ready, setReady] = useState(false)
+  // These sections contain the landing page's primary finder and discovery
+  // affordances. They must be mounted on the first visit so keyboard users,
+  // reduced-motion users, and deep links can reach them without scrolling to
+  // an invisible sentinel first.
+  const [ready, setReady] = useState(true)
   const { lists } = data
   const categories = [
     { label: 'Popular', href: '/discover', items: [...lists.popularMovies, ...lists.popularTV] },

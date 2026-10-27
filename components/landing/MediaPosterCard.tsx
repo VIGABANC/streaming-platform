@@ -19,7 +19,6 @@ export function MediaPosterCard({ item, priority = false, size = 'rail' }: Media
     <article className={isFeature ? 'w-[220px] sm:w-[260px]' : 'w-[148px] sm:w-[172px]'}>
       <Link
         href={mediaHref(item)}
-        aria-label={`${title} — view details`}
         className="landing-poster group block overflow-hidden rounded-xl bg-[var(--card)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--cyan)]"
       >
         <div className="relative aspect-[2/3] overflow-hidden">

@@ -122,6 +122,7 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
             episodeLabel={`Season ${seasonNum}, Episode ${episodeNum} — ${episodeName}`}
             artwork={backdropUrl}
             backHref={`/tv/${id}`}
+            nextUp={nextHref ? { href: nextHref, label: 'Continue to the next episode' } : undefined}
           />
         </div>
 
@@ -129,7 +130,7 @@ export default async function WatchTVPage({ params }: TVWatchProps) {
         <div className="mt-6 rounded-2xl border border-white/5 bg-surface/50 p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-white/5">
             <div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+              <div className="flex items-center gap-2 text-xs font-semibold text-red-200">
                 <span>Season {seasonNum}</span>
                 <span>•</span>
                 <span>Episode {episodeNum}</span>

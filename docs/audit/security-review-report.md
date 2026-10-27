@@ -75,3 +75,15 @@ secret scanning remains a limitation.
   visibly playable from frame-level evidence.
 - No authenticated Codex Security plugin or external deployment connector was
   available, and no active testing was performed.
+
+## 2026-10-27 current worktree addendum
+
+The provider-health endpoint's server-side probes now use manual redirect
+handling and cap response-body reads at 64 KiB. A provider response cannot
+redirect the probe into an unrelated or internal target or force an unbounded
+body read; redirected and oversized responses are classified as unavailable.
+Forced-refresh throttling also uses the trusted platform identity rather than
+the client-controlled forwarding header. These controls are covered by
+`tests/unit/provider-health-route.test.ts`, alongside the existing webhook and
+CSP security tests; stale refresh identities are evicted after the throttle
+window to prevent unbounded map growth.

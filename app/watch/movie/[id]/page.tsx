@@ -70,7 +70,7 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
             <ArrowLeft size={16} />
             <span>Back to movie details</span>
           </Link>
-          <span className="text-xs text-white/50">Streaming via configured provider</span>
+          <span className="text-xs text-white/50">Provider frame · independent playback verification unavailable</span>
         </div>
 
         {/* Video Player Frame */}
@@ -90,7 +90,7 @@ export default async function WatchMoviePage({ params }: WatchMoviePageProps) {
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
               <div className="space-y-3 max-w-3xl">
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span className="rounded bg-primary/20 px-2 py-0.5 font-bold uppercase tracking-wider text-primary text-[10px]">
+                  <span className="rounded bg-primary/20 px-2 py-0.5 font-bold uppercase tracking-wider text-red-200 text-[10px]">
                     Movie
                   </span>
                   {year && (

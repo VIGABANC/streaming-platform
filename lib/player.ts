@@ -101,6 +101,12 @@ export interface PlaybackRequest {
   subtitleLanguage?: string
   attemptedProviderIds?: string[]
   nativeSources?: PlaybackSource[]
+  /**
+   * Optional caller-owned snapshot. Client components should pass a stable
+   * snapshot during their first render so server and client markup agree;
+   * the resolver falls back to localStorage only for non-SSR callers.
+   */
+  providerHealth?: Record<string, Partial<ProviderHealth>>
 }
 
 export interface ProviderUrlOptions {
@@ -109,17 +115,6 @@ export interface ProviderUrlOptions {
   startTimestamp?: number
   customAccent?: string
   controls?: boolean
-}
-
-function appendProviderOptions(url: string, options?: ProviderUrlOptions, supported: (keyof ProviderUrlOptions)[] = []): string {
-  if (!options) return url
-  const params = new URLSearchParams()
-  if (supported.includes('subtitleLanguage') && options.subtitleLanguage && options.subtitleLanguage !== 'auto') params.set('sub', options.subtitleLanguage)
-  if (supported.includes('autoplay') && options.autoplay) params.set('autoplay', '1')
-  if (supported.includes('startTimestamp') && options.startTimestamp && options.startTimestamp > 0) params.set('t', String(Math.floor(options.startTimestamp)))
-  if (supported.includes('customAccent') && options.customAccent) params.set('color', options.customAccent.replace(/^#/, ''))
-  if (supported.includes('controls') && options.controls === false) params.set('controls', '0')
-  return params.size ? `${url}?${params.toString()}` : url
 }
 
 const EXTERNAL_TIMEOUT_POLICY = { warningMs: 8_000, deadlineMs: 8_000, maxRetries: 3 }
@@ -178,15 +173,15 @@ export const PROVIDERS: StreamProvider[] = [
     trustEligible: false,
     verification: unverifiedExternalVerification('vidfast'),
     capabilities: {
-      autoplay: true, subtitlePreference: true, audioLanguagePreference: false,
-      startTimestamp: true, customAccent: true, controls: true, readyEvents: false,
+      autoplay: false, subtitlePreference: false, audioLanguagePreference: false,
+      startTimestamp: false, customAccent: false, controls: false, readyEvents: false,
       progressEvents: false, completionEvents: false, errorEvents: false, qualityControl: 'none',
     },
-    movieUrl: (id, options) => appendProviderOptions(`https://vidfast.pro/movie/${id}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
-    tvUrl: (id, season, episode, options) => appendProviderOptions(`https://vidfast.pro/tv/${id}/${season}/${episode}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
+    movieUrl: (id) => `https://vidfast.pro/movie/${id}`,
+    tvUrl: (id, season, episode) => `https://vidfast.pro/tv/${id}/${season}/${episode}`,
     sourceBuilder: externalSourceBuilder(
-      (id, options) => appendProviderOptions(`https://vidfast.pro/movie/${id}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
-      (id, season, episode, options) => appendProviderOptions(`https://vidfast.pro/tv/${id}/${season}/${episode}`, options, ['autoplay', 'subtitleLanguage', 'startTimestamp', 'customAccent', 'controls']),
+      (id) => `https://vidfast.pro/movie/${id}`,
+      (id, season, episode) => `https://vidfast.pro/tv/${id}/${season}/${episode}`,
     ),
   },
   {

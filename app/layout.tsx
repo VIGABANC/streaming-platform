@@ -9,6 +9,7 @@ const displayFont = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-
 const bodyFont = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' })
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://veyra.stream'
+const enableAnalytics = process.env.VERCEL === '1' || process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -68,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <ServiceWorkerRegistration />
         <WebVitals />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {enableAnalytics && <Analytics />}
       </body>
     </html>
   )

@@ -58,7 +58,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
               <Image src={anime.image} alt={`${title} poster`} fill sizes="220px" className="object-cover" priority />
             </div>
           ) : (
-            <div className="grid aspect-[2/3] place-items-center rounded-2xl border border-white/10 bg-surface text-white/40">
+            <div className="grid aspect-[2/3] place-items-center rounded-2xl border border-white/10 bg-surface text-white/70">
               <span className="text-xs">Poster unavailable</span>
             </div>
           )}

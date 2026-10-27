@@ -24,7 +24,7 @@ const nextConfig = {
       "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://vitals.vercel-insights.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' https://image.tmdb.org data: blob:",
+      "img-src 'self' https://image.tmdb.org https://cdn.myanimelist.net data: blob:",
       "media-src 'self' blob:",
       `connect-src 'self' https://api.themoviedb.org https://va.vercel-scripts.com https://vitals.vercel-insights.com ${authOrigin}`.trim(),
       "frame-src 'self' https://vidfast.pro https://vidlink.pro https://www.2embed.cc https://player.videasy.net https://nontongo.win https://www.youtube.com https://youtube.com",

@@ -21,4 +21,10 @@ describe('release security boundaries', () => {
     const csp = entries[0].headers.find((h: { key: string }) => h.key === 'Content-Security-Policy')!.value
     expect(csp.split('; ').find((s: string) => s.startsWith('connect-src'))).toContain('https://release-test.supabase.co')
   })
+  it('permits the configured anime poster origin in CSP', async () => {
+    if (!nextConfig.headers) throw new Error('Next config must define security headers')
+    const entries = await (nextConfig.headers as () => Promise<Array<{ headers: Array<{ key: string; value: string }> }>>)()
+    const csp = entries[0].headers.find((h: { key: string }) => h.key === 'Content-Security-Policy')!.value
+    expect(csp.split('; ').find((s: string) => s.startsWith('img-src'))).toContain('https://cdn.myanimelist.net')
+  })
 })

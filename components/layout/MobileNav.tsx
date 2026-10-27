@@ -36,7 +36,7 @@ export function MobileNav({ variant = 'app' }: { variant?: 'app' | 'landing' }) 
             aria-current={active ? 'page' : undefined}
             aria-label={label}
             className={`touch-target relative flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-semibold transition-colors ${
-              active ? 'text-primary' : 'text-muted-foreground hover:text-white'
+              active ? 'text-red-300' : 'text-muted-foreground hover:text-white'
             }`}
           >
             {active && (
@@ -44,7 +44,7 @@ export function MobileNav({ variant = 'app' }: { variant?: 'app' | 'landing' }) 
             )}
             <Icon
               size={20}
-              className={`transition-transform duration-200 ${active ? 'scale-110 text-primary' : ''}`}
+              className={`transition-transform duration-200 ${active ? 'scale-110 text-red-300' : ''}`}
               strokeWidth={active ? 2.5 : 1.75}
             />
             <span>{label}</span>

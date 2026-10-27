@@ -33,7 +33,7 @@ export function Footer() {
         </div>
 
         {/* Brand line */}
-        <p className="mt-6 text-xs text-white/20 font-display tracking-widest uppercase">
+        <p className="mt-6 text-xs text-white/60 font-display tracking-widest uppercase">
           VEYRA — The Night Signal
         </p>
       </div>

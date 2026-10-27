@@ -319,6 +319,25 @@ body {
   outline-color: rgba(0, 242, 254, 0.32);
 }
 
+.player-control {
+  display: inline-flex;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  color: rgba(255, 255, 255, 0.82);
+  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+.player-control:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+.player-control:active { transform: scale(0.96); }
+.player-control:focus-visible { outline: 2px solid #E50914; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .player-control { transition: none; }
+  .player-control:active { transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-poster,
   .landing-poster * {

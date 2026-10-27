@@ -1,40 +1,39 @@
 'use client'
 
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Captions, Maximize, Minimize, MoreHorizontal, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, Volume2, VolumeX } from 'lucide-react'
+import Link from 'next/link'
 import type { PlaybackSource } from '@/lib/player'
 
-interface NativeMediaPlayerProps {
-  source: PlaybackSource
-  title: string
-  onReady: () => void
-  onStarted: () => void
-  onEnded: () => void
-  onError: () => void
-  onProgress?: (positionSeconds: number, durationSeconds: number) => void
-}
+interface NativeMediaPlayerProps { source: PlaybackSource; title: string; onReady: () => void; onStarted: () => void; onEnded: () => void; onError: () => void; onProgress?: (positionSeconds: number, durationSeconds: number) => void; nextUp?: { href: string; label: string } }
+const SEEK_SECONDS = 10
+const HIDE_CONTROLS_MS = 2600
+function formatTime(value: number) { if (!Number.isFinite(value) || value < 0) return '0:00'; const seconds = Math.floor(value); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` }
 
-export function NativeMediaPlayer({ source, title, onReady, onStarted, onEnded, onError, onProgress }: NativeMediaPlayerProps) {
+export function NativeMediaPlayer({ source, title, onReady, onStarted, onEnded, onError, onProgress, nextUp }: NativeMediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  return (
-    <video
-      ref={videoRef}
-      className="h-full w-full bg-black object-contain"
-      controls
-      controlsList="nodownload"
-      playsInline
-      preload="metadata"
-      aria-label={`${title} native playback`}
-      onPlay={onStarted}
-      onLoadedMetadata={onReady}
-      onEnded={onEnded}
-      onError={onError}
-      onTimeUpdate={(event) => {
-        const video = event.currentTarget
-        onProgress?.(video.currentTime, video.duration)
-      }}
-    >
-      <source src={source.url} />
-      Your browser does not support native video playback.
-    </video>
-  )
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [playing, setPlaying] = useState(false); const [muted, setMuted] = useState(false); const [volume, setVolume] = useState(1)
+  const [currentTime, setCurrentTime] = useState(0); const [duration, setDuration] = useState(0); const [buffered, setBuffered] = useState(0)
+  const [controlsVisible, setControlsVisible] = useState(true); const [fullscreen, setFullscreen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false); const [speed, setSpeed] = useState(1)
+  const [upNextDismissed, setUpNextDismissed] = useState(false)
+  const showUpNext = Boolean(nextUp && !upNextDismissed && duration > 0 && currentTime >= Math.max(0, duration - 30))
+
+  const revealControls = useCallback(() => { setControlsVisible(true); if (hideTimerRef.current) clearTimeout(hideTimerRef.current); hideTimerRef.current = setTimeout(() => { if (videoRef.current && !videoRef.current.paused && !settingsOpen) setControlsVisible(false) }, HIDE_CONTROLS_MS) }, [settingsOpen])
+  const togglePlay = useCallback(() => { const video = videoRef.current; if (!video) return; if (video.paused) void video.play().catch(() => {}); else video.pause(); revealControls() }, [revealControls])
+  const seek = useCallback((delta: number) => { const video = videoRef.current; if (!video) return; video.currentTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + delta)); revealControls() }, [revealControls])
+  const toggleFullscreen = useCallback(() => { const root = videoRef.current?.parentElement; if (!root) return; if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); else void root.requestFullscreen().catch(() => {}) }, [])
+
+  useEffect(() => { const sync = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener('fullscreenchange', sync); return () => { document.removeEventListener('fullscreenchange', sync); if (hideTimerRef.current) clearTimeout(hideTimerRef.current) } }, [])
+  useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { const target = event.target as HTMLElement | null; if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return; if (event.key === ' ' || event.key.toLowerCase() === 'k') { event.preventDefault(); togglePlay() }; if (event.key === 'ArrowLeft') { event.preventDefault(); seek(-SEEK_SECONDS) }; if (event.key === 'ArrowRight') { event.preventDefault(); seek(SEEK_SECONDS) }; if (event.key.toLowerCase() === 'm') { event.preventDefault(); const next = !muted; setMuted(next); if (videoRef.current) videoRef.current.muted = next }; if (event.key.toLowerCase() === 'f') { event.preventDefault(); toggleFullscreen() }; revealControls() }; const video = videoRef.current; video?.addEventListener('keydown', onKeyDown); return () => video?.removeEventListener('keydown', onKeyDown) }, [muted, revealControls, seek, toggleFullscreen, togglePlay])
+
+  return <div className="group absolute inset-0 overflow-hidden bg-black" onMouseMove={revealControls} onTouchStart={revealControls} onClick={(event) => { if (event.target === event.currentTarget) togglePlay() }}>
+    <video ref={videoRef} className="h-full w-full bg-black object-contain" controls={false} controlsList="nodownload" playsInline preload="metadata" tabIndex={0} aria-label={`${title} video`} onPlay={() => { setPlaying(true); onStarted(); revealControls() }} onPause={() => { setPlaying(false); setControlsVisible(true) }} onLoadedMetadata={(event) => { setDuration(event.currentTarget.duration); onReady() }} onProgress={(event) => { const media = event.currentTarget; const range = media.buffered.length ? media.buffered.end(media.buffered.length - 1) : 0; setBuffered(media.duration ? (range / media.duration) * 100 : 0) }} onTimeUpdate={(event) => { const media = event.currentTarget; setCurrentTime(media.currentTime); onProgress?.(media.currentTime, media.duration) }} onVolumeChange={(event) => { setVolume(event.currentTarget.volume); setMuted(event.currentTarget.muted) }} onEnded={onEnded} onError={onError}><source src={source.url} />Your browser does not support native video playback.</video>
+    {showUpNext && nextUp && <div role="status" aria-live="polite" className="absolute bottom-24 right-3 z-10 w-[min(21rem,calc(100%-1.5rem))] rounded-xl border border-white/15 bg-[#101116]/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:bottom-28 sm:right-5"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">Up next</p><p className="mt-1 text-sm font-semibold">{nextUp.label}</p><div className="mt-3 flex items-center justify-end gap-2"><button type="button" onClick={() => setUpNextDismissed(true)} className="rounded-md px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/10">Keep watching</button><Link href={nextUp.href} className="rounded-md bg-[#E50914] px-3 py-2 text-xs font-semibold text-white hover:bg-[#c70811]">Play next</Link></div></div>}
+    <div className={`pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent p-3 pt-16 transition-opacity duration-200 sm:p-5 sm:pt-24 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}><div className="pointer-events-auto space-y-2">
+      <label className="sr-only" htmlFor="veyra-progress">Playback progress</label><div className="relative h-1.5 cursor-pointer rounded-full bg-white/25"><div className="absolute inset-y-0 left-0 rounded-full bg-white/25" style={{ width: `${buffered}%` }} /><input id="veyra-progress" type="range" min={0} max={duration || 0} step={0.1} value={currentTime} onChange={(event) => { if (videoRef.current) videoRef.current.currentTime = Number(event.target.value); revealControls() }} aria-label="Playback progress" className="absolute inset-0 h-1.5 w-full cursor-pointer accent-[#E50914]" /></div>
+      <div className="flex items-center justify-between gap-2 text-white"><div className="flex items-center gap-1 sm:gap-2"><button type="button" onClick={() => seek(-SEEK_SECONDS)} aria-label="Rewind 10 seconds" className="player-control"><RotateCcw size={17} /></button><button type="button" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} className="player-control h-10 w-10 bg-white text-black hover:bg-white/90">{playing ? <Pause size={19} /> : <Play size={19} fill="currentColor" />}</button><button type="button" onClick={() => seek(SEEK_SECONDS)} aria-label="Forward 10 seconds" className="player-control"><RotateCw size={17} /></button><button type="button" onClick={() => { const next = !muted; setMuted(next); if (videoRef.current) videoRef.current.muted = next }} aria-label={muted ? 'Unmute' : 'Mute'} className="player-control"><span>{muted || volume === 0 ? <VolumeX size={17} /> : <Volume2 size={17} />}</span></button><label className="hidden items-center sm:flex"><span className="sr-only">Volume</span><input type="range" min={0} max={1} step={0.05} value={muted ? 0 : volume} onChange={(event) => { const next = Number(event.target.value); setVolume(next); setMuted(next === 0); if (videoRef.current) { videoRef.current.volume = next; videoRef.current.muted = next === 0 } }} aria-label="Volume" className="h-1 w-16 cursor-pointer accent-[#E50914]" /></label><span className="text-[11px] tabular-nums text-white/75 sm:text-xs">{formatTime(currentTime)} / {formatTime(duration)}</span></div><div className="flex items-center gap-1 sm:gap-2"><button type="button" onClick={() => setSettingsOpen((value) => !value)} aria-label="Player settings" aria-expanded={settingsOpen} className="player-control"><Settings2 size={17} /></button><button type="button" onClick={() => { const video = videoRef.current as (HTMLVideoElement & { requestPictureInPicture?: () => Promise<unknown> }) | null; if (video?.requestPictureInPicture) void video.requestPictureInPicture().catch(() => {}) }} aria-label="Picture in picture" className="player-control hidden sm:inline-flex"><PictureInPicture2 size={17} /></button><button type="button" onClick={toggleFullscreen} aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} className="player-control">{fullscreen ? <Minimize size={17} /> : <Maximize size={17} />}</button></div></div>
+    </div></div>
+    {settingsOpen && <div role="dialog" aria-label="Player settings" className="absolute bottom-16 right-3 z-20 w-56 rounded-xl border border-white/10 bg-[#101116]/95 p-3 text-sm text-white shadow-2xl backdrop-blur-xl sm:right-5"><div className="mb-2 flex items-center justify-between text-xs font-semibold text-white/60"><span>Playback speed</span><MoreHorizontal size={14} /></div><div className="grid grid-cols-5 gap-1">{[0.75, 1, 1.25, 1.5, 2].map((value) => <button key={value} type="button" aria-pressed={speed === value} onClick={() => { setSpeed(value); if (videoRef.current) videoRef.current.playbackRate = value }} className={`rounded-md px-1 py-2 text-xs ${speed === value ? 'bg-[#E50914] text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>{value}×</button>)}</div><button type="button" className="mt-3 flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-xs text-white/75 hover:bg-white/10"><Captions size={15} /> Subtitles and audio</button></div>}
+  </div>
 }

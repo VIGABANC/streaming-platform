@@ -35,7 +35,7 @@ function CategoryStory({ category }: { category: DiscoveryCategory }) {
 }
 
 function ArtworkLink({ item, featured = false }: { item: Media; featured?: boolean }) {
-  return <Link href={mediaHref(item)} aria-label={`${titleOf(item)} — view details`} className={`group relative block overflow-hidden rounded-lg bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${featured ? 'aspect-[4/5]' : 'aspect-[2/1]'}`}>
+  return <Link href={mediaHref(item)} className={`group relative block overflow-hidden rounded-lg bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${featured ? 'aspect-[4/5]' : 'aspect-[2/1]'}`}>
     <Image src={poster(item.poster_path, featured ? 'w500' : 'w342')} alt={`${titleOf(item)} poster`} fill sizes={featured ? '(max-width: 768px) 55vw, 360px' : '(max-width: 768px) 35vw, 240px'} className="object-cover transition-transform duration-500 motion-reduce:transition-none group-hover:scale-[1.02] motion-reduce:group-hover:scale-100" />
     <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pb-3 pt-8 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{titleOf(item)}</span>
   </Link>

@@ -278,3 +278,22 @@ reviewable broad-release decision: the PR still needs independent maintainer
 approval because it is a stacked release branch, but no reproduced
 VEYRA-controlled P1 application defect remains in the scope normalization
 slice.
+
+## 2026-10-27 current worktree evidence addendum
+
+The current worktree supersedes the historical Phase 4 counts above for local
+verification. A fresh production-server run passed Chromium 125/125 and Mobile
+Chrome 125/125; Vitest passed 38 files / 176 tests; typecheck, lint, build, and
+the high-severity dependency audit also passed. The headed browser reproduced
+and then verified the BUG-014 hydration repair. The movie route can render an
+opaque provider document, but provider controls are visibly `UNVERIFIED` and
+the shell explicitly says that a frame load does not verify playback. No
+authorized provider integration is claimed.
+
+The current certification is therefore **VERIFIED WITH EXTERNAL LIMITATIONS**,
+not `RELEASE CANDIDATE VERIFIED`: authenticated Supabase isolation, protected
+Preview/Vercel inspection, independent provider authorization/playback, fresh
+CI identity, and independent maintainer approval remain outstanding.
+
+The current worktree also hardens the provider-health probe against following
+third-party redirects and covers that boundary with a dedicated unit test.

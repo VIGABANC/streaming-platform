@@ -117,7 +117,6 @@ export function MediaDetailActions({ item, mediaType, watchHref, trailerKey }: M
         type="button"
         onClick={toggleWatchlist}
         aria-pressed={inWatchlist}
-        aria-label={`${inWatchlist ? 'Remove from' : 'Add to'} Watchlist`}
         className={`inline-flex h-12 items-center gap-2 rounded-full px-5 text-xs font-semibold transition-all hover:scale-[1.02] ${
           inWatchlist
             ? 'bg-primary/20 border border-primary text-primary'

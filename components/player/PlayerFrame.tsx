@@ -29,6 +29,7 @@ import {
   type PlayerErrorCode,
   type PlaybackMediaType,
   type PlaybackSource,
+  type ProviderHealth,
 } from '@/lib/player'
 import { resolvePlaybackSources } from '@/lib/playback-resolver'
 import { NativeMediaPlayer } from '@/components/player/NativeMediaPlayer'
@@ -85,6 +86,7 @@ export function PlayerFrame({
   const [isTheaterMode, setIsTheaterMode] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [providerHealth, setProviderHealth] = useState<Record<string, ProviderHealth>>({})
   const [frameAttemptId, setFrameAttemptId] = useState(0)
   const startedAtRef = useRef(Date.now())
   const attemptIdRef = useRef(0)
@@ -97,7 +99,9 @@ export function PlayerFrame({
 
   useEffect(() => {
     const settings = store.getSettings()
-    const initialProviderId = getInitialProviderIdForMode(settings, { health: readProviderHealth(), mediaType })
+    const persistedHealth = readProviderHealth()
+    setProviderHealth(persistedHealth)
+    const initialProviderId = getInitialProviderIdForMode(settings, { health: persistedHealth, mediaType })
     setSelectedProvider(initialProviderId)
     setIsCinemaMode(settings.ambientLighting)
 
@@ -143,7 +147,8 @@ export function PlayerFrame({
     subtitleLanguage: settings.subtitleLanguage,
     preferredProviderId: selectedProvider,
     nativeSources,
-  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources, settings.subtitleLanguage])
+    providerHealth,
+  }), [mediaId, mediaType, season, episode, selectedProvider, nativeSources, settings.subtitleLanguage, providerHealth])
   const allSources = resolution.sources
   const activeSource = allSources.find((source) => source.providerId === selectedProvider) ?? allSources[0]
   const activeSrc = activeSource?.mode === 'external-embed' ? activeSource.url : null
@@ -378,7 +383,6 @@ export function PlayerFrame({
 
   const isError = state === 'error' || state === 'timeout' || state === 'offline'
   const activeProviderObj = PROVIDERS.find((p) => p.id === selectedProvider) ?? null
-  const providerHealth = readProviderHealth()
   const candidateProviders = allSources
     .map((source) => PROVIDERS.find((provider) => provider.id === source.providerId))
     .filter((provider): provider is typeof PROVIDERS[number] => Boolean(provider))
@@ -451,7 +455,7 @@ export function PlayerFrame({
           </span>
           <button
             type="button"
-            aria-label={isCinemaMode ? 'Turn lights on' : 'Turn lights off'}
+            aria-label={isCinemaMode ? 'Lights Off (Turn lights on)' : 'Lights On (Turn lights off)'}
             aria-pressed={isCinemaMode}
             onClick={() => setIsCinemaMode((prev) => {
               const next = !prev
@@ -470,7 +474,7 @@ export function PlayerFrame({
           </button>
           <button
             type="button"
-            aria-label={isTheaterMode ? 'Exit theater mode' : 'Enter theater mode'}
+            aria-label={isTheaterMode ? 'Theater (Exit theater mode)' : 'Theater (Enter theater mode)'}
             aria-pressed={isTheaterMode}
             onClick={() => setIsTheaterMode((current) => !current)}
             className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors ${
@@ -483,7 +487,7 @@ export function PlayerFrame({
           </button>
           <button
             type="button"
-            aria-label={isFullscreen ? 'Exit full screen player' : 'Enter full screen player'}
+            aria-label={isFullscreen ? 'Exit fullscreen (Exit full screen player)' : 'Fullscreen (Enter full screen player)'}
             onClick={toggleFullscreen}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-white/60 hover:text-white hover:bg-white/5 transition-colors"
             title="Full screen player"
@@ -599,7 +603,7 @@ export function PlayerFrame({
                   : `Connecting to ${activeProviderObj?.name ?? 'provider'}…`}
               </p>
               {episodeLabel && (
-                <p className="mt-1 text-xs text-primary/80 font-medium">{episodeLabel}</p>
+                <p className="mt-1 text-xs text-red-300 font-medium">{episodeLabel}</p>
               )}
               {state === 'timeout-warning' && (
                 <div className="mt-4 flex items-center justify-center gap-2">

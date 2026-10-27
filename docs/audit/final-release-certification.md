@@ -142,3 +142,24 @@ claimed.
 No Critical or High VEYRA-controlled application issue was found in this
 acceptance run. No merge or production deployment has been performed for this
 certification SHA.
+
+## 2026-10-27 current worktree repair addendum
+
+This addendum supersedes stale test counts in earlier certification text for the current uncommitted worktree. The source commit is HEAD `462f17df832efa406b4feda12480f5d102606064`; `origin/main` is `e211575a448087d25b6488fe5cfff6de891272ae`; merge-base is `150eba644b146faacbe2541049cb529167f8f52c`. The working tree contains pre-existing user changes plus the BUG-014 repair, so no release SHA or PR identity is claimed for these uncommitted files.
+
+| Gate | Current evidence | Status |
+|---|---|---|
+| Typecheck | `npm run typecheck` | VERIFIED |
+| Lint | `npm run lint` | VERIFIED |
+| Unit | Vitest 38 files, 176 tests | VERIFIED |
+| Build | `npm run build` completes; caught Jikan timeout remains external | VERIFIED_WITH_LIMITATION |
+| Production dependency audit | `npm audit --omit=dev --audit-level=high` → 0 vulnerabilities | VERIFIED |
+| Deterministic browser | Chromium 125/125 and Mobile Chrome 125/125; fresh production server, no stale listener | VERIFIED |
+| Accessibility | Axe serious/critical route gates and keyboard/mobile flows pass | VERIFIED_WITH_LIMITATION |
+| Hydration | Reproduced provider-order mismatch in headed dev; fixed with explicit post-hydration health snapshot and regression tests | VERIFIED |
+| Playback | Opaque providers can render third-party iframe documents, but no authorized/verifiable playback signal exists | EXTERNAL_LIMITATION |
+| Auth / Supabase | Anonymous/local flows only; disposable authenticated test account unavailable | MANUAL_ACTION_REQUIRED |
+| Preview / Vercel | Protected Preview exact viewport and connector API inspection unavailable | EXTERNAL_LIMITATION |
+| Performance | Existing Lighthouse artifacts show measured but non-release-gating local results; stable Preview Web Vitals unavailable | VERIFIED_WITH_LIMITATION |
+
+Release recommendation remains: **VERIFIED WITH EXTERNAL LIMITATIONS — do not merge or declare production-ready until independent maintainer approval, fresh CI/Preview identity, authenticated Supabase checks, and authorized provider playback evidence are available.**

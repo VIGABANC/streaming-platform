@@ -289,7 +289,7 @@ export default function SettingsPage() {
         </section>
 
         {/* System Info */}
-        <section className="rounded-2xl border border-white/5 bg-[#0A0D14]/50 p-5 flex items-center justify-between text-xs text-white/40">
+        <section className="rounded-2xl border border-white/5 bg-[#0A0D14]/50 p-5 flex items-center justify-between text-xs text-white/60">
           <div className="flex items-center gap-2">
             <Info size={14} />
             <span>VEYRA Web Platform • Version 1.0.0</span>

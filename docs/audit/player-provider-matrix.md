@@ -28,3 +28,14 @@ Provider authorization, cross-origin controls, licensing, availability, and
 documented playback APIs are external limitations. Only a future provider with
 explicit authorization evidence, origin checks, and a trusted documented signal
 may move into the eligible set.
+
+## 2026-10-27 current registry addendum
+
+The historical table above predates the current registry. The current source
+registry contains five opaque Movie/TV providers: `vidfast`, `vidlink`,
+`2embed`, `videasy`, and `nontongo`. Each is `unverified`, has no documented
+authorization or trusted playback event channel, and remains observational
+only. The headed browser may render the selected external document, but the
+shell labels it `UNVERIFIED`, reports `Playback: Provider controlled`, and
+explicitly says that a frame load does not verify playback. No anime provider is
+enabled. No provider-owned advertising link was clicked during verification.

@@ -62,6 +62,7 @@ export function LandingNav() {
     <div ref={menu} id="landing-mobile-menu" className={`pointer-events-none absolute inset-x-0 top-full border-b border-white/10 bg-[#050507]/95 px-5 py-5 backdrop-blur-xl md:hidden ${menuOpen ? 'opacity-100' : 'opacity-0'}`} aria-hidden={!menuOpen}>
       <nav aria-label="Main navigation" className={`flex flex-col gap-1 ${menuOpen ? 'pointer-events-auto' : ''}`}>
         {PUBLIC_NAV_ITEMS.map((link) => <Link key={link.href} tabIndex={menuOpen ? 0 : -1} href={link.href} aria-current={isNavItemActive(pathname, link.href) ? 'page' : undefined} className="rounded px-3 py-3 text-lg font-medium text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" onClick={closeMenu}>{link.label}</Link>)}
+        <Link tabIndex={menuOpen ? 0 : -1} href="/search" className="rounded px-3 py-3 text-lg font-medium text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" onClick={closeMenu}>Search</Link>
         <Link tabIndex={menuOpen ? 0 : -1} href="/browse" className="mt-3 rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" onClick={closeMenu}>Explore VEYRA</Link>
       </nav>
     </div>

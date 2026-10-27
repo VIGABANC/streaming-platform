@@ -38,7 +38,7 @@ export default async function WorldCinemaPage() {
 
   return (
     <Shell>
-      <main className="mx-auto max-w-[1440px] px-5 pb-24 pt-10 lg:px-8">
+      <div className="mx-auto max-w-[1440px] px-5 pb-24 pt-10 lg:px-8">
         <header className="max-w-2xl">
           <p className="eyebrow">Legitimate metadata rails</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-white font-display md:text-5xl">World Cinema</h1>
@@ -54,7 +54,7 @@ export default async function WorldCinemaPage() {
           ))}
           {successful.length === 0 && <CatalogFailureState error={rails[0]?.error} />}
         </div>
-      </main>
+      </div>
     </Shell>
   )
 }

@@ -26,6 +26,18 @@ describe('playback provider registry and resolver', () => {
     expect(result.sources.every((source) => source.authorizationStatus === 'unverified')).toBe(true)
   })
 
+  it('uses a caller-owned health snapshot instead of reading browser storage during render', () => {
+    const result = resolvePlaybackSources({
+      mediaType: 'movie',
+      mediaId: 603,
+      providerHealth: {
+        videasy: { attempts: 10, successes: 10, successEWMA: 1, startupLatencyEWMA: 100 },
+      },
+    })
+
+    expect(result.sources[0]?.providerId).toBe('videasy')
+  })
+
   it('does not fabricate Anime sources when no provider supports Anime', () => {
     const result = resolvePlaybackSources({ mediaType: 'anime', mediaId: 1, episode: 1 })
 

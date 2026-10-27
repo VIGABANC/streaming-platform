@@ -33,3 +33,13 @@
 
 This matrix is intentionally conservative: a passing local test cannot upgrade an
 external provider capability or legal/product gate to verified status.
+
+## 2026-10-27 current worktree addendum
+
+The current registry does not contain `vidsrc.wiki`; the five configured
+external providers are `vidfast`, `vidlink`, `2embed`, `videasy`, and
+`nontongo`. Their subtitle/audio/quality capabilities remain provider-owned or
+unsupported, and no provider has authorization evidence or a trusted event
+channel. Current local evidence is 38 Vitest files / 176 tests, Chromium
+125/125, Mobile Chrome 125/125, typecheck/lint/build pass, and zero high-severity
+dependency vulnerabilities. This does not alter the external playback verdict.

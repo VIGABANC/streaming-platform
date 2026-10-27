@@ -213,7 +213,7 @@ export default function ProfilePage() {
                     <p className="mt-1 text-xs sm:text-sm text-white/70 max-w-lg leading-relaxed">
                       {profile.bio}
                     </p>
-                    <p className="mt-2 text-[11px] text-white/40">Member since {joinedDateStr}</p>
+                    <p className="mt-2 text-[11px] text-white/60">Member since {joinedDateStr}</p>
                   </>
                 )}
               </div>

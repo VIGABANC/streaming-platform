@@ -176,7 +176,6 @@ export function HeroCarousel({ items, autoSlideIntervalMs = 7000 }: HeroCarousel
 
           <button
             type="button"
-            aria-label={`${inWatchlist ? 'Remove from' : 'Add to'} Watchlist: ${title}`}
             aria-pressed={inWatchlist}
             onClick={toggleWatchlist}
             className={`inline-flex h-12 items-center gap-2 rounded-full px-6 font-semibold text-xs transition-all hover:scale-[1.03] active:scale-[0.98] touch-target ${

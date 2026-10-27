@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { Clock, Calendar, Star, Film, ChevronRight, Layers } from 'lucide-react'
 import { Shell } from '@/components/layout/Shell'
 import { MediaRail } from '@/components/media/MediaRail'
@@ -22,6 +23,7 @@ import {
 } from '@/lib/tmdb'
 import { formatRating } from '@/lib/utils'
 import { serializeJsonLd } from '@/lib/seo/json-ld'
+import { isStrictPositiveInteger } from '@/lib/player'
 
 interface MoviePageProps {
   params: Promise<{ id: string }>
@@ -53,6 +55,7 @@ export async function generateMetadata({ params }: MoviePageProps): Promise<Meta
 
 export default async function MovieDetailPage({ params }: MoviePageProps) {
   const { id } = await params
+  if (!isStrictPositiveInteger(id)) notFound()
   let movie: MovieDetail | null = null
 
   try {

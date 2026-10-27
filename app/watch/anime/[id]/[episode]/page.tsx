@@ -34,7 +34,7 @@ export default async function AnimeWatchPage({ params }: AnimeWatchPageProps) {
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
             VEYRA has no verified anime episode provider. No iframe or playback claim is presented.
           </p>
-          <p className="mt-3 text-xs text-white/45">Anime {id} · Episode {episode}</p>
+          <p className="mt-3 text-xs text-white/60">Anime {id} · Episode {episode}</p>
         </div>
       </div>
     </Shell>

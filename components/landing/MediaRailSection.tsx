@@ -53,7 +53,7 @@ export function MediaRailSection({ id, title, subtitle, items, href }: MediaRail
         <div className="max-w-2xl"><h2 id={headingId} className="section-title">{title}</h2>{subtitle ? <p className="mt-2 text-sm leading-6 text-white/60">{subtitle}</p> : null}</div>
         {href ? <Link href={href} className="shrink-0 text-sm font-semibold text-amber-300 transition-colors hover:text-amber-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300">Browse<span aria-hidden="true"> →</span></Link> : null}
       </header>
-      {cards.length ? <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-4 sm:-mx-6 sm:px-6 lg:-mx-12 lg:px-12" role="list" aria-label={title}>{cards.map((item) => <div key={`${item.media_type ?? 'movie'}-${item.id}`} data-rail-card data-rail-reveal className="shrink-0" role="listitem"><MediaPosterCard item={item} /></div>)}</div> : <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-white/60">The signal is quiet for now. Check back shortly.</p>}
+      {cards.length ? <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-4 sm:-mx-6 sm:px-6 lg:-mx-12 lg:px-12" role="list" aria-label={title} tabIndex={0}>{cards.map((item) => <div key={`${item.media_type ?? 'movie'}-${item.id}`} data-rail-card data-rail-reveal className="shrink-0" role="listitem"><MediaPosterCard item={item} /></div>)}</div> : <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-white/60">The signal is quiet for now. Check back shortly.</p>}
     </div>
   </section>
 }

@@ -164,7 +164,7 @@ export default function HistoryPage() {
                         <p className="text-xs text-white/60 truncate">{item.episodeTitle}</p>
                       )}
 
-                      <div className="mt-1 flex items-center gap-1 text-[11px] text-white/40">
+                      <div className="mt-1 flex items-center gap-1 text-[11px] text-white/60">
                         <Clock size={11} />
                         <span>Watched {dateStr}</span>
                       </div>

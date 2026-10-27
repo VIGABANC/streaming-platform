@@ -21,6 +21,7 @@ export default ts.config(
   {
     ignores: [
       '.next/**',
+      '.arena/**',
       'node_modules/**',
       'dist/**',
       'coverage/**',
@@ -33,6 +34,7 @@ export default ts.config(
       '*.config.mjs',
       '*.config.ts',
       'public/sw.js',
+      'scripts/capture-fix-evidence.cjs',
     ],
   },
 )

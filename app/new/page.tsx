@@ -54,7 +54,7 @@ export default async function NewReleasesPage() {
               New & Trending Releases
             </h1>
           </div>
-          <span className="rounded-full bg-primary/10 border border-primary/30 px-3 py-1 text-xs font-bold text-primary">
+          <span className="rounded-full bg-primary/10 border border-primary/30 px-3 py-1 text-xs font-bold text-red-300">
             Fresh Catalog
           </span>
         </div>

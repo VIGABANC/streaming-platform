@@ -38,7 +38,7 @@ export default async function ProviderPage({ params, searchParams }: { params: P
   }
   const catalogProvider = foundProvider as WatchProvider | undefined
   if (!catalogProvider) {
-    return <Shell><main className="px-6 py-24 text-center lg:px-10"><p className="eyebrow">Signal not found</p><h1 className="mt-3 text-4xl font-bold text-white">That provider is off-air.</h1><Link href="/" className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"><ArrowLeft className="size-4" /> Return home</Link></main></Shell>
+    return <Shell><div className="px-6 py-24 text-center lg:px-10"><p className="eyebrow">Signal not found</p><h1 className="mt-3 text-4xl font-bold text-white">That provider is off-air.</h1><Link href="/" className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-red-300 hover:underline"><ArrowLeft className="size-4" /> Return home</Link></div></Shell>
   }
 
   const selectedType = query.type === 'tv' ? 'tv' : query.type === 'movie' ? 'movie' : 'all'
@@ -46,7 +46,7 @@ export default async function ProviderPage({ params, searchParams }: { params: P
   const label = catalogProvider.provider_name.replace('Amazon Prime Video', 'Prime Video').replace('HBO Max', 'Max')
 
   return <Shell>
-    <main className="px-5 pb-24 pt-10 lg:px-10">
+    <div className="px-5 pb-24 pt-10 lg:px-10">
       <div className="mx-auto max-w-[1440px]">
         <Link href="/#streaming-providers" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/50 transition hover:text-white"><ArrowLeft className="size-4" /> All signals</Link>
         <header className="mt-10 flex flex-col gap-7 border-b border-white/10 pb-10 md:flex-row md:items-end md:justify-between">
@@ -58,6 +58,6 @@ export default async function ProviderPage({ params, searchParams }: { params: P
         </header>
         <div className="mt-10 space-y-12">{(selectedType === 'all' || selectedType === 'movie') && <MediaRail title="Newest movies" items={movies} />}{(selectedType === 'all' || selectedType === 'tv') && <MediaRail title="Newest series" items={shows} />}{((selectedType === 'movie' && movies.length === 0) || (selectedType === 'tv' && shows.length === 0) || (selectedType === 'all' && movies.length === 0 && shows.length === 0)) && <div className="rounded-2xl border border-white/10 bg-white/[.03] px-6 py-16 text-center"><p className="text-lg font-semibold text-white">No titles found for this signal.</p><p className="mt-2 text-sm text-white/50">Try another catalog or return to all providers.</p></div>}</div>
       </div>
-    </main>
+    </div>
   </Shell>
 }

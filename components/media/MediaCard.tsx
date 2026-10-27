@@ -51,7 +51,6 @@ export function MediaCard({ item, landscape = false, priority = false }: MediaCa
     >
       <Link
         href={href}
-        aria-label={`${title} — view details`}
         className="card-hover-glow block overflow-hidden rounded-xl bg-[#0A0D14] shadow-lg outline-none ring-1 ring-white/8 focus-visible:ring-2 focus-visible:ring-primary"
       >
         {/* Poster / Backdrop */}

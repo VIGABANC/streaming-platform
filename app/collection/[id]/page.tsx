@@ -105,7 +105,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
             {/* Info Column */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2.5 text-xs">
-                <span className="flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/30 px-3 py-1 font-semibold text-primary">
+                <span className="flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/30 px-3 py-1 font-semibold text-red-300">
                   <Layers size={12} />
                   Movie Franchise Collection
                 </span>
@@ -173,7 +173,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
               className="relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0A0D14] p-3 transition-all hover:border-primary/40 hover:shadow-xl group"
             >
               <div className="flex items-center justify-between text-xs text-white/50 mb-2">
-                <span className="font-mono font-bold text-primary">Part {index + 1}</span>
+                <span className="font-mono font-bold text-red-300">Part {index + 1}</span>
                 <span>{yearOf(movie)}</span>
               </div>
 
@@ -188,6 +188,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Link
                     href={`/watch/movie/${movie.id}`}
+                    aria-label={`Play ${titleOf(movie)}`}
                     className="grid size-11 place-items-center rounded-full bg-primary text-white shadow-lg scale-90 group-hover:scale-100 transition-transform"
                   >
                     <Play size={16} fill="white" className="ml-0.5" />

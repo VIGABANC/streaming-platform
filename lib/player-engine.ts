@@ -1,4 +1,11 @@
-import { type PlaybackRequest, type PlaybackSource, type PlaybackMediaType, type ProviderUrlOptions } from '@/lib/player'
+import {
+  PROVIDERS,
+  type PlaybackRequest,
+  type PlaybackSource,
+  type PlaybackMediaType,
+  type ProviderUrlOptions,
+  validatePlaybackUrl,
+} from '@/lib/player'
 import { getPlaybackSource } from '@/lib/playback-resolver'
 
 export type PlaybackEngineKind = 'external-embed' | 'native-media'
@@ -26,7 +33,16 @@ export const ExternalEmbedEngine: PlaybackEngine = {
   ownsMediaControls: false,
   canVerifyPlayback: false,
   getSource(context) {
-    if (context.source?.mode === 'external-embed') return context.source.url
+    if (context.source?.mode === 'external-embed') {
+      if (context.source.providerId !== context.providerId) return null
+      const provider = PROVIDERS.find((candidate) => candidate.id === context.providerId)
+      if (!provider) return null
+      try {
+        return validatePlaybackUrl(context.source.url, provider)
+      } catch {
+        return null
+      }
+    }
     const request: PlaybackRequest = {
       mediaType: context.mediaType,
       mediaId: context.mediaId,

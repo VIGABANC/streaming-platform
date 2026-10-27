@@ -96,7 +96,7 @@ export default function TVPage() {
           </div>
           <Link
             href="/discover?type=tv"
-            className="text-xs font-semibold text-primary hover:underline underline-offset-4"
+            className="text-xs font-semibold text-red-300 hover:underline underline-offset-4"
           >
             Advanced filters →
           </Link>

@@ -34,3 +34,12 @@ responses did not expose the expected player iframe/server controls in time.
 All four providers therefore remain unavailable for verified playback claims.
 An iframe response or frame load does not establish playback, quality,
 subtitles, or audio.
+
+## 2026-10-27 current registry addendum
+
+The historical table above predates the current source registry. The current
+providers are `vidfast`, `vidlink`, `2embed`, `videasy`, and `nontongo`; all are
+Tier C opaque external frames with unknown provider-owned events and no VEYRA
+authorization evidence. None is promoted to verified playback. Subtitle/audio
+preferences, quality, progress, and completion remain provider-controlled or
+unsupported unless documented and independently verified for that exact origin.

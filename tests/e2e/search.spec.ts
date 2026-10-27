@@ -26,6 +26,19 @@ test.describe('Search Flow', () => {
     await expect(page).toHaveURL(/q=Spider/)
   })
 
+  test('landing search affordances open the full search page responsively', async ({ page }) => {
+    await page.goto('/')
+    if ((page.viewportSize()?.width ?? 0) < 768) {
+      const menuButton = page.locator('button[aria-controls="landing-mobile-menu"]')
+      await menuButton.click()
+      await page.locator('#landing-mobile-menu a[href="/search"]').click()
+    } else {
+      await page.getByRole('link', { name: 'Open search' }).click()
+    }
+    await expect(page).toHaveURL(/\/search$/)
+    await expect(page.getByRole('textbox', { name: 'Search movies and series' })).toBeVisible()
+  })
+
   test('clearing input resets search query and URL', async ({ page }) => {
     await page.goto('/search?q=Avatar')
     const input = page.getByRole('textbox', { name: 'Search movies and series' })

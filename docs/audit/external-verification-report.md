@@ -189,3 +189,27 @@ release verification:
   hosted Supabase and browser/session-expiry verification remain external.
 
 No external requirement is promoted to verified status from this recheck.
+
+## 2026-10-28 Vercel Preview recheck
+
+The latest GitHub-linked Preview is now reachable and renders the VEYRA landing
+page. The deployed `/api/health/providers` route now returns JSON rather than
+HTML. Its current response classified 2Embed as `healthy`, while VidFast,
+VidLink, Videasy, and Nontongo were `embed-unavailable`; Consumet was
+`unreachable`.
+
+Manual browser checks on the deployed Preview produced these results:
+
+- Movie `/watch/movie/550`: the page rendered the provider boundary and showed
+  `2Embed UNVERIFIED`, `Connecting to 2Embed…`, and no native progress or
+  playing evidence.
+- TV `/watch/tv/1399/1/1`: the page rendered `VidFast UNVERIFIED`; after
+  loading, the nested frame showed `This content is blocked. Contact the site
+  owner to fix the issue.` No playback evidence was observed.
+- Anime `/watch/anime/52991/1`: the page showed the intentional unavailable
+  state and no iframe.
+
+The Preview is therefore reachable and its provider-health API is functioning,
+but deployed playback remains unverified and the release classification stays
+**BLOCKED**. No provider security, ad link, DRM, or deployment protection was
+bypassed.

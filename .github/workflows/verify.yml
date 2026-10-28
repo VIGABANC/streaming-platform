@@ -3,7 +3,7 @@ name: Verify VEYRA
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, fix/veyra-release-verification]
   pull_request:
     branches: [main]
 
